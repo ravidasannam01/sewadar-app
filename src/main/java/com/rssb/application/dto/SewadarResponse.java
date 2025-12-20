@@ -20,5 +20,8 @@ public class SewadarResponse {
     private String mobile;
     private AddressResponse address;
     private String remarks;
+    private String role;
+    private java.time.LocalDate joiningDate;
+    private String profession;
 }
 

@@ -7,134 +7,293 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div class="container">
-        <header>
+    <!-- Login Screen -->
+    <div id="login-screen" class="login-container">
+        <div class="login-box">
             <h1>🏛️ Sewadar Management System</h1>
+            <h2>Login</h2>
+            <form id="login-form" onsubmit="handleLogin(event)">
+                <div class="form-group">
+                    <label>Mobile Number</label>
+                    <input type="text" id="login-mobile" placeholder="Enter mobile number" required>
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="login-password" placeholder="Enter password" required>
+                </div>
+                <button type="submit" class="btn btn-primary btn-block">Login</button>
+            </form>
+            <div id="login-error" class="error-message"></div>
+        </div>
+    </div>
+
+    <!-- Main Application -->
+    <div id="main-app" class="container" style="display: none;">
+        <header>
+            <div class="header-content">
+                <h1>🏛️ Sewadar Management System</h1>
+                <div class="user-info">
+                    <span id="user-name"></span>
+                    <span id="user-role" class="role-badge"></span>
+                    <button class="btn btn-sm btn-secondary" onclick="logout()">Logout</button>
+                </div>
+            </div>
         </header>
 
         <div class="tabs">
-            <button class="tab-btn active" onclick="showTab('sewadars')">Sewadars</button>
-            <button class="tab-btn" onclick="showTab('schedules')">Schedules</button>
+            <button class="tab-btn active" onclick="showTab('programs')">Programs</button>
+            <button class="tab-btn" onclick="showTab('applications')">My Applications</button>
+            <button class="tab-btn" onclick="showTab('selections')">My Selections</button>
+            <button class="tab-btn" onclick="showTab('actions')">Actions</button>
+            <button id="admin-tab-btn" class="tab-btn" onclick="showTab('admin')" style="display: none;">Admin</button>
         </div>
 
-        <!-- Sewadars Tab -->
-        <div id="sewadars-tab" class="tab-content active">
+        <!-- Programs Tab -->
+        <div id="programs-tab" class="tab-content active">
             <div class="section-header">
-                <h2>Sewadars</h2>
-                <button class="btn btn-primary" onclick="showSewadarForm()">+ Add Sewadar</button>
+                <h2>Programs</h2>
+                <button id="create-program-btn" class="btn btn-primary" onclick="showProgramForm()" style="display: none;">+ Create Program</button>
             </div>
-
-            <div id="sewadars-list" class="list-container">
+            <div id="programs-list" class="list-container">
                 <p>Loading...</p>
             </div>
+        </div>
 
-            <!-- Sewadar Form Modal -->
-            <div id="sewadar-modal" class="modal">
-                <div class="modal-content">
-                    <span class="close" onclick="closeSewadarForm()">&times;</span>
-                    <h3 id="sewadar-form-title">Add Sewadar</h3>
-                    <form id="sewadar-form" onsubmit="saveSewadar(event)">
-                        <input type="hidden" id="sewadar-id">
-                        
-                        <div class="form-group">
-                            <label>First Name *</label>
-                            <input type="text" id="sewadar-firstName" required>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label>Last Name *</label>
-                            <input type="text" id="sewadar-lastName" required>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label>Department</label>
-                            <input type="text" id="sewadar-dept">
-                        </div>
-                        
-                        <div class="form-group">
-                            <label>Mobile</label>
-                            <input type="text" id="sewadar-mobile">
-                        </div>
-                        
-                        <div class="form-group">
-                            <label>Address Line 1</label>
-                            <input type="text" id="sewadar-address1" placeholder="Street address, building number">
-                        </div>
-                        
-                        <div class="form-group">
-                            <label>Address Line 2</label>
-                            <input type="text" id="sewadar-address2" placeholder="Apartment, suite, floor (optional)">
-                        </div>
-                        
-                        <div class="form-group">
-                            <label>Email</label>
-                            <input type="email" id="sewadar-email" placeholder="email@example.com">
-                        </div>
-                        
-                        <div class="form-group">
-                            <label>Remarks</label>
-                            <textarea id="sewadar-remarks"></textarea>
-                        </div>
-                        
-                        <div class="form-actions">
-                            <button type="submit" class="btn btn-primary">Save</button>
-                            <button type="button" class="btn btn-secondary" onclick="closeSewadarForm()">Cancel</button>
-                        </div>
-                    </form>
+        <!-- Applications Tab -->
+        <div id="applications-tab" class="tab-content">
+            <div class="section-header">
+                <h2>My Applications</h2>
+            </div>
+            <div id="applications-list" class="list-container">
+                <p>Loading...</p>
+            </div>
+        </div>
+
+        <!-- Selections Tab -->
+        <div id="selections-tab" class="tab-content">
+            <div class="section-header">
+                <h2>My Selections</h2>
+            </div>
+            <div id="selections-list" class="list-container">
+                <p>Loading...</p>
+            </div>
+        </div>
+
+        <!-- Actions Tab -->
+        <div id="actions-tab" class="tab-content">
+            <div class="section-header">
+                <h2>Pending Actions</h2>
+            </div>
+            <div id="actions-list" class="list-container">
+                <p>Loading...</p>
+            </div>
+        </div>
+
+        <!-- Admin Tab (Incharge Only) -->
+        <div id="admin-tab" class="tab-content">
+            <div class="section-header">
+                <h2>Admin Panel</h2>
+            </div>
+            <div class="admin-panel">
+                <div class="admin-section">
+                    <h3>Sewadar Management</h3>
+                    <button class="btn btn-primary" onclick="showSewadarForm()">+ Add Sewadar</button>
+                    <button class="btn btn-secondary" onclick="loadAllSewadars()">View All Sewadars</button>
+                    <div id="sewadars-list" class="list-container" style="margin-top: 20px;"></div>
+                </div>
+                <div class="admin-section">
+                    <h3>Program Management</h3>
+                    <button class="btn btn-primary" onclick="showProgramForm()">Create Program</button>
+                    <button class="btn btn-secondary" onclick="loadAllPrograms()">View All Programs</button>
+                </div>
+                <div class="admin-section">
+                    <h3>Program Applications</h3>
+                    <div id="admin-programs-list"></div>
+                    <div id="admin-applications"></div>
+                </div>
+                <div class="admin-section">
+                    <h3>Attendance</h3>
+                    <button class="btn btn-primary" onclick="showAllSewadarsAttendance()">View All Sewadars Attendance</button>
+                    <button class="btn btn-secondary" onclick="showSewadarAttendanceForm()">View Individual Sewadar</button>
+                    <div id="admin-attendance"></div>
+                </div>
+                <div class="admin-section">
+                    <h3>Selections</h3>
+                    <div id="admin-selections"></div>
                 </div>
             </div>
         </div>
 
-        <!-- Schedules Tab -->
-        <div id="schedules-tab" class="tab-content">
-            <div class="section-header">
-                <h2>Schedules</h2>
-                <button class="btn btn-primary" onclick="showScheduleForm()">+ Add Schedule</button>
+        <!-- Program Form Modal -->
+        <div id="program-modal" class="modal">
+            <div class="modal-content">
+                <span class="close" onclick="closeProgramForm()">&times;</span>
+                <h3 id="program-form-title">Create Program</h3>
+                <form id="program-form" onsubmit="saveProgram(event)">
+                    <input type="hidden" id="program-id">
+                    <div class="form-group">
+                        <label>Title *</label>
+                        <input type="text" id="program-title" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Description</label>
+                        <textarea id="program-description"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Location *</label>
+                        <input type="text" id="program-location" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Location Type *</label>
+                        <select id="program-location-type" required>
+                            <option value="NON_BEAS">Non-BEAS</option>
+                            <option value="BEAS">BEAS</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Program Dates * (Add multiple dates)</label>
+                        <div id="program-dates-container">
+                            <div class="date-input-group">
+                                <input type="date" class="program-date-input" required>
+                                <button type="button" class="btn btn-sm btn-danger" onclick="removeDateInput(this)">Remove</button>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-secondary" onclick="addDateInput()">+ Add Date</button>
+                    </div>
+                    <div class="form-group">
+                        <label>Max Sewadars</label>
+                        <input type="number" id="program-max-sewadars">
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">Save</button>
+                        <button type="button" class="btn btn-secondary" onclick="closeProgramForm()">Cancel</button>
+                    </div>
+                </form>
             </div>
+        </div>
 
-            <div id="schedules-list" class="list-container">
-                <p>Loading...</p>
+        <!-- Action Response Modal -->
+        <div id="action-response-modal" class="modal">
+            <div class="modal-content">
+                <span class="close" onclick="closeActionResponseForm()">&times;</span>
+                <h3 id="action-response-title">Respond to Action</h3>
+                <form id="action-response-form" onsubmit="submitActionResponse(event)">
+                    <input type="hidden" id="action-response-action-id">
+                    <div class="form-group">
+                        <label id="action-response-label">Response</label>
+                        <textarea id="action-response-data" required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Notes</label>
+                        <textarea id="action-response-notes"></textarea>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">Submit</button>
+                        <button type="button" class="btn btn-secondary" onclick="closeActionResponseForm()">Cancel</button>
+                    </div>
+                </form>
             </div>
+        </div>
 
-            <!-- Schedule Form Modal -->
-            <div id="schedule-modal" class="modal">
-                <div class="modal-content">
-                    <span class="close" onclick="closeScheduleForm()">&times;</span>
-                    <h3 id="schedule-form-title">Add Schedule</h3>
-                    <form id="schedule-form" onsubmit="saveSchedule(event)">
-                        <input type="hidden" id="schedule-id">
-                        
-                        <div class="form-group">
-                            <label>Scheduled Place *</label>
-                            <input type="text" id="schedule-place" required>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label>Scheduled Date *</label>
-                            <input type="date" id="schedule-date" required>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label>Scheduled Time *</label>
-                            <input type="time" id="schedule-time" required>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label>Scheduled Medium</label>
-                            <input type="text" id="schedule-medium">
-                        </div>
-                        
-                        <div class="form-group">
-                            <label>Attended By (Sewadar ID) *</label>
-                            <input type="number" id="schedule-attendedBy" required>
-                        </div>
-                        
-                        <div class="form-actions">
-                            <button type="submit" class="btn btn-primary">Save</button>
-                            <button type="button" class="btn btn-secondary" onclick="closeScheduleForm()">Cancel</button>
-                        </div>
-                    </form>
+        <!-- Program Applications Modal -->
+        <div id="program-applications-modal" class="modal">
+            <div class="modal-content" style="max-width: 900px;">
+                <span class="close" onclick="closeProgramApplicationsModal()">&times;</span>
+                <h3 id="program-applications-title">Applications</h3>
+                <div style="margin-bottom: 15px;">
+                    <label>Sort By: </label>
+                    <select id="sort-by-select" onchange="loadPrioritizedApplications()">
+                        <option value="priorityScore">Priority Score</option>
+                        <option value="attendance">Total Attendance</option>
+                        <option value="beasAttendance">BEAS Attendance</option>
+                        <option value="nonBeasAttendance">Non-BEAS Attendance</option>
+                        <option value="days">Total Days</option>
+                        <option value="beasDays">BEAS Days</option>
+                        <option value="nonBeasDays">Non-BEAS Days</option>
+                        <option value="profession">Profession</option>
+                        <option value="joiningDate">Joining Date</option>
+                    </select>
+                    <label style="margin-left: 15px;">Order: </label>
+                    <select id="sort-order-select" onchange="loadPrioritizedApplications()">
+                        <option value="desc">Descending</option>
+                        <option value="asc">Ascending</option>
+                    </select>
                 </div>
+                <div id="prioritized-applications-list" class="list-container"></div>
+            </div>
+        </div>
+
+        <!-- Sewadar Attendance Modal -->
+        <div id="sewadar-attendance-modal" class="modal">
+            <div class="modal-content" style="max-width: 800px;">
+                <span class="close" onclick="closeSewadarAttendanceModal()">&times;</span>
+                <h3>View Sewadar Attendance</h3>
+                <div class="form-group">
+                    <label>Select Sewadar:</label>
+                    <select id="sewadar-select-attendance" class="form-control" onchange="loadSewadarAttendanceSummary()">
+                        <option value="">-- Select Sewadar --</option>
+                    </select>
+                </div>
+                <div id="sewadar-attendance-details"></div>
+            </div>
+        </div>
+
+        <!-- Sewadar Form Modal -->
+        <div id="sewadar-modal" class="modal">
+            <div class="modal-content">
+                <span class="close" onclick="closeSewadarForm()">&times;</span>
+                <h3 id="sewadar-form-title">Add Sewadar</h3>
+                <form id="sewadar-form" onsubmit="saveSewadar(event)">
+                    <input type="hidden" id="sewadar-id">
+                    <div class="form-group">
+                        <label>First Name *</label>
+                        <input type="text" id="sewadar-first-name" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Last Name *</label>
+                        <input type="text" id="sewadar-last-name" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Mobile Number *</label>
+                        <input type="text" id="sewadar-mobile" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Password *</label>
+                        <input type="password" id="sewadar-password" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Department</label>
+                        <input type="text" id="sewadar-dept">
+                    </div>
+                    <div class="form-group">
+                        <label>Profession</label>
+                        <input type="text" id="sewadar-profession">
+                    </div>
+                    <div class="form-group">
+                        <label>Joining Date</label>
+                        <input type="date" id="sewadar-joining-date">
+                    </div>
+                    <div class="form-group">
+                        <label>Address Line 1</label>
+                        <input type="text" id="sewadar-address1">
+                    </div>
+                    <div class="form-group">
+                        <label>Address Line 2</label>
+                        <input type="text" id="sewadar-address2">
+                    </div>
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" id="sewadar-email">
+                    </div>
+                    <div class="form-group">
+                        <label>Remarks</label>
+                        <textarea id="sewadar-remarks"></textarea>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">Save</button>
+                        <button type="button" class="btn btn-secondary" onclick="closeSewadarForm()">Cancel</button>
+                    </div>
+                </form>
             </div>
         </div>
 
@@ -144,4 +303,3 @@
     <script src="app.js"></script>
 </body>
 </html>
-

@@ -90,5 +90,22 @@ public class SewadarController {
         sewadarService.deleteSewadar(id);
         return ResponseEntity.noContent().build();
     }
+
+    /**
+     * Promote a sewadar to incharge role.
+     * Only existing incharge can perform this action.
+     *
+     * @param sewadarId The sewadar ID to promote
+     * @param inchargeId The incharge ID performing the promotion
+     * @return The updated sewadar response
+     */
+    @PostMapping("/{sewadarId}/promote")
+    public ResponseEntity<SewadarResponse> promoteToIncharge(
+            @PathVariable Long sewadarId,
+            @RequestParam Long inchargeId) {
+        log.info("POST /api/sewadars/{}/promote - Promoting to incharge", sewadarId);
+        SewadarResponse updated = sewadarService.promoteToIncharge(sewadarId, inchargeId);
+        return ResponseEntity.ok(updated);
+    }
 }
 

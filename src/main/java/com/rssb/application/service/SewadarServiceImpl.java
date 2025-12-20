@@ -10,6 +10,7 @@ import com.rssb.application.repository.AddressRepository;
 import com.rssb.application.repository.SewadarRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,6 +28,7 @@ public class SewadarServiceImpl implements SewadarService {
 
     private final SewadarRepository sewadarRepository;
     private final AddressRepository addressRepository;
+    private final PasswordEncoder passwordEncoder;
 
     @Override
     @Transactional(readOnly = true)
@@ -49,9 +51,13 @@ public class SewadarServiceImpl implements SewadarService {
     @Override
     public SewadarResponse createSewadar(SewadarRequest request) {
         log.info("Creating new sewadar: {}", request);
-        Sewadar sewadar = mapToEntity(request);
+        
+        // Check if this is the first sewadar (no incharge exists) - allow creating as incharge
+        boolean noInchargeExists = sewadarRepository.findByRole(com.rssb.application.entity.Role.INCHARGE).isEmpty();
+        
+        Sewadar sewadar = mapToEntity(request, noInchargeExists);
         Sewadar savedSewadar = sewadarRepository.save(sewadar);
-        log.info("Sewadar created with id: {}", savedSewadar.getId());
+        log.info("Sewadar created with id: {} and role: {}", savedSewadar.getId(), savedSewadar.getRole());
         return mapToResponse(savedSewadar);
     }
 
@@ -66,6 +72,10 @@ public class SewadarServiceImpl implements SewadarService {
         sewadar.setDept(request.getDept());
         sewadar.setMobile(request.getMobile());
         sewadar.setRemarks(request.getRemarks());
+        sewadar.setJoiningDate(request.getJoiningDate());
+        sewadar.setProfession(request.getProfession());
+
+        // Role cannot be changed via regular update - use promoteToIncharge endpoint
 
         // Handle address - create or update address if address fields are provided
         if (hasAddressFields(request)) {
@@ -90,13 +100,68 @@ public class SewadarServiceImpl implements SewadarService {
         log.info("Sewadar deleted with id: {}", id);
     }
 
+    @Override
+    public SewadarResponse promoteToIncharge(Long sewadarId, Long inchargeId) {
+        log.info("Incharge {} promoting sewadar {} to incharge", inchargeId, sewadarId);
+        
+        Sewadar incharge = sewadarRepository.findById(inchargeId)
+                .orElseThrow(() -> new ResourceNotFoundException("Sewadar", "id", inchargeId));
+        
+        if (incharge.getRole() != com.rssb.application.entity.Role.INCHARGE) {
+            throw new IllegalArgumentException("Only incharge can promote sewadars to incharge");
+        }
+        
+        Sewadar sewadar = sewadarRepository.findById(sewadarId)
+                .orElseThrow(() -> new ResourceNotFoundException("Sewadar", "id", sewadarId));
+        
+        sewadar.setRole(com.rssb.application.entity.Role.INCHARGE);
+        Sewadar updated = sewadarRepository.save(sewadar);
+        log.info("Sewadar {} promoted to incharge", sewadarId);
+        return mapToResponse(updated);
+    }
+
+    // Keep this method for backward compatibility but mark as deprecated
+    @Deprecated
     private Sewadar mapToEntity(SewadarRequest request) {
+        return mapToEntity(request, false);
+    }
+
+    private Sewadar mapToEntity(SewadarRequest request, boolean allowInchargeCreation) {
         Sewadar.SewadarBuilder builder = Sewadar.builder()
                 .firstName(request.getFirstName())
                 .lastName(request.getLastName())
                 .dept(request.getDept())
                 .mobile(request.getMobile())
-                .remarks(request.getRemarks());
+                .remarks(request.getRemarks())
+                .joiningDate(request.getJoiningDate())
+                .profession(request.getProfession());
+
+        // Role assignment logic:
+        // 1. If no incharge exists and allowInchargeCreation=true, create as INCHARGE
+        // 2. If role is explicitly requested and allowInchargeCreation=true, use it
+        // 3. Otherwise, default to SEWADAR
+        if (allowInchargeCreation) {
+            if (request.getRole() != null && !request.getRole().isEmpty()) {
+                try {
+                    builder.role(com.rssb.application.entity.Role.valueOf(request.getRole().toUpperCase()));
+                } catch (IllegalArgumentException e) {
+                    builder.role(com.rssb.application.entity.Role.SEWADAR);
+                }
+            } else {
+                // First user becomes incharge automatically
+                builder.role(com.rssb.application.entity.Role.INCHARGE);
+                log.info("No incharge exists - creating first sewadar as INCHARGE");
+            }
+        } else {
+            // Regular creation - always SEWADAR
+            builder.role(com.rssb.application.entity.Role.SEWADAR);
+        }
+
+        // Encrypt password (default password if not provided)
+        String password = request.getPassword() != null && !request.getPassword().isEmpty() 
+                ? request.getPassword() 
+                : "password123"; // Default password
+        builder.password(passwordEncoder.encode(password));
 
         // Create address if address fields are provided
         if (hasAddressFields(request)) {
@@ -158,7 +223,10 @@ public class SewadarServiceImpl implements SewadarService {
                 .lastName(sewadar.getLastName())
                 .dept(sewadar.getDept())
                 .mobile(sewadar.getMobile())
-                .remarks(sewadar.getRemarks());
+                .remarks(sewadar.getRemarks())
+                .role(sewadar.getRole() != null ? sewadar.getRole().name() : "SEWADAR")
+                .joiningDate(sewadar.getJoiningDate())
+                .profession(sewadar.getProfession());
 
         if (sewadar.getAddress() != null) {
             Address address = sewadar.getAddress();

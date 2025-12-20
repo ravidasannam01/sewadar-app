@@ -1,0 +1,76 @@
+package com.rssb.application.controller;
+
+import com.rssb.application.dto.ProgramApplicationRequest;
+import com.rssb.application.dto.ProgramApplicationResponse;
+import com.rssb.application.service.ProgramApplicationService;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/program-applications")
+@RequiredArgsConstructor
+@Slf4j
+@CrossOrigin(origins = "*")
+public class ProgramApplicationController {
+
+    private final ProgramApplicationService applicationService;
+
+    @PostMapping
+    public ResponseEntity<ProgramApplicationResponse> applyToProgram(@Valid @RequestBody ProgramApplicationRequest request) {
+        log.info("POST /api/program-applications - Applying to program");
+        return ResponseEntity.status(HttpStatus.CREATED).body(applicationService.applyToProgram(request));
+    }
+
+    @GetMapping("/program/{programId}")
+    public ResponseEntity<List<ProgramApplicationResponse>> getApplicationsByProgram(@PathVariable Long programId) {
+        return ResponseEntity.ok(applicationService.getApplicationsByProgram(programId));
+    }
+
+    @GetMapping("/sewadar/{sewadarId}")
+    public ResponseEntity<List<ProgramApplicationResponse>> getApplicationsBySewadar(@PathVariable Long sewadarId) {
+        return ResponseEntity.ok(applicationService.getApplicationsBySewadar(sewadarId));
+    }
+
+    /**
+     * Get prioritized applications for a program with sorting options
+     * @param programId Program ID
+     * @param sortBy Sort by: attendance, beasAttendance, nonBeasAttendance, days, beasDays, nonBeasDays, profession, joiningDate, priorityScore
+     * @param order Sort order: asc or desc (default: desc)
+     */
+    @GetMapping("/program/{programId}/prioritized")
+    public ResponseEntity<List<com.rssb.application.dto.PrioritizedApplicationResponse>> getPrioritizedApplications(
+            @PathVariable Long programId,
+            @RequestParam(required = false, defaultValue = "priorityScore") String sortBy,
+            @RequestParam(required = false, defaultValue = "desc") String order) {
+        log.info("GET /api/program-applications/program/{}/prioritized - sortBy: {}, order: {}", programId, sortBy, order);
+        return ResponseEntity.ok(applicationService.getPrioritizedApplications(programId, sortBy, order));
+    }
+
+    @PutMapping("/{id}/status")
+    public ResponseEntity<ProgramApplicationResponse> updateStatus(
+            @PathVariable Long id,
+            @RequestParam String status) {
+        return ResponseEntity.ok(applicationService.updateApplicationStatus(id, status));
+    }
+
+    /**
+     * Sewadar drops consent for a program
+     */
+    @PutMapping("/{id}/drop")
+    public ResponseEntity<ProgramApplicationResponse> dropConsent(@PathVariable Long id) {
+        return ResponseEntity.ok(applicationService.updateApplicationStatus(id, "DROPPED"));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteApplication(@PathVariable Long id) {
+        applicationService.deleteApplication(id);
+        return ResponseEntity.noContent().build();
+    }
+}
+

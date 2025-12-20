@@ -32,5 +32,11 @@ public class SewadarRequest {
     private String email;
 
     private String remarks;
+
+    // Role and additional fields
+    private String role; // INCHARGE or SEWADAR (not set during creation)
+    private java.time.LocalDate joiningDate;
+    private String profession;
+    private String password; // Password for login (optional, defaults to "password123")
 }
 

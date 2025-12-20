@@ -34,8 +34,8 @@ public class Sewadar {
     @Column(name = "dept", length = 100)
     private String dept;
 
-    @Column(name = "mobile", length = 20)
-    private String mobile;
+    @Column(name = "mobile", length = 20, unique = true)
+    private String mobile; // Mobile number used as username (must be unique)
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "address_id")
@@ -43,6 +43,20 @@ public class Sewadar {
 
     @Column(name = "remarks", length = 500)
     private String remarks;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "role", nullable = false)
+    @Builder.Default
+    private Role role = Role.SEWADAR;
+
+    @Column(name = "joining_date")
+    private java.time.LocalDate joiningDate;
+
+    @Column(name = "profession", length = 100)
+    private String profession;
+
+    @Column(name = "password", nullable = false)
+    private String password; // Encrypted password
 
     @OneToMany(mappedBy = "attendedBy", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
