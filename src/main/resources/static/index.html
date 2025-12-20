@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sewadar Management System</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🏛️ Sewadar Management System</h1>
+        </header>
+
+        <div class="tabs">
+            <button class="tab-btn active" onclick="showTab('sewadars')">Sewadars</button>
+            <button class="tab-btn" onclick="showTab('schedules')">Schedules</button>
+        </div>
+
+        <!-- Sewadars Tab -->
+        <div id="sewadars-tab" class="tab-content active">
+            <div class="section-header">
+                <h2>Sewadars</h2>
+                <button class="btn btn-primary" onclick="showSewadarForm()">+ Add Sewadar</button>
+            </div>
+
+            <div id="sewadars-list" class="list-container">
+                <p>Loading...</p>
+            </div>
+
+            <!-- Sewadar Form Modal -->
+            <div id="sewadar-modal" class="modal">
+                <div class="modal-content">
+                    <span class="close" onclick="closeSewadarForm()">&times;</span>
+                    <h3 id="sewadar-form-title">Add Sewadar</h3>
+                    <form id="sewadar-form" onsubmit="saveSewadar(event)">
+                        <input type="hidden" id="sewadar-id">
+                        
+                        <div class="form-group">
+                            <label>First Name *</label>
+                            <input type="text" id="sewadar-firstName" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Last Name *</label>
+                            <input type="text" id="sewadar-lastName" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Department</label>
+                            <input type="text" id="sewadar-dept">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Mobile</label>
+                            <input type="text" id="sewadar-mobile">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Address Line 1</label>
+                            <input type="text" id="sewadar-address1" placeholder="Street address, building number">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Address Line 2</label>
+                            <input type="text" id="sewadar-address2" placeholder="Apartment, suite, floor (optional)">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Email</label>
+                            <input type="email" id="sewadar-email" placeholder="email@example.com">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Remarks</label>
+                            <textarea id="sewadar-remarks"></textarea>
+                        </div>
+                        
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">Save</button>
+                            <button type="button" class="btn btn-secondary" onclick="closeSewadarForm()">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Schedules Tab -->
+        <div id="schedules-tab" class="tab-content">
+            <div class="section-header">
+                <h2>Schedules</h2>
+                <button class="btn btn-primary" onclick="showScheduleForm()">+ Add Schedule</button>
+            </div>
+
+            <div id="schedules-list" class="list-container">
+                <p>Loading...</p>
+            </div>
+
+            <!-- Schedule Form Modal -->
+            <div id="schedule-modal" class="modal">
+                <div class="modal-content">
+                    <span class="close" onclick="closeScheduleForm()">&times;</span>
+                    <h3 id="schedule-form-title">Add Schedule</h3>
+                    <form id="schedule-form" onsubmit="saveSchedule(event)">
+                        <input type="hidden" id="schedule-id">
+                        
+                        <div class="form-group">
+                            <label>Scheduled Place *</label>
+                            <input type="text" id="schedule-place" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Scheduled Date *</label>
+                            <input type="date" id="schedule-date" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Scheduled Time *</label>
+                            <input type="time" id="schedule-time" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Scheduled Medium</label>
+                            <input type="text" id="schedule-medium">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Attended By (Sewadar ID) *</label>
+                            <input type="number" id="schedule-attendedBy" required>
+                        </div>
+                        
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">Save</button>
+                            <button type="button" class="btn btn-secondary" onclick="closeScheduleForm()">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div id="message" class="message"></div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
+
