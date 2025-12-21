@@ -60,11 +60,39 @@ public class ProgramApplicationController {
     }
 
     /**
-     * Sewadar drops consent for a program
+     * Sewadar requests to drop from a program (requires incharge approval)
      */
-    @PutMapping("/{id}/drop")
-    public ResponseEntity<ProgramApplicationResponse> dropConsent(@PathVariable Long id) {
-        return ResponseEntity.ok(applicationService.updateApplicationStatus(id, "DROPPED"));
+    @PutMapping("/{id}/request-drop")
+    public ResponseEntity<ProgramApplicationResponse> requestDrop(
+            @PathVariable Long id,
+            @RequestParam Long sewadarId) {
+        log.info("PUT /api/program-applications/{}/request-drop", id);
+        return ResponseEntity.ok(applicationService.requestDrop(id, sewadarId));
+    }
+
+    /**
+     * Incharge approves/rejects drop request
+     * @param id Application ID
+     * @param inchargeId Incharge ID
+     * @param allowReapply Whether sewadar can reapply (default: true)
+     */
+    @PutMapping("/{id}/approve-drop")
+    public ResponseEntity<ProgramApplicationResponse> approveDropRequest(
+            @PathVariable Long id,
+            @RequestParam Long inchargeId,
+            @RequestParam(required = false, defaultValue = "true") Boolean allowReapply) {
+        log.info("PUT /api/program-applications/{}/approve-drop - incharge: {}, allowReapply: {}", 
+                id, inchargeId, allowReapply);
+        return ResponseEntity.ok(applicationService.approveDropRequest(id, inchargeId, allowReapply));
+    }
+
+    /**
+     * Get drop requests for a program (for incharge)
+     */
+    @GetMapping("/program/{programId}/drop-requests")
+    public ResponseEntity<List<ProgramApplicationResponse>> getDropRequests(@PathVariable Long programId) {
+        log.info("GET /api/program-applications/program/{}/drop-requests", programId);
+        return ResponseEntity.ok(applicationService.getDropRequestsByProgram(programId));
     }
 
     @DeleteMapping("/{id}")

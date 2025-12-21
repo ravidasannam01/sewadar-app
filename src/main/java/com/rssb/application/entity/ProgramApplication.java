@@ -37,9 +37,22 @@ public class ProgramApplication {
 
     @Column(name = "status", length = 50)
     @Builder.Default
-    private String status = "PENDING"; // PENDING, APPROVED, REJECTED
+    private String status = "PENDING"; // PENDING, APPROVED, REJECTED, DROP_REQUESTED, DROPPED
 
     @Column(name = "notes", length = 500)
     private String notes;
+    
+    @Column(name = "reapply_allowed")
+    @Builder.Default
+    private Boolean reapplyAllowed = true; // If false, sewadar cannot reapply for this program
+    
+    @Column(name = "drop_requested_at")
+    private LocalDateTime dropRequestedAt; // When sewadar requested to drop
+    
+    @Column(name = "drop_approved_at")
+    private LocalDateTime dropApprovedAt; // When incharge approved drop
+    
+    @Column(name = "drop_approved_by")
+    private Long dropApprovedBy; // Incharge ID who approved drop
 }
 

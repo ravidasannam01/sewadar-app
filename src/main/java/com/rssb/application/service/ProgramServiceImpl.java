@@ -147,8 +147,10 @@ public class ProgramServiceImpl implements ProgramService {
                 .lastName(program.getCreatedBy().getLastName())
                 .build();
 
-        Long applicationCount = applicationRepository.countByProgramId(program.getId());
-        Long selectionCount = selectionRepository.countByProgramId(program.getId());
+        // Count only active applications (exclude DROPPED)
+        Long applicationCount = applicationRepository.findByProgramIdAndStatusNot(program.getId(), "DROPPED").stream().count();
+        // Count only active selections (exclude DROPPED)
+        Long selectionCount = selectionRepository.countByProgramIdAndStatusNot(program.getId(), "DROPPED");
 
         // Get program dates
         List<java.time.LocalDate> dates = programDateRepository.findByProgramIdOrderByProgramDateAsc(program.getId())

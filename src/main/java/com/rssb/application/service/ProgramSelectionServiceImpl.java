@@ -30,6 +30,8 @@ public class ProgramSelectionServiceImpl implements ProgramSelectionService {
     private final ProgramRepository programRepository;
     private final SewadarRepository sewadarRepository;
     private final AttendanceRepository attendanceRepository;
+    private final com.rssb.application.repository.NotificationRepository notificationRepository;
+    private final com.rssb.application.service.WhatsAppService whatsAppService;
 
     @Override
     public List<ProgramSelectionResponse> selectSewadars(ProgramSelectionRequest request) {
@@ -45,14 +47,27 @@ public class ProgramSelectionServiceImpl implements ProgramSelectionService {
             throw new IllegalArgumentException("Only incharge can select sewadars");
         }
 
+        // Check max_sewadars limit
+        long currentSelections = selectionRepository.countByProgramIdAndStatusNot(
+                request.getProgramId(), "DROPPED");
+        if (program.getMaxSewadars() != null && 
+            currentSelections + request.getSewadarIds().size() > program.getMaxSewadars()) {
+            throw new IllegalArgumentException(
+                String.format("Cannot select more than %d sewadars. Currently selected: %d, trying to add: %d",
+                    program.getMaxSewadars(), currentSelections, request.getSewadarIds().size()));
+        }
+
         return request.getSewadarIds().stream().map(sewadarId -> {
             Sewadar sewadar = sewadarRepository.findById(sewadarId)
                     .orElseThrow(() -> new ResourceNotFoundException("Sewadar", "id", sewadarId));
 
-            // Check if already selected
+            // Check if already selected (but allow if DROPPED)
             selectionRepository.findByProgramIdAndSewadarId(request.getProgramId(), sewadarId)
                     .ifPresent(existing -> {
-                        throw new IllegalArgumentException("Sewadar already selected for this program");
+                        if (!"DROPPED".equals(existing.getStatus())) {
+                            throw new IllegalArgumentException("Sewadar already selected for this program");
+                        }
+                        // If DROPPED, we'll create a new selection (or could update existing, but creating new is cleaner)
                     });
 
             // Calculate priority score
@@ -69,6 +84,15 @@ public class ProgramSelectionServiceImpl implements ProgramSelectionService {
 
             ProgramSelection saved = selectionRepository.save(selection);
             log.info("Sewadar {} selected for program {}", sewadarId, request.getProgramId());
+            
+            // Notify sewadar via WhatsApp that they have been selected
+            String message = String.format("You have been selected for program '%s'. Please check the application for details and actions.", 
+                    program.getTitle());
+            if (sewadar.getMobile() != null) {
+                whatsAppService.sendMessage(sewadar.getMobile(), message);
+                log.info("Selection notification sent to sewadar {} via WhatsApp", sewadarId);
+            }
+            
             return mapToResponse(saved);
         }).collect(Collectors.toList());
     }
@@ -86,6 +110,7 @@ public class ProgramSelectionServiceImpl implements ProgramSelectionService {
     @Transactional(readOnly = true)
     public List<ProgramSelectionResponse> getSelectionsBySewadar(Long sewadarId) {
         log.info("Fetching selections for sewadar: {}", sewadarId);
+        // Include DROPPED for sewadar's own view (they should see their dropped selections)
         return selectionRepository.findBySewadarId(sewadarId).stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());

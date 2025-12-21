@@ -15,8 +15,14 @@ public interface ProgramSelectionRepository extends JpaRepository<ProgramSelecti
     Optional<ProgramSelection> findByProgramIdAndSewadarId(Long programId, Long sewadarId);
     List<ProgramSelection> findByStatus(String status);
     
-    @Query("SELECT ps FROM ProgramSelection ps WHERE ps.program.id = :programId ORDER BY ps.priorityScore DESC NULLS LAST")
+    @Query("SELECT ps FROM ProgramSelection ps WHERE ps.program.id = :programId AND ps.status != 'DROPPED' ORDER BY ps.priorityScore DESC NULLS LAST")
     List<ProgramSelection> findByProgramIdOrderByPriority(Long programId);
+    
+    @Query("SELECT ps FROM ProgramSelection ps WHERE ps.program.id = :programId ORDER BY ps.priorityScore DESC NULLS LAST")
+    List<ProgramSelection> findByProgramIdOrderByPriorityIncludingDropped(Long programId);
     long countByProgramId(Long programId);
+    
+    @Query("SELECT COUNT(ps) FROM ProgramSelection ps WHERE ps.program.id = :programId AND ps.status != :status")
+    long countByProgramIdAndStatusNot(Long programId, String status);
 }
 

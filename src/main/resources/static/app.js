@@ -154,7 +154,41 @@ async function loadPrograms() {
             return;
         }
 
-        listEl.innerHTML = programs.map(program => `
+        // For sewadars, check their applications to show Reapply button
+        let myApplications = [];
+        if (currentUser.role === 'SEWADAR') {
+            try {
+                const appsResponse = await fetch(`${API_BASE_URL}/program-applications/sewadar/${currentUser.id}`, {
+                    headers: getAuthHeaders()
+                });
+                if (appsResponse.ok) {
+                    myApplications = await appsResponse.json();
+                }
+            } catch (e) {
+                console.error('Error loading applications:', e);
+            }
+        }
+
+        listEl.innerHTML = programs.map(program => {
+            // Check if sewadar has dropped this program
+            const myApp = myApplications.find(a => a.programId === program.id);
+            let applyButton = '';
+            
+            if (currentUser.role === 'SEWADAR') {
+                if (myApp && myApp.status === 'DROPPED') {
+                    if (myApp.reapplyAllowed !== false) {
+                        applyButton = `<button class="btn btn-primary" onclick="reapplyToProgram(${program.id})">Reapply</button>`;
+                    } else {
+                        applyButton = `<span class="status-badge" style="background: red;">Reapply Not Allowed</span>`;
+                    }
+                } else if (!myApp || myApp.status === 'DROPPED') {
+                    applyButton = `<button class="btn btn-primary" onclick="applyToProgram(${program.id})">Apply</button>`;
+                } else {
+                    applyButton = `<span class="status-badge">${myApp.status}</span>`;
+                }
+            }
+            
+            return `
             <div class="card">
                 <div class="card-header">
                     <h3>${program.title}</h3>
@@ -166,17 +200,16 @@ async function loadPrograms() {
                     ` : ''}
                 </div>
                 <div class="card-body">
-                    <p><strong>Location:</strong> ${program.location}</p>
+                    <p><strong>Location:</strong> ${program.location} ${program.locationType ? `(${program.locationType})` : ''}</p>
                     <p><strong>Dates:</strong> ${program.programDates ? program.programDates.join(', ') : 'N/A'}</p>
                     <p><strong>Status:</strong> ${program.status}</p>
                     <p><strong>Applications:</strong> ${program.applicationCount || 0}</p>
-                    <p><strong>Selected:</strong> ${program.selectionCount || 0}</p>
-                    ${currentUser.role === 'SEWADAR' ? `
-                        <button class="btn btn-primary" onclick="applyToProgram(${program.id})">Apply</button>
-                    ` : ''}
+                    <p><strong>Selected:</strong> ${program.selectionCount || 0}${program.maxSewadars ? ` / ${program.maxSewadars}` : ''}</p>
+                    ${applyButton}
                 </div>
             </div>
-        `).join('');
+        `;
+        }).join('');
     } catch (error) {
         showMessage('Error loading programs: ' + error.message, 'error');
     }
@@ -307,38 +340,106 @@ async function loadMyApplications() {
             return;
         }
 
-        listEl.innerHTML = applications.map(app => `
+        listEl.innerHTML = applications.map(app => {
+            const statusClass = app.status.toLowerCase().replace('_', '-');
+            let actionButton = '';
+            
+            if (app.status === 'PENDING' || app.status === 'APPROVED') {
+                actionButton = `<button class="btn btn-danger" onclick="requestDrop(${app.id})">Request Drop</button>`;
+            } else if (app.status === 'DROP_REQUESTED') {
+                actionButton = `<span class="status-badge" style="background: orange;">Drop Request Pending</span>`;
+            } else if (app.status === 'DROPPED') {
+                if (app.reapplyAllowed !== false) {
+                    actionButton = `<button class="btn btn-primary" onclick="reapplyToProgram(${app.programId})">Reapply</button>`;
+                } else {
+                    actionButton = `<span class="status-badge" style="background: red;">Reapply Not Allowed</span>`;
+                }
+            }
+            
+            return `
             <div class="card">
                 <div class="card-header">
                     <h3>${app.programTitle}</h3>
-                    <span class="status-badge ${app.status.toLowerCase()}">${app.status}</span>
+                    <span class="status-badge ${statusClass}">${app.status}</span>
                 </div>
                 <div class="card-body">
                     <p><strong>Applied:</strong> ${new Date(app.appliedAt).toLocaleDateString()}</p>
-                    ${app.status === 'PENDING' ? `
-                        <button class="btn btn-danger" onclick="dropConsent(${app.id})">Drop Consent</button>
-                    ` : ''}
+                    ${app.dropRequestedAt ? `<p><strong>Drop Requested:</strong> ${new Date(app.dropRequestedAt).toLocaleDateString()}</p>` : ''}
+                    ${app.dropApprovedAt ? `<p><strong>Drop Approved:</strong> ${new Date(app.dropApprovedAt).toLocaleDateString()}</p>` : ''}
+                    ${actionButton}
                 </div>
             </div>
-        `).join('');
+        `;
+        }).join('');
     } catch (error) {
         showMessage('Error loading applications: ' + error.message, 'error');
     }
 }
 
-async function dropConsent(applicationId) {
-    if (!confirm('Drop consent for this program?')) return;
+async function requestDrop(applicationId) {
+    if (!confirm('Request to drop from this program? This requires incharge approval.')) return;
 
     try {
-        const response = await fetch(`${API_BASE_URL}/program-applications/${applicationId}/drop`, {
+        const response = await fetch(`${API_BASE_URL}/program-applications/${applicationId}/request-drop?sewadarId=${currentUser.id}`, {
             method: 'PUT',
             headers: getAuthHeaders()
         });
 
-        if (!response.ok) throw new Error('Failed to drop consent');
+        if (!response.ok) {
+            const error = await response.json().catch(() => ({ message: 'Failed to request drop' }));
+            throw new Error(error.message || 'Failed to request drop');
+        }
         
-        showMessage('Consent dropped successfully');
+        showMessage('Drop request submitted. Waiting for incharge approval.');
         loadMyApplications();
+    } catch (error) {
+        showMessage('Error: ' + error.message, 'error');
+    }
+}
+
+async function requestDropFromSelection(programId) {
+    // Find the application for this program
+    try {
+        const appsResponse = await fetch(`${API_BASE_URL}/program-applications/sewadar/${currentUser.id}`, {
+            headers: getAuthHeaders()
+        });
+        if (!appsResponse.ok) throw new Error('Failed to load applications');
+        
+        const applications = await appsResponse.json();
+        const app = applications.find(a => a.programId === programId);
+        
+        if (!app) {
+            showMessage('Application not found for this program', 'error');
+            return;
+        }
+        
+        await requestDrop(app.id);
+    } catch (error) {
+        showMessage('Error: ' + error.message, 'error');
+    }
+}
+
+async function reapplyToProgram(programId) {
+    if (!confirm('Reapply to this program?')) return;
+    
+    try {
+        const response = await fetch(`${API_BASE_URL}/program-applications`, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify({
+                programId: programId,
+                sewadarId: currentUser.id
+            })
+        });
+        
+        if (!response.ok) {
+            const error = await response.json().catch(() => ({ message: 'Failed to reapply' }));
+            throw new Error(error.message || 'Failed to reapply');
+        }
+        
+        showMessage('Reapplication submitted successfully!');
+        loadMyApplications();
+        loadPrograms();
     } catch (error) {
         showMessage('Error: ' + error.message, 'error');
     }
@@ -360,18 +461,51 @@ async function loadMySelections() {
             return;
         }
 
-        listEl.innerHTML = selections.map(sel => `
+        // Get applications to find drop request status
+        let myApplications = [];
+        try {
+            const appsResponse = await fetch(`${API_BASE_URL}/program-applications/sewadar/${currentUser.id}`, {
+                headers: getAuthHeaders()
+            });
+            if (appsResponse.ok) {
+                myApplications = await appsResponse.json();
+            }
+        } catch (e) {
+            console.error('Error loading applications:', e);
+        }
+        
+        listEl.innerHTML = selections.map(sel => {
+            const statusClass = sel.status.toLowerCase();
+            const myApp = myApplications.find(a => a.programId === sel.programId);
+            let actionButton = '';
+            
+            if (sel.status === 'SELECTED' || sel.status === 'CONFIRMED') {
+                // Find the application to request drop
+                if (myApp) {
+                    if (myApp.status === 'DROP_REQUESTED') {
+                        actionButton = `<span class="status-badge" style="background: orange;">Drop Request Pending</span>`;
+                    } else {
+                        actionButton = `<button class="btn btn-danger" onclick="requestDropFromSelection(${sel.programId})">Request Drop</button>`;
+                    }
+                }
+            } else if (sel.status === 'DROPPED') {
+                actionButton = `<span class="status-badge" style="background: red;">Dropped</span>`;
+            }
+            
+            return `
             <div class="card">
                 <div class="card-header">
                     <h3>${sel.programTitle}</h3>
-                    <span class="status-badge ${sel.status.toLowerCase()}">${sel.status}</span>
+                    <span class="status-badge ${statusClass}">${sel.status}</span>
                 </div>
                 <div class="card-body">
                     <p><strong>Selected on:</strong> ${new Date(sel.selectedAt).toLocaleDateString()}</p>
                     <p><strong>Status:</strong> ${sel.status}</p>
+                    ${actionButton}
                 </div>
             </div>
-        `).join('');
+        `;
+        }).join('');
     } catch (error) {
         showMessage('Error loading selections: ' + error.message, 'error');
     }
@@ -504,7 +638,26 @@ async function loadAdminProgramsList(programs) {
         return;
     }
     
-    listEl.innerHTML = programs.map(program => `
+    // Load drop requests for all programs
+    const dropRequestsMap = {};
+    for (const program of programs) {
+        try {
+            const dropResponse = await fetch(`${API_BASE_URL}/program-applications/program/${program.id}/drop-requests`, {
+                headers: getAuthHeaders()
+            });
+            if (dropResponse.ok) {
+                dropRequestsMap[program.id] = await dropResponse.json();
+            }
+        } catch (e) {
+            console.error('Error loading drop requests:', e);
+        }
+    }
+    
+    listEl.innerHTML = programs.map(program => {
+        const dropRequests = dropRequestsMap[program.id] || [];
+        const dropRequestsCount = dropRequests.length;
+        
+        return `
         <div class="card" style="margin-bottom: 15px;">
             <div class="card-header">
                 <h4>${program.title}</h4>
@@ -513,13 +666,22 @@ async function loadAdminProgramsList(programs) {
             <div class="card-body">
                 <p><strong>Location:</strong> ${program.location} (${program.locationType || 'NON_BEAS'})</p>
                 <p><strong>Applications:</strong> ${program.applicationCount || 0}</p>
-                <p><strong>Selected:</strong> ${program.selectionCount || 0}</p>
-                <button class="btn btn-primary" onclick="viewProgramApplications(${program.id}, '${program.title}')">
-                    View & Select Applications
-                </button>
+                <p><strong>Selected:</strong> ${program.selectionCount || 0}${program.maxSewadars ? ` / ${program.maxSewadars}` : ''}</p>
+                ${dropRequestsCount > 0 ? `<p style="color: orange;"><strong>Drop Requests:</strong> ${dropRequestsCount}</p>` : ''}
+                <div style="display: flex; gap: 10px; margin-top: 10px;">
+                    <button class="btn btn-primary" onclick="viewProgramApplications(${program.id}, '${program.title}')">
+                        View & Select Applications
+                    </button>
+                    ${dropRequestsCount > 0 ? `
+                        <button class="btn btn-warning" onclick="viewDropRequests(${program.id}, '${program.title}')">
+                            Review Drop Requests (${dropRequestsCount})
+                        </button>
+                    ` : ''}
+                </div>
             </div>
         </div>
-    `).join('');
+    `;
+    }).join('');
 }
 
 let currentProgramIdForApplications = null;
@@ -1037,9 +1199,132 @@ function loadInitialData() {
 // Initialize
 checkAuth();
 
+// Drop Request Functions
+let currentProgramIdForDropRequests = null;
+
+function viewDropRequests(programId, programTitle) {
+    currentProgramIdForDropRequests = programId;
+    document.getElementById('drop-requests-title').textContent = `Drop Requests for: ${programTitle}`;
+    document.getElementById('drop-requests-modal').style.display = 'block';
+    loadDropRequests();
+}
+
+function closeDropRequestsModal() {
+    document.getElementById('drop-requests-modal').style.display = 'none';
+    currentProgramIdForDropRequests = null;
+}
+
+async function loadDropRequests() {
+    if (!currentProgramIdForDropRequests) return;
+    
+    const listEl = document.getElementById('drop-requests-list');
+    listEl.innerHTML = '<p>Loading...</p>';
+    
+    try {
+        const response = await fetch(`${API_BASE_URL}/program-applications/program/${currentProgramIdForDropRequests}/drop-requests`, {
+            headers: getAuthHeaders()
+        });
+        
+        if (!response.ok) throw new Error('Failed to load drop requests');
+        
+        const dropRequests = await response.json();
+        
+        if (dropRequests.length === 0) {
+            listEl.innerHTML = '<p>No drop requests pending.</p>';
+            return;
+        }
+        
+        listEl.innerHTML = dropRequests.map(req => `
+            <div class="card" style="margin-bottom: 15px;">
+                <div class="card-header">
+                    <h4>${req.sewadar.firstName} ${req.sewadar.lastName}</h4>
+                    <span class="status-badge" style="background: orange;">DROP_REQUESTED</span>
+                </div>
+                <div class="card-body">
+                    <p><strong>Mobile:</strong> ${req.sewadar.mobile}</p>
+                    <p><strong>Applied:</strong> ${new Date(req.appliedAt).toLocaleDateString()}</p>
+                    <p><strong>Drop Requested:</strong> ${req.dropRequestedAt ? new Date(req.dropRequestedAt).toLocaleDateString() : 'N/A'}</p>
+                    <div style="margin-top: 15px;">
+                        <label>
+                            <input type="checkbox" id="allow-reapply-${req.id}" checked> Allow Reapply
+                        </label>
+                    </div>
+                    <div class="card-actions" style="margin-top: 15px; display: flex; gap: 10px;">
+                        <button class="btn btn-success" onclick="approveDropRequest(${req.id}, true)">
+                            Approve (Allow Reapply)
+                        </button>
+                        <button class="btn btn-warning" onclick="approveDropRequest(${req.id}, false)">
+                            Approve (No Reapply)
+                        </button>
+                        <button class="btn btn-secondary" onclick="rejectDropRequest(${req.id})">
+                            Reject
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    } catch (error) {
+        showMessage('Error loading drop requests: ' + error.message, 'error');
+        listEl.innerHTML = '<p>Error loading drop requests.</p>';
+    }
+}
+
+async function approveDropRequest(applicationId, allowReapply) {
+    try {
+        const response = await fetch(
+            `${API_BASE_URL}/program-applications/${applicationId}/approve-drop?inchargeId=${currentUser.id}&allowReapply=${allowReapply}`,
+            {
+                method: 'PUT',
+                headers: getAuthHeaders()
+            }
+        );
+        
+        if (!response.ok) {
+            const error = await response.json().catch(() => ({ message: 'Failed to approve drop request' }));
+            throw new Error(error.message || 'Failed to approve drop request');
+        }
+        
+        showMessage(`Drop request approved. ${allowReapply ? 'Reapply allowed.' : 'Reapply not allowed.'}`);
+        loadDropRequests();
+        loadAdminProgramsList(await getAdminPrograms());
+        loadPrioritizedApplications();
+    } catch (error) {
+        showMessage('Error: ' + error.message, 'error');
+    }
+}
+
+async function rejectDropRequest(applicationId) {
+    if (!confirm('Reject this drop request? The sewadar will remain in the program.')) {
+        return;
+    }
+    
+    try {
+        // Reject by setting status back to APPROVED or PENDING
+        const response = await fetch(`${API_BASE_URL}/program-applications/${applicationId}/status?status=APPROVED`, {
+            method: 'PUT',
+            headers: getAuthHeaders()
+        });
+        
+        if (!response.ok) throw new Error('Failed to reject drop request');
+        
+        showMessage('Drop request rejected. Sewadar remains in program.');
+        loadDropRequests();
+        loadAdminProgramsList(await getAdminPrograms());
+    } catch (error) {
+        showMessage('Error: ' + error.message, 'error');
+    }
+}
+
+async function getAdminPrograms() {
+    const response = await fetch(`${API_BASE_URL}/programs/incharge/${currentUser.id}`, {
+        headers: getAuthHeaders()
+    });
+    return response.ok ? await response.json() : [];
+}
+
 // Close modals on outside click
 window.onclick = function(event) {
-    const modals = ['program-modal', 'action-response-modal', 'sewadar-modal', 'program-applications-modal', 'sewadar-attendance-modal'];
+    const modals = ['program-modal', 'action-response-modal', 'sewadar-modal', 'program-applications-modal', 'sewadar-attendance-modal', 'drop-requests-modal'];
     modals.forEach(modalId => {
         const modal = document.getElementById(modalId);
         if (event.target === modal) {

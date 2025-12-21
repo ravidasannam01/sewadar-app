@@ -13,5 +13,8 @@ public interface ProgramApplicationService {
     void deleteApplication(Long id);
     List<com.rssb.application.dto.PrioritizedApplicationResponse> getPrioritizedApplications(
             Long programId, String sortBy, String order);
+    ProgramApplicationResponse requestDrop(Long applicationId, Long sewadarId);
+    ProgramApplicationResponse approveDropRequest(Long applicationId, Long inchargeId, Boolean allowReapply);
+    List<ProgramApplicationResponse> getDropRequestsByProgram(Long programId);
 }
 

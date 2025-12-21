@@ -11,16 +11,15 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class ProgramApplicationResponse {
+public class NotificationResponse {
     private Long id;
     private Long programId;
     private String programTitle;
-    private SewadarResponse sewadar;
-    private LocalDateTime appliedAt;
-    private String status;
-    private String notes;
-    private Boolean reapplyAllowed;
-    private LocalDateTime dropRequestedAt;
-    private LocalDateTime dropApprovedAt;
+    private SewadarResponse droppedSewadar;
+    private String notificationType;
+    private String message;
+    private LocalDateTime createdAt;
+    private Boolean resolved;
+    private LocalDateTime resolvedAt;
 }
 

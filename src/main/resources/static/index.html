@@ -112,6 +112,10 @@
                     <div id="admin-applications"></div>
                 </div>
                 <div class="admin-section">
+                    <h3>Drop Requests</h3>
+                    <div id="admin-drop-requests"></div>
+                </div>
+                <div class="admin-section">
                     <h3>Attendance</h3>
                     <button class="btn btn-primary" onclick="showAllSewadarsAttendance()">View All Sewadars Attendance</button>
                     <button class="btn btn-secondary" onclick="showSewadarAttendanceForm()">View Individual Sewadar</button>
@@ -220,6 +224,15 @@
                     </select>
                 </div>
                 <div id="prioritized-applications-list" class="list-container"></div>
+            </div>
+        </div>
+
+        <!-- Drop Requests Modal -->
+        <div id="drop-requests-modal" class="modal">
+            <div class="modal-content" style="max-width: 800px;">
+                <span class="close" onclick="closeDropRequestsModal()">&times;</span>
+                <h3 id="drop-requests-title">Drop Requests</h3>
+                <div id="drop-requests-list" class="list-container"></div>
             </div>
         </div>
 

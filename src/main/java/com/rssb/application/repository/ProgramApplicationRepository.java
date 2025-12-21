@@ -14,5 +14,11 @@ public interface ProgramApplicationRepository extends JpaRepository<ProgramAppli
     Optional<ProgramApplication> findByProgramIdAndSewadarId(Long programId, Long sewadarId);
     List<ProgramApplication> findByStatus(String status);
     long countByProgramId(Long programId);
+    
+    // Filter out DROPPED applications for incharge view
+    List<ProgramApplication> findByProgramIdAndStatusNot(Long programId, String status);
+    
+    // Get drop requests for a program
+    List<ProgramApplication> findByProgramIdAndStatus(Long programId, String status);
 }
 

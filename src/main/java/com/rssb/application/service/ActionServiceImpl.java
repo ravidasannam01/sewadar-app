@@ -71,7 +71,10 @@ public class ActionServiceImpl implements ActionService {
         log.info("Action created with id: {}", saved.getId());
 
         // Notify selected sewadars via WhatsApp
-        List<ProgramSelection> selections = selectionRepository.findByProgramId(request.getProgramId());
+        // Only notify active selections (exclude DROPPED)
+        List<ProgramSelection> selections = selectionRepository.findByProgramId(request.getProgramId()).stream()
+                .filter(s -> !"DROPPED".equals(s.getStatus()))
+                .collect(java.util.stream.Collectors.toList());
         String message = String.format("New action: %s - %s. Please complete this action.", 
                 saved.getTitle(), saved.getDescription());
         
@@ -182,8 +185,10 @@ public class ActionServiceImpl implements ActionService {
                 .filter(r -> "COMPLETED".equals(r.getStatus()))
                 .count();
         
-        // Count selected sewadars for this program
-        long totalSelected = selectionRepository.findByProgramId(action.getProgram().getId()).size();
+        // Count only active selected sewadars for this program (exclude DROPPED)
+        long totalSelected = selectionRepository.findByProgramId(action.getProgram().getId()).stream()
+                .filter(s -> !"DROPPED".equals(s.getStatus()))
+                .count();
         long pendingCount = totalSelected - responseCount;
 
         return ActionResponseDTO.builder()

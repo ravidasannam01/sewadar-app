@@ -8,9 +8,12 @@ import com.rssb.application.entity.Program;
 import com.rssb.application.entity.ProgramApplication;
 import com.rssb.application.entity.Sewadar;
 import com.rssb.application.exception.ResourceNotFoundException;
+import com.rssb.application.entity.Notification;
 import com.rssb.application.repository.AttendanceRepository;
+import com.rssb.application.repository.NotificationRepository;
 import com.rssb.application.repository.ProgramApplicationRepository;
 import com.rssb.application.repository.ProgramRepository;
+import com.rssb.application.repository.ProgramSelectionRepository;
 import com.rssb.application.repository.SewadarRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -31,6 +34,8 @@ public class ProgramApplicationServiceImpl implements ProgramApplicationService 
     private final ProgramRepository programRepository;
     private final SewadarRepository sewadarRepository;
     private final AttendanceRepository attendanceRepository;
+    private final ProgramSelectionRepository selectionRepository;
+    private final NotificationRepository notificationRepository;
 
     @Override
     public ProgramApplicationResponse applyToProgram(ProgramApplicationRequest request) {
@@ -45,7 +50,17 @@ public class ProgramApplicationServiceImpl implements ProgramApplicationService 
         // Check if already applied
         applicationRepository.findByProgramIdAndSewadarId(request.getProgramId(), request.getSewadarId())
                 .ifPresent(existing -> {
-                    throw new IllegalArgumentException("Sewadar has already applied to this program");
+                    // Check if previous application was dropped and reapply is not allowed
+                    if ("DROPPED".equals(existing.getStatus()) && Boolean.FALSE.equals(existing.getReapplyAllowed())) {
+                        throw new IllegalArgumentException("You are not allowed to reapply for this program");
+                    }
+                    // If not dropped or reapply allowed, check if there's an active application
+                    if (!"DROPPED".equals(existing.getStatus())) {
+                        throw new IllegalArgumentException("Sewadar has already applied to this program");
+                    }
+                    // If dropped and reapply allowed, delete old application to create new one
+                    applicationRepository.delete(existing);
+                    log.info("Deleted old dropped application to allow reapply");
                 });
 
         ProgramApplication application = ProgramApplication.builder()
@@ -64,7 +79,8 @@ public class ProgramApplicationServiceImpl implements ProgramApplicationService 
     @Transactional(readOnly = true)
     public List<ProgramApplicationResponse> getApplicationsByProgram(Long programId) {
         log.info("Fetching applications for program: {}", programId);
-        return applicationRepository.findByProgramId(programId).stream()
+        // Filter out DROPPED applications for incharge view
+        return applicationRepository.findByProgramIdAndStatusNot(programId, "DROPPED").stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
@@ -107,6 +123,109 @@ public class ProgramApplicationServiceImpl implements ProgramApplicationService 
     }
 
     @Override
+    public ProgramApplicationResponse requestDrop(Long applicationId, Long sewadarId) {
+        log.info("Sewadar {} requesting to drop application {}", sewadarId, applicationId);
+        
+        ProgramApplication application = applicationRepository.findById(applicationId)
+                .orElseThrow(() -> new ResourceNotFoundException("ProgramApplication", "id", applicationId));
+        
+        // Verify sewadar owns this application
+        if (!application.getSewadar().getId().equals(sewadarId)) {
+            throw new IllegalArgumentException("Sewadar can only drop their own applications");
+        }
+        
+        // Check if already dropped or drop requested
+        if ("DROPPED".equals(application.getStatus())) {
+            throw new IllegalArgumentException("Application is already dropped");
+        }
+        if ("DROP_REQUESTED".equals(application.getStatus())) {
+            throw new IllegalArgumentException("Drop request already pending");
+        }
+        
+        // Set status to DROP_REQUESTED
+        application.setStatus("DROP_REQUESTED");
+        application.setDropRequestedAt(java.time.LocalDateTime.now());
+        
+        ProgramApplication saved = applicationRepository.save(application);
+        log.info("Drop request created for application {}", applicationId);
+        
+        // TODO: Notify incharge via WhatsApp
+        
+        return mapToResponse(saved);
+    }
+
+    @Override
+    public ProgramApplicationResponse approveDropRequest(Long applicationId, Long inchargeId, Boolean allowReapply) {
+        log.info("Incharge {} approving drop request for application {}, allowReapply: {}", 
+                inchargeId, applicationId, allowReapply);
+        
+        ProgramApplication application = applicationRepository.findById(applicationId)
+                .orElseThrow(() -> new ResourceNotFoundException("ProgramApplication", "id", applicationId));
+        
+        // Verify incharge created the program
+        if (!application.getProgram().getCreatedBy().getId().equals(inchargeId)) {
+            throw new IllegalArgumentException("Only program creator can approve drop requests");
+        }
+        
+        // Verify status is DROP_REQUESTED
+        if (!"DROP_REQUESTED".equals(application.getStatus())) {
+            throw new IllegalArgumentException("Application is not in DROP_REQUESTED status");
+        }
+        
+        // Update application status
+        application.setStatus("DROPPED");
+        application.setDropApprovedAt(java.time.LocalDateTime.now());
+        application.setDropApprovedBy(inchargeId);
+        application.setReapplyAllowed(allowReapply != null ? allowReapply : true);
+        
+        ProgramApplication saved = applicationRepository.save(application);
+        
+        // Also update selection status if exists
+        selectionRepository.findByProgramIdAndSewadarId(
+                application.getProgram().getId(), 
+                application.getSewadar().getId())
+                .ifPresent(selection -> {
+                    selection.setStatus("DROPPED");
+                    selectionRepository.save(selection);
+                    log.info("Selection {} also marked as DROPPED", selection.getId());
+                });
+        
+        // Create notification for incharge to refill the position
+        Program program = application.getProgram();
+        Sewadar incharge = program.getCreatedBy();
+        Sewadar droppedSewadar = application.getSewadar();
+        
+        Notification notification = Notification.builder()
+                .program(program)
+                .droppedSewadar(droppedSewadar)
+                .incharge(incharge)
+                .notificationType("REFILL_REQUIRED")
+                .message(String.format("Sewadar %s %s dropped from program '%s'. Please refill the position.",
+                        droppedSewadar.getFirstName(), droppedSewadar.getLastName(), program.getTitle()))
+                .resolved(false)
+                .build();
+        
+        notificationRepository.save(notification);
+        log.info("Notification created for incharge {} to refill position in program {}", 
+                incharge.getId(), program.getId());
+        
+        log.info("Drop request approved for application {}", applicationId);
+        
+        // TODO: Notify sewadar via WhatsApp
+        
+        return mapToResponse(saved);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ProgramApplicationResponse> getDropRequestsByProgram(Long programId) {
+        log.info("Fetching drop requests for program: {}", programId);
+        return applicationRepository.findByProgramIdAndStatus(programId, "DROP_REQUESTED").stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public List<PrioritizedApplicationResponse> getPrioritizedApplications(
             Long programId, String sortBy, String order) {
@@ -116,7 +235,8 @@ public class ProgramApplicationServiceImpl implements ProgramApplicationService 
         Program program = programRepository.findById(programId)
                 .orElseThrow(() -> new ResourceNotFoundException("Program", "id", programId));
         
-        List<ProgramApplication> applications = applicationRepository.findByProgramId(programId);
+        // Filter out DROPPED applications from prioritized view
+        List<ProgramApplication> applications = applicationRepository.findByProgramIdAndStatusNot(programId, "DROPPED");
         
         List<PrioritizedApplicationResponse> prioritized = applications.stream()
                 .map(app -> {
@@ -245,6 +365,9 @@ public class ProgramApplicationServiceImpl implements ProgramApplicationService 
                 .appliedAt(application.getAppliedAt())
                 .status(application.getStatus())
                 .notes(application.getNotes())
+                .reapplyAllowed(application.getReapplyAllowed())
+                .dropRequestedAt(application.getDropRequestedAt())
+                .dropApprovedAt(application.getDropApprovedAt())
                 .build();
     }
 }
