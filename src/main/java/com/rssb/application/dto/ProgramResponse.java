@@ -23,6 +23,5 @@ public class ProgramResponse {
     private Integer maxSewadars;
     private SewadarResponse createdBy;
     private Long applicationCount;
-    private Long selectionCount;
 }
 

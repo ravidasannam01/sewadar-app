@@ -41,10 +41,10 @@ public class SewadarServiceImpl implements SewadarService {
 
     @Override
     @Transactional(readOnly = true)
-    public SewadarResponse getSewadarById(Long id) {
-        log.info("Fetching sewadar with id: {}", id);
-        Sewadar sewadar = sewadarRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Sewadar", "id", id));
+    public SewadarResponse getSewadarById(Long zonalId) {
+        log.info("Fetching sewadar with zonal_id: {}", zonalId);
+        Sewadar sewadar = sewadarRepository.findByZonalId(zonalId)
+                .orElseThrow(() -> new ResourceNotFoundException("Sewadar", "zonal_id", zonalId));
         return mapToResponse(sewadar);
     }
 
@@ -57,23 +57,27 @@ public class SewadarServiceImpl implements SewadarService {
         
         Sewadar sewadar = mapToEntity(request, noInchargeExists);
         Sewadar savedSewadar = sewadarRepository.save(sewadar);
-        log.info("Sewadar created with id: {} and role: {}", savedSewadar.getId(), savedSewadar.getRole());
+        log.info("Sewadar created with zonal_id: {} and role: {}", savedSewadar.getZonalId(), savedSewadar.getRole());
         return mapToResponse(savedSewadar);
     }
 
     @Override
-    public SewadarResponse updateSewadar(Long id, SewadarRequest request) {
-        log.info("Updating sewadar with id: {}", id);
-        Sewadar sewadar = sewadarRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Sewadar", "id", id));
+    public SewadarResponse updateSewadar(Long zonalId, SewadarRequest request) {
+        log.info("Updating sewadar with zonal_id: {}", zonalId);
+        Sewadar sewadar = sewadarRepository.findByZonalId(zonalId)
+                .orElseThrow(() -> new ResourceNotFoundException("Sewadar", "zonal_id", zonalId));
 
         sewadar.setFirstName(request.getFirstName());
         sewadar.setLastName(request.getLastName());
-        sewadar.setDept(request.getDept());
+        sewadar.setLocation(request.getLocation());
         sewadar.setMobile(request.getMobile());
         sewadar.setRemarks(request.getRemarks());
         sewadar.setJoiningDate(request.getJoiningDate());
         sewadar.setProfession(request.getProfession());
+        sewadar.setDateOfBirth(request.getDateOfBirth());
+        sewadar.setEmergencyContact(request.getEmergencyContact());
+        sewadar.setEmergencyContactRelationship(request.getEmergencyContactRelationship());
+        sewadar.setPhotoUrl(request.getPhotoUrl());
 
         // Role cannot be changed via regular update - use promoteToIncharge endpoint
 
@@ -86,37 +90,51 @@ public class SewadarServiceImpl implements SewadarService {
             sewadar.setAddress(null);
         }
 
+        // Handle languages
+        if (request.getLanguages() != null && !request.getLanguages().isEmpty()) {
+            // Remove existing languages
+            sewadar.getLanguages().clear();
+            // Add new languages
+            for (String lang : request.getLanguages()) {
+                com.rssb.application.entity.SewadarLanguage language = com.rssb.application.entity.SewadarLanguage.builder()
+                        .sewadar(sewadar)
+                        .language(lang)
+                        .build();
+                sewadar.getLanguages().add(language);
+            }
+        }
+
         Sewadar updatedSewadar = sewadarRepository.save(sewadar);
-        log.info("Sewadar updated with id: {}", updatedSewadar.getId());
+        log.info("Sewadar updated with zonal_id: {}", updatedSewadar.getZonalId());
         return mapToResponse(updatedSewadar);
     }
 
     @Override
-    public void deleteSewadar(Long id) {
-        log.info("Deleting sewadar with id: {}", id);
-        Sewadar sewadar = sewadarRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Sewadar", "id", id));
+    public void deleteSewadar(Long zonalId) {
+        log.info("Deleting sewadar with zonal_id: {}", zonalId);
+        Sewadar sewadar = sewadarRepository.findByZonalId(zonalId)
+                .orElseThrow(() -> new ResourceNotFoundException("Sewadar", "zonal_id", zonalId));
         sewadarRepository.delete(sewadar);
-        log.info("Sewadar deleted with id: {}", id);
+        log.info("Sewadar deleted with zonal_id: {}", zonalId);
     }
 
     @Override
-    public SewadarResponse promoteToIncharge(Long sewadarId, Long inchargeId) {
-        log.info("Incharge {} promoting sewadar {} to incharge", inchargeId, sewadarId);
+    public SewadarResponse promoteToIncharge(Long sewadarZonalId, Long inchargeZonalId) {
+        log.info("Incharge {} promoting sewadar {} to incharge", inchargeZonalId, sewadarZonalId);
         
-        Sewadar incharge = sewadarRepository.findById(inchargeId)
-                .orElseThrow(() -> new ResourceNotFoundException("Sewadar", "id", inchargeId));
+        Sewadar incharge = sewadarRepository.findByZonalId(inchargeZonalId)
+                .orElseThrow(() -> new ResourceNotFoundException("Sewadar", "zonal_id", inchargeZonalId));
         
         if (incharge.getRole() != com.rssb.application.entity.Role.INCHARGE) {
             throw new IllegalArgumentException("Only incharge can promote sewadars to incharge");
         }
         
-        Sewadar sewadar = sewadarRepository.findById(sewadarId)
-                .orElseThrow(() -> new ResourceNotFoundException("Sewadar", "id", sewadarId));
+        Sewadar sewadar = sewadarRepository.findByZonalId(sewadarZonalId)
+                .orElseThrow(() -> new ResourceNotFoundException("Sewadar", "zonal_id", sewadarZonalId));
         
         sewadar.setRole(com.rssb.application.entity.Role.INCHARGE);
         Sewadar updated = sewadarRepository.save(sewadar);
-        log.info("Sewadar {} promoted to incharge", sewadarId);
+        log.info("Sewadar {} promoted to incharge", sewadarZonalId);
         return mapToResponse(updated);
     }
 
@@ -130,11 +148,15 @@ public class SewadarServiceImpl implements SewadarService {
         Sewadar.SewadarBuilder builder = Sewadar.builder()
                 .firstName(request.getFirstName())
                 .lastName(request.getLastName())
-                .dept(request.getDept())
+                .location(request.getLocation())
                 .mobile(request.getMobile())
                 .remarks(request.getRemarks())
                 .joiningDate(request.getJoiningDate())
-                .profession(request.getProfession());
+                .profession(request.getProfession())
+                .dateOfBirth(request.getDateOfBirth())
+                .emergencyContact(request.getEmergencyContact())
+                .emergencyContactRelationship(request.getEmergencyContactRelationship())
+                .photoUrl(request.getPhotoUrl());
 
         // Role assignment logic:
         // 1. If no incharge exists and allowInchargeCreation=true, create as INCHARGE
@@ -169,7 +191,20 @@ public class SewadarServiceImpl implements SewadarService {
             builder.address(address);
         }
 
-        return builder.build();
+        Sewadar sewadar = builder.build();
+        
+        // Handle languages
+        if (request.getLanguages() != null && !request.getLanguages().isEmpty()) {
+            for (String lang : request.getLanguages()) {
+                com.rssb.application.entity.SewadarLanguage language = com.rssb.application.entity.SewadarLanguage.builder()
+                        .sewadar(sewadar)
+                        .language(lang)
+                        .build();
+                sewadar.getLanguages().add(language);
+            }
+        }
+        
+        return sewadar;
     }
 
     /**
@@ -218,15 +253,27 @@ public class SewadarServiceImpl implements SewadarService {
 
     private SewadarResponse mapToResponse(Sewadar sewadar) {
         SewadarResponse.SewadarResponseBuilder builder = SewadarResponse.builder()
-                .id(sewadar.getId())
+                .zonalId(sewadar.getZonalId())
                 .firstName(sewadar.getFirstName())
                 .lastName(sewadar.getLastName())
-                .dept(sewadar.getDept())
+                .location(sewadar.getLocation())
                 .mobile(sewadar.getMobile())
                 .remarks(sewadar.getRemarks())
                 .role(sewadar.getRole() != null ? sewadar.getRole().name() : "SEWADAR")
                 .joiningDate(sewadar.getJoiningDate())
-                .profession(sewadar.getProfession());
+                .profession(sewadar.getProfession())
+                .dateOfBirth(sewadar.getDateOfBirth())
+                .emergencyContact(sewadar.getEmergencyContact())
+                .emergencyContactRelationship(sewadar.getEmergencyContactRelationship())
+                .photoUrl(sewadar.getPhotoUrl());
+        
+        // Map languages
+        if (sewadar.getLanguages() != null && !sewadar.getLanguages().isEmpty()) {
+            List<String> languages = sewadar.getLanguages().stream()
+                    .map(com.rssb.application.entity.SewadarLanguage::getLanguage)
+                    .collect(Collectors.toList());
+            builder.languages(languages);
+        }
 
         if (sewadar.getAddress() != null) {
             Address address = sewadar.getAddress();

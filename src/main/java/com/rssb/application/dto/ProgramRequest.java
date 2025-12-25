@@ -21,9 +21,7 @@ public class ProgramRequest {
     private String description;
 
     @NotBlank(message = "Location is required")
-    private String location;
-
-    private String locationType; // BEAS or NON_BEAS (defaults to NON_BEAS if not provided)
+    private String location; // If location is 'BEAS', it's BEAS location, otherwise NON_BEAS
 
     @NotNull(message = "Program dates are required")
     private List<LocalDate> programDates; // Multiple dates for one program

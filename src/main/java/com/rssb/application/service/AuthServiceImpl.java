@@ -24,33 +24,45 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public LoginResponse login(LoginRequest request) {
-        log.info("Login attempt for mobile: {}", request.getMobile());
+        log.info("Login attempt for zonal_id: {}", request.getZonalId());
 
-        Sewadar sewadar = sewadarRepository.findByMobile(request.getMobile())
-                .orElseThrow(() -> new IllegalArgumentException("Invalid mobile number or password"));
+        // Parse zonal_id from string to Long
+        Long zonalId;
+        try {
+            zonalId = Long.parseLong(request.getZonalId());
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("Invalid zonal ID format");
+        }
+
+        Sewadar sewadar = sewadarRepository.findByZonalId(zonalId)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid zonal ID or password"));
 
         // Verify password
         if (!passwordEncoder.matches(request.getPassword(), sewadar.getPassword())) {
-            throw new IllegalArgumentException("Invalid mobile number or password");
+            throw new IllegalArgumentException("Invalid zonal ID or password");
         }
 
         // Generate JWT token
         String role = sewadar.getRole() != null ? sewadar.getRole().name() : "SEWADAR";
-        String token = jwtUtil.generateToken(sewadar.getId(), role);
+        String token = jwtUtil.generateToken(sewadar.getZonalId(), role);
 
         // Map to response
         SewadarResponse sewadarResponse = SewadarResponse.builder()
-                .id(sewadar.getId())
+                .zonalId(sewadar.getZonalId())
                 .firstName(sewadar.getFirstName())
                 .lastName(sewadar.getLastName())
                 .mobile(sewadar.getMobile())
-                .dept(sewadar.getDept())
+                .location(sewadar.getLocation())
                 .role(role)
                 .profession(sewadar.getProfession())
                 .joiningDate(sewadar.getJoiningDate())
+                .dateOfBirth(sewadar.getDateOfBirth())
+                .emergencyContact(sewadar.getEmergencyContact())
+                .emergencyContactRelationship(sewadar.getEmergencyContactRelationship())
+                .photoUrl(sewadar.getPhotoUrl())
                 .build();
 
-        log.info("Login successful for sewadar: {}", sewadar.getId());
+        log.info("Login successful for sewadar: {}", sewadar.getZonalId());
 
         return LoginResponse.builder()
                 .token(token)

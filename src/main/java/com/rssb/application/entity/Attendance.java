@@ -28,7 +28,7 @@ public class Attendance {
     private Program program;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "sewadar_id", nullable = false)
+    @JoinColumn(name = "sewadar_id", referencedColumnName = "zonal_id", nullable = false)
     private Sewadar sewadar;
 
     @Column(name = "attended", nullable = false)
@@ -36,7 +36,7 @@ public class Attendance {
     private Boolean attended = false;
 
     @Column(name = "marked_by", nullable = false)
-    private Long markedBy; // Incharge ID who marked attendance
+    private Long markedBy; // Incharge zonal_id who marked attendance
 
     @Column(name = "marked_at", nullable = false)
     @Builder.Default

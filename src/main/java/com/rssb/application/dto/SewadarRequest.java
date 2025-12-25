@@ -22,7 +22,7 @@ public class SewadarRequest {
     @NotBlank(message = "Last name is required")
     private String lastName;
 
-    private String dept;
+    private String location; // Location/center (replaces dept)
 
     private String mobile;
 
@@ -38,5 +38,12 @@ public class SewadarRequest {
     private java.time.LocalDate joiningDate;
     private String profession;
     private String password; // Password for login (optional, defaults to "password123")
+    
+    // New fields
+    private java.time.LocalDate dateOfBirth;
+    private String emergencyContact;
+    private String emergencyContactRelationship;
+    private String photoUrl;
+    private java.util.List<String> languages; // Languages known
 }
 

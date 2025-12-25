@@ -31,11 +31,7 @@ public class Program {
     private String description;
 
     @Column(name = "location", nullable = false, length = 255)
-    private String location;
-
-    @Column(name = "location_type", length = 50)
-    @Builder.Default
-    private String locationType = "NON_BEAS"; // BEAS or NON_BEAS
+    private String location; // If location is 'BEAS', it's BEAS location, otherwise NON_BEAS
 
     @Column(name = "status", length = 50)
     @Builder.Default
@@ -45,20 +41,12 @@ public class Program {
     private Integer maxSewadars;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "created_by", nullable = false)
+    @JoinColumn(name = "created_by", referencedColumnName = "zonal_id", nullable = false)
     private Sewadar createdBy; // Incharge who created the program
 
     @OneToMany(mappedBy = "program", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<ProgramApplication> applications = new ArrayList<>();
-
-    @OneToMany(mappedBy = "program", cascade = CascadeType.ALL, orphanRemoval = true)
-    @Builder.Default
-    private List<ProgramSelection> selections = new ArrayList<>();
-
-    @OneToMany(mappedBy = "program", cascade = CascadeType.ALL, orphanRemoval = true)
-    @Builder.Default
-    private List<Action> actions = new ArrayList<>();
 
     @OneToMany(mappedBy = "program", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default

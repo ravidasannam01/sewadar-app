@@ -63,7 +63,7 @@ public class BootstrapController {
 
         // Create as incharge
         SewadarResponse response = sewadarService.createSewadar(request);
-        log.info("First incharge created with id: {}", response.getId());
+        log.info("First incharge created with zonal_id: {}", response.getZonalId());
         
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }

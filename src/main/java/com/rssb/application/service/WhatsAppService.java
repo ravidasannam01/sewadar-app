@@ -16,10 +16,5 @@ public interface WhatsAppService {
      * Send message to multiple sewadars
      */
     void sendBulkMessage(List<String> mobileNumbers, String message);
-
-    /**
-     * Send notification about an action to selected sewadars
-     */
-    void notifyAction(Long programId, Long actionId, String message);
 }
 

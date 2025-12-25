@@ -19,7 +19,6 @@ public class ProgramApplicationResponse {
     private LocalDateTime appliedAt;
     private String status;
     private String notes;
-    private Boolean reapplyAllowed;
     private LocalDateTime dropRequestedAt;
     private LocalDateTime dropApprovedAt;
 }

@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -23,7 +24,8 @@ public class Sewadar {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @Column(name = "zonal_id")
+    private Long zonalId; // Renamed from id to zonal_id
 
     @Column(name = "first_name", nullable = false, length = 100)
     private String firstName;
@@ -31,11 +33,11 @@ public class Sewadar {
     @Column(name = "last_name", nullable = false, length = 100)
     private String lastName;
 
-    @Column(name = "dept", length = 100)
-    private String dept;
+    @Column(name = "location", length = 255)
+    private String location; // Location/center identified by org (replaces dept)
 
     @Column(name = "mobile", length = 20, unique = true)
-    private String mobile; // Mobile number used as username (must be unique)
+    private String mobile;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "address_id")
@@ -50,7 +52,7 @@ public class Sewadar {
     private Role role = Role.SEWADAR;
 
     @Column(name = "joining_date")
-    private java.time.LocalDate joiningDate;
+    private LocalDate joiningDate;
 
     @Column(name = "profession", length = 100)
     private String profession;
@@ -58,8 +60,20 @@ public class Sewadar {
     @Column(name = "password", nullable = false)
     private String password; // Encrypted password
 
-    @OneToMany(mappedBy = "attendedBy", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Column(name = "date_of_birth")
+    private LocalDate dateOfBirth;
+
+    @Column(name = "emergency_contact", length = 20)
+    private String emergencyContact;
+
+    @Column(name = "emergency_contact_relationship", length = 50)
+    private String emergencyContactRelationship;
+
+    @Column(name = "photo_url", length = 500)
+    private String photoUrl;
+
+    @OneToMany(mappedBy = "sewadar", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
-    private List<Schedule> schedules = new ArrayList<>();
+    private List<SewadarLanguage> languages = new ArrayList<>();
 }
 

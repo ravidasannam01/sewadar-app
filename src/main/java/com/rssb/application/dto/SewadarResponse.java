@@ -5,6 +5,9 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDate;
+import java.util.List;
+
 /**
  * DTO for Sewadar response.
  */
@@ -13,15 +16,20 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Builder
 public class SewadarResponse {
-    private Long id;
+    private Long zonalId; // Renamed from id
     private String firstName;
     private String lastName;
-    private String dept;
+    private String location; // Replaces dept
     private String mobile;
     private AddressResponse address;
     private String remarks;
     private String role;
-    private java.time.LocalDate joiningDate;
+    private LocalDate joiningDate;
     private String profession;
+    private LocalDate dateOfBirth;
+    private String emergencyContact;
+    private String emergencyContactRelationship;
+    private String photoUrl;
+    private List<String> languages; // Languages known
 }
 

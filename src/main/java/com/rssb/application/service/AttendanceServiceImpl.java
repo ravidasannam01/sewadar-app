@@ -39,19 +39,19 @@ public class AttendanceServiceImpl implements AttendanceService {
         Program program = programRepository.findById(request.getProgramId())
                 .orElseThrow(() -> new ResourceNotFoundException("Program", "id", request.getProgramId()));
 
-        Sewadar incharge = sewadarRepository.findById(request.getMarkedById())
-                .orElseThrow(() -> new ResourceNotFoundException("Sewadar", "id", request.getMarkedById()));
+        Sewadar incharge = sewadarRepository.findByZonalId(request.getMarkedById())
+                .orElseThrow(() -> new ResourceNotFoundException("Sewadar", "zonal_id", request.getMarkedById()));
 
         if (incharge.getRole() != Role.INCHARGE) {
             throw new IllegalArgumentException("Only incharge can mark attendance");
         }
 
-        return request.getSewadarIds().stream().map(sewadarId -> {
-            Sewadar sewadar = sewadarRepository.findById(sewadarId)
-                    .orElseThrow(() -> new ResourceNotFoundException("Sewadar", "id", sewadarId));
+        return request.getSewadarIds().stream().map(sewadarZonalId -> {
+            Sewadar sewadar = sewadarRepository.findByZonalId(sewadarZonalId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Sewadar", "zonal_id", sewadarZonalId));
 
             // Check if attendance already exists
-            Attendance existing = attendanceRepository.findByProgramIdAndSewadarId(request.getProgramId(), sewadarId)
+            Attendance existing = attendanceRepository.findByProgramIdAndSewadarZonalId(request.getProgramId(), sewadarZonalId)
                     .orElse(null);
 
             Attendance attendance;
@@ -68,14 +68,14 @@ public class AttendanceServiceImpl implements AttendanceService {
                         .program(program)
                         .sewadar(sewadar)
                         .attended(true)
-                        .markedBy(incharge.getId())
+                        .markedBy(incharge.getZonalId())
                         .daysParticipated(request.getDaysParticipated())
                         .notes(request.getNotes())
                         .build();
                 attendance = attendanceRepository.save(attendance);
             }
 
-            log.info("Attendance marked for sewadar {} in program {}", sewadarId, request.getProgramId());
+            log.info("Attendance marked for sewadar {} in program {}", sewadarZonalId, request.getProgramId());
             return mapToResponse(attendance);
         }).collect(Collectors.toList());
     }
@@ -112,9 +112,9 @@ public class AttendanceServiceImpl implements AttendanceService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<AttendanceResponse> getAttendanceBySewadar(Long sewadarId) {
-        log.info("Fetching attendance for sewadar: {}", sewadarId);
-        return attendanceRepository.findBySewadarId(sewadarId).stream()
+    public List<AttendanceResponse> getAttendanceBySewadar(Long sewadarZonalId) {
+        log.info("Fetching attendance for sewadar: {}", sewadarZonalId);
+        return attendanceRepository.findBySewadarZonalId(sewadarZonalId).stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
@@ -131,23 +131,23 @@ public class AttendanceServiceImpl implements AttendanceService {
 
     @Override
     @Transactional(readOnly = true)
-    public SewadarAttendanceSummaryResponse getSewadarAttendanceSummary(Long sewadarId) {
-        log.info("Fetching attendance summary for sewadar: {}", sewadarId);
+    public SewadarAttendanceSummaryResponse getSewadarAttendanceSummary(Long sewadarZonalId) {
+        log.info("Fetching attendance summary for sewadar: {}", sewadarZonalId);
         
-        Sewadar sewadar = sewadarRepository.findById(sewadarId)
-                .orElseThrow(() -> new ResourceNotFoundException("Sewadar", "id", sewadarId));
+        Sewadar sewadar = sewadarRepository.findByZonalId(sewadarZonalId)
+                .orElseThrow(() -> new ResourceNotFoundException("Sewadar", "zonal_id", sewadarZonalId));
         
         // Get all attended programs
-        List<Attendance> allAttendances = attendanceRepository.findAttendedBySewadarId(sewadarId);
+        List<Attendance> allAttendances = attendanceRepository.findAttendedBySewadarId(sewadarZonalId);
         
-        // Separate BEAS and non-BEAS
+        // Separate BEAS and non-BEAS (derive from location)
         List<SewadarAttendanceSummaryResponse.AttendanceDetail> beasAttendances = allAttendances.stream()
-                .filter(a -> "BEAS".equals(a.getProgram().getLocationType()))
+                .filter(a -> "BEAS".equalsIgnoreCase(a.getProgram().getLocation()))
                 .map(this::mapToAttendanceDetail)
                 .collect(Collectors.toList());
         
         List<SewadarAttendanceSummaryResponse.AttendanceDetail> nonBeasAttendances = allAttendances.stream()
-                .filter(a -> !"BEAS".equals(a.getProgram().getLocationType()))
+                .filter(a -> !"BEAS".equalsIgnoreCase(a.getProgram().getLocation()))
                 .map(this::mapToAttendanceDetail)
                 .collect(Collectors.toList());
         
@@ -166,7 +166,7 @@ public class AttendanceServiceImpl implements AttendanceService {
         Integer totalDays = beasDays + nonBeasDays;
         
         return SewadarAttendanceSummaryResponse.builder()
-                .sewadarId(sewadar.getId())
+                .sewadarId(sewadar.getZonalId())
                 .sewadarName(sewadar.getFirstName() + " " + sewadar.getLastName())
                 .mobile(sewadar.getMobile())
                 .beasProgramsCount(beasProgramsCount)
@@ -190,19 +190,19 @@ public class AttendanceServiceImpl implements AttendanceService {
         List<AllSewadarsAttendanceSummaryResponse.SewadarSummary> summaries = allSewadars.stream()
                 .map(sewadar -> {
                     Long beasCount = attendanceRepository.countAttendedProgramsBySewadarIdAndLocationType(
-                            sewadar.getId(), "BEAS");
+                            sewadar.getZonalId(), "BEAS");
                     Long nonBeasCount = attendanceRepository.countAttendedProgramsBySewadarIdAndLocationType(
-                            sewadar.getId(), "NON_BEAS");
-                    Long totalCount = attendanceRepository.countAttendedProgramsBySewadarId(sewadar.getId());
+                            sewadar.getZonalId(), "NON_BEAS");
+                    Long totalCount = attendanceRepository.countAttendedProgramsBySewadarId(sewadar.getZonalId());
                     
                     Integer beasDays = attendanceRepository.sumDaysAttendedBySewadarIdAndLocationType(
-                            sewadar.getId(), "BEAS");
+                            sewadar.getZonalId(), "BEAS");
                     Integer nonBeasDays = attendanceRepository.sumDaysAttendedBySewadarIdAndLocationType(
-                            sewadar.getId(), "NON_BEAS");
-                    Integer totalDays = attendanceRepository.sumDaysAttendedBySewadarId(sewadar.getId());
+                            sewadar.getZonalId(), "NON_BEAS");
+                    Integer totalDays = attendanceRepository.sumDaysAttendedBySewadarId(sewadar.getZonalId());
                     
                     return AllSewadarsAttendanceSummaryResponse.SewadarSummary.builder()
-                            .sewadarId(sewadar.getId())
+                            .sewadarId(sewadar.getZonalId())
                             .sewadarName(sewadar.getFirstName() + " " + sewadar.getLastName())
                             .mobile(sewadar.getMobile())
                             .beasProgramsCount(beasCount)
@@ -221,11 +221,13 @@ public class AttendanceServiceImpl implements AttendanceService {
     }
     
     private SewadarAttendanceSummaryResponse.AttendanceDetail mapToAttendanceDetail(Attendance attendance) {
+        // Derive locationType from location
+        String locationType = "BEAS".equalsIgnoreCase(attendance.getProgram().getLocation()) ? "BEAS" : "NON_BEAS";
         return SewadarAttendanceSummaryResponse.AttendanceDetail.builder()
                 .programId(attendance.getProgram().getId())
                 .programTitle(attendance.getProgram().getTitle())
                 .location(attendance.getProgram().getLocation())
-                .locationType(attendance.getProgram().getLocationType())
+                .locationType(locationType)
                 .attended(attendance.getAttended())
                 .daysParticipated(attendance.getDaysParticipated())
                 .markedAt(attendance.getMarkedAt())
@@ -234,7 +236,7 @@ public class AttendanceServiceImpl implements AttendanceService {
 
     private AttendanceResponse mapToResponse(Attendance attendance) {
         SewadarResponse sewadar = SewadarResponse.builder()
-                .id(attendance.getSewadar().getId())
+                .zonalId(attendance.getSewadar().getZonalId())
                 .firstName(attendance.getSewadar().getFirstName())
                 .lastName(attendance.getSewadar().getLastName())
                 .mobile(attendance.getSewadar().getMobile())

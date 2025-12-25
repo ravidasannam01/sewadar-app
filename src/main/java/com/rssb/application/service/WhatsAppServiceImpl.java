@@ -25,11 +25,5 @@ public class WhatsAppServiceImpl implements WhatsAppService {
         log.info("WhatsApp Service: Sending bulk message to {} recipients - {}", mobileNumbers.size(), message);
         mobileNumbers.forEach(number -> sendMessage(number, message));
     }
-
-    @Override
-    public void notifyAction(Long programId, Long actionId, String message) {
-        log.info("WhatsApp Service: Notifying action {} for program {} - {}", actionId, programId, message);
-        // TODO: Get selected sewadars for program and send notifications
-    }
 }
 

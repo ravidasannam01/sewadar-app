@@ -28,7 +28,7 @@ public class ProgramApplication {
     private Program program;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "sewadar_id", nullable = false)
+    @JoinColumn(name = "sewadar_id", referencedColumnName = "zonal_id", nullable = false)
     private Sewadar sewadar;
 
     @Column(name = "applied_at", nullable = false)
@@ -42,10 +42,6 @@ public class ProgramApplication {
     @Column(name = "notes", length = 500)
     private String notes;
     
-    @Column(name = "reapply_allowed")
-    @Builder.Default
-    private Boolean reapplyAllowed = true; // If false, sewadar cannot reapply for this program
-    
     @Column(name = "drop_requested_at")
     private LocalDateTime dropRequestedAt; // When sewadar requested to drop
     
@@ -53,6 +49,6 @@ public class ProgramApplication {
     private LocalDateTime dropApprovedAt; // When incharge approved drop
     
     @Column(name = "drop_approved_by")
-    private Long dropApprovedBy; // Incharge ID who approved drop
+    private Long dropApprovedBy; // Incharge zonal_id who approved drop
 }
 

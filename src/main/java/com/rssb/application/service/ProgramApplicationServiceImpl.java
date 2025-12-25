@@ -8,12 +8,9 @@ import com.rssb.application.entity.Program;
 import com.rssb.application.entity.ProgramApplication;
 import com.rssb.application.entity.Sewadar;
 import com.rssb.application.exception.ResourceNotFoundException;
-import com.rssb.application.entity.Notification;
 import com.rssb.application.repository.AttendanceRepository;
-import com.rssb.application.repository.NotificationRepository;
 import com.rssb.application.repository.ProgramApplicationRepository;
 import com.rssb.application.repository.ProgramRepository;
-import com.rssb.application.repository.ProgramSelectionRepository;
 import com.rssb.application.repository.SewadarRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -34,8 +31,6 @@ public class ProgramApplicationServiceImpl implements ProgramApplicationService 
     private final ProgramRepository programRepository;
     private final SewadarRepository sewadarRepository;
     private final AttendanceRepository attendanceRepository;
-    private final ProgramSelectionRepository selectionRepository;
-    private final NotificationRepository notificationRepository;
 
     @Override
     public ProgramApplicationResponse applyToProgram(ProgramApplicationRequest request) {
@@ -44,21 +39,17 @@ public class ProgramApplicationServiceImpl implements ProgramApplicationService 
         Program program = programRepository.findById(request.getProgramId())
                 .orElseThrow(() -> new ResourceNotFoundException("Program", "id", request.getProgramId()));
 
-        Sewadar sewadar = sewadarRepository.findById(request.getSewadarId())
-                .orElseThrow(() -> new ResourceNotFoundException("Sewadar", "id", request.getSewadarId()));
+        Sewadar sewadar = sewadarRepository.findByZonalId(request.getSewadarId())
+                .orElseThrow(() -> new ResourceNotFoundException("Sewadar", "zonal_id", request.getSewadarId()));
 
-        // Check if already applied
-        applicationRepository.findByProgramIdAndSewadarId(request.getProgramId(), request.getSewadarId())
+        // Check if already applied - always allow reapply if dropped
+        applicationRepository.findByProgramIdAndSewadarZonalId(request.getProgramId(), request.getSewadarId())
                 .ifPresent(existing -> {
-                    // Check if previous application was dropped and reapply is not allowed
-                    if ("DROPPED".equals(existing.getStatus()) && Boolean.FALSE.equals(existing.getReapplyAllowed())) {
-                        throw new IllegalArgumentException("You are not allowed to reapply for this program");
-                    }
-                    // If not dropped or reapply allowed, check if there's an active application
+                    // If not dropped, throw error
                     if (!"DROPPED".equals(existing.getStatus())) {
                         throw new IllegalArgumentException("Sewadar has already applied to this program");
                     }
-                    // If dropped and reapply allowed, delete old application to create new one
+                    // If dropped, delete old application to create new one (always allow reapply)
                     applicationRepository.delete(existing);
                     log.info("Deleted old dropped application to allow reapply");
                 });
@@ -87,9 +78,9 @@ public class ProgramApplicationServiceImpl implements ProgramApplicationService 
 
     @Override
     @Transactional(readOnly = true)
-    public List<ProgramApplicationResponse> getApplicationsBySewadar(Long sewadarId) {
-        log.info("Fetching applications for sewadar: {}", sewadarId);
-        return applicationRepository.findBySewadarId(sewadarId).stream()
+    public List<ProgramApplicationResponse> getApplicationsBySewadar(Long sewadarZonalId) {
+        log.info("Fetching applications for sewadar: {}", sewadarZonalId);
+        return applicationRepository.findBySewadarZonalId(sewadarZonalId).stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
@@ -103,11 +94,10 @@ public class ProgramApplicationServiceImpl implements ProgramApplicationService 
         application.setStatus(status);
         ProgramApplication updated = applicationRepository.save(application);
         
-        // If sewadar drops consent, notify incharge
+        // If sewadar drops consent, log it
         if ("REJECTED".equals(status) || "DROPPED".equals(status)) {
-            // TODO: Notify incharge via WhatsApp service
             log.info("Sewadar {} dropped consent for program {}", 
-                    application.getSewadar().getId(), 
+                    application.getSewadar().getZonalId(), 
                     application.getProgram().getId());
         }
         
@@ -130,7 +120,7 @@ public class ProgramApplicationServiceImpl implements ProgramApplicationService 
                 .orElseThrow(() -> new ResourceNotFoundException("ProgramApplication", "id", applicationId));
         
         // Verify sewadar owns this application
-        if (!application.getSewadar().getId().equals(sewadarId)) {
+        if (!application.getSewadar().getZonalId().equals(sewadarId)) {
             throw new IllegalArgumentException("Sewadar can only drop their own applications");
         }
         
@@ -149,8 +139,6 @@ public class ProgramApplicationServiceImpl implements ProgramApplicationService 
         ProgramApplication saved = applicationRepository.save(application);
         log.info("Drop request created for application {}", applicationId);
         
-        // TODO: Notify incharge via WhatsApp
-        
         return mapToResponse(saved);
     }
 
@@ -163,7 +151,7 @@ public class ProgramApplicationServiceImpl implements ProgramApplicationService 
                 .orElseThrow(() -> new ResourceNotFoundException("ProgramApplication", "id", applicationId));
         
         // Verify incharge created the program
-        if (!application.getProgram().getCreatedBy().getId().equals(inchargeId)) {
+        if (!application.getProgram().getCreatedBy().getZonalId().equals(inchargeId)) {
             throw new IllegalArgumentException("Only program creator can approve drop requests");
         }
         
@@ -172,46 +160,14 @@ public class ProgramApplicationServiceImpl implements ProgramApplicationService 
             throw new IllegalArgumentException("Application is not in DROP_REQUESTED status");
         }
         
-        // Update application status
+        // Update application status - always allow reapply
         application.setStatus("DROPPED");
         application.setDropApprovedAt(java.time.LocalDateTime.now());
         application.setDropApprovedBy(inchargeId);
-        application.setReapplyAllowed(allowReapply != null ? allowReapply : true);
         
         ProgramApplication saved = applicationRepository.save(application);
         
-        // Also update selection status if exists
-        selectionRepository.findByProgramIdAndSewadarId(
-                application.getProgram().getId(), 
-                application.getSewadar().getId())
-                .ifPresent(selection -> {
-                    selection.setStatus("DROPPED");
-                    selectionRepository.save(selection);
-                    log.info("Selection {} also marked as DROPPED", selection.getId());
-                });
-        
-        // Create notification for incharge to refill the position
-        Program program = application.getProgram();
-        Sewadar incharge = program.getCreatedBy();
-        Sewadar droppedSewadar = application.getSewadar();
-        
-        Notification notification = Notification.builder()
-                .program(program)
-                .droppedSewadar(droppedSewadar)
-                .incharge(incharge)
-                .notificationType("REFILL_REQUIRED")
-                .message(String.format("Sewadar %s %s dropped from program '%s'. Please refill the position.",
-                        droppedSewadar.getFirstName(), droppedSewadar.getLastName(), program.getTitle()))
-                .resolved(false)
-                .build();
-        
-        notificationRepository.save(notification);
-        log.info("Notification created for incharge {} to refill position in program {}", 
-                incharge.getId(), program.getId());
-        
         log.info("Drop request approved for application {}", applicationId);
-        
-        // TODO: Notify sewadar via WhatsApp
         
         return mapToResponse(saved);
     }
@@ -243,28 +199,28 @@ public class ProgramApplicationServiceImpl implements ProgramApplicationService 
                     Sewadar sewadar = app.getSewadar();
                     
                     // Calculate attendance metrics
-                    Long totalAttendance = attendanceRepository.countAttendedProgramsBySewadarId(sewadar.getId());
+                    Long totalAttendance = attendanceRepository.countAttendedProgramsBySewadarId(sewadar.getZonalId());
                     Long beasAttendance = attendanceRepository.countAttendedProgramsBySewadarIdAndLocationType(
-                            sewadar.getId(), "BEAS");
+                            sewadar.getZonalId(), "BEAS");
                     Long nonBeasAttendance = attendanceRepository.countAttendedProgramsBySewadarIdAndLocationType(
-                            sewadar.getId(), "NON_BEAS");
+                            sewadar.getZonalId(), "NON_BEAS");
                     
-                    Integer totalDays = attendanceRepository.sumDaysAttendedBySewadarId(sewadar.getId());
+                    Integer totalDays = attendanceRepository.sumDaysAttendedBySewadarId(sewadar.getZonalId());
                     Integer beasDays = attendanceRepository.sumDaysAttendedBySewadarIdAndLocationType(
-                            sewadar.getId(), "BEAS");
+                            sewadar.getZonalId(), "BEAS");
                     Integer nonBeasDays = attendanceRepository.sumDaysAttendedBySewadarIdAndLocationType(
-                            sewadar.getId(), "NON_BEAS");
+                            sewadar.getZonalId(), "NON_BEAS");
                     
                     // Calculate priority score (weighted)
                     // Higher attendance = higher score
                     Long priorityScore = (totalAttendance * 10L) + (totalDays != null ? totalDays : 0);
                     
                     SewadarResponse sewadarResponse = SewadarResponse.builder()
-                            .id(sewadar.getId())
+                            .zonalId(sewadar.getZonalId())
                             .firstName(sewadar.getFirstName())
                             .lastName(sewadar.getLastName())
                             .mobile(sewadar.getMobile())
-                            .dept(sewadar.getDept())
+                            .location(sewadar.getLocation())
                             .profession(sewadar.getProfession())
                             .joiningDate(sewadar.getJoiningDate())
                             .role(sewadar.getRole() != null ? sewadar.getRole().name() : "SEWADAR")
@@ -351,7 +307,7 @@ public class ProgramApplicationServiceImpl implements ProgramApplicationService 
 
     private ProgramApplicationResponse mapToResponse(ProgramApplication application) {
         SewadarResponse sewadar = SewadarResponse.builder()
-                .id(application.getSewadar().getId())
+                .zonalId(application.getSewadar().getZonalId())
                 .firstName(application.getSewadar().getFirstName())
                 .lastName(application.getSewadar().getLastName())
                 .mobile(application.getSewadar().getMobile())
@@ -365,7 +321,6 @@ public class ProgramApplicationServiceImpl implements ProgramApplicationService 
                 .appliedAt(application.getAppliedAt())
                 .status(application.getStatus())
                 .notes(application.getNotes())
-                .reapplyAllowed(application.getReapplyAllowed())
                 .dropRequestedAt(application.getDropRequestedAt())
                 .dropApprovedAt(application.getDropApprovedAt())
                 .build();

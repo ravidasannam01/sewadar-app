@@ -10,7 +10,6 @@ import com.rssb.application.entity.ProgramDate;
 import com.rssb.application.repository.ProgramApplicationRepository;
 import com.rssb.application.repository.ProgramDateRepository;
 import com.rssb.application.repository.ProgramRepository;
-import com.rssb.application.repository.ProgramSelectionRepository;
 import com.rssb.application.repository.SewadarRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -29,21 +28,19 @@ public class ProgramServiceImpl implements ProgramService {
     private final ProgramRepository programRepository;
     private final SewadarRepository sewadarRepository;
     private final ProgramApplicationRepository applicationRepository;
-    private final ProgramSelectionRepository selectionRepository;
     private final ProgramDateRepository programDateRepository;
 
     @Override
     public ProgramResponse createProgram(ProgramRequest request) {
         log.info("Creating program: {}", request.getTitle());
         
-        Sewadar incharge = sewadarRepository.findById(request.getCreatedById())
-                .orElseThrow(() -> new ResourceNotFoundException("Sewadar", "id", request.getCreatedById()));
+        Sewadar incharge = sewadarRepository.findByZonalId(request.getCreatedById())
+                .orElseThrow(() -> new ResourceNotFoundException("Sewadar", "zonal_id", request.getCreatedById()));
 
         Program program = Program.builder()
                 .title(request.getTitle())
                 .description(request.getDescription())
                 .location(request.getLocation())
-                .locationType(request.getLocationType() != null ? request.getLocationType() : "NON_BEAS")
                 .status(request.getStatus() != null ? request.getStatus() : "UPCOMING")
                 .maxSewadars(request.getMaxSewadars())
                 .createdBy(incharge)
@@ -86,9 +83,9 @@ public class ProgramServiceImpl implements ProgramService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<ProgramResponse> getProgramsByIncharge(Long inchargeId) {
-        log.info("Fetching programs for incharge: {}", inchargeId);
-        return programRepository.findByCreatedById(inchargeId).stream()
+    public List<ProgramResponse> getProgramsByIncharge(Long inchargeZonalId) {
+        log.info("Fetching programs for incharge: {}", inchargeZonalId);
+        return programRepository.findByCreatedByZonalId(inchargeZonalId).stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
@@ -102,9 +99,6 @@ public class ProgramServiceImpl implements ProgramService {
         program.setTitle(request.getTitle());
         program.setDescription(request.getDescription());
         program.setLocation(request.getLocation());
-        if (request.getLocationType() != null) {
-            program.setLocationType(request.getLocationType());
-        }
         if (request.getStatus() != null) {
             program.setStatus(request.getStatus());
         }
@@ -142,15 +136,13 @@ public class ProgramServiceImpl implements ProgramService {
 
     private ProgramResponse mapToResponse(Program program) {
         SewadarResponse createdBy = SewadarResponse.builder()
-                .id(program.getCreatedBy().getId())
+                .zonalId(program.getCreatedBy().getZonalId())
                 .firstName(program.getCreatedBy().getFirstName())
                 .lastName(program.getCreatedBy().getLastName())
                 .build();
 
         // Count only active applications (exclude DROPPED)
         Long applicationCount = applicationRepository.findByProgramIdAndStatusNot(program.getId(), "DROPPED").stream().count();
-        // Count only active selections (exclude DROPPED)
-        Long selectionCount = selectionRepository.countByProgramIdAndStatusNot(program.getId(), "DROPPED");
 
         // Get program dates
         List<java.time.LocalDate> dates = programDateRepository.findByProgramIdOrderByProgramDateAsc(program.getId())
@@ -158,18 +150,20 @@ public class ProgramServiceImpl implements ProgramService {
                 .map(ProgramDate::getProgramDate)
                 .collect(java.util.stream.Collectors.toList());
 
+        // Derive locationType from location
+        String locationType = "BEAS".equalsIgnoreCase(program.getLocation()) ? "BEAS" : "NON_BEAS";
+
         return ProgramResponse.builder()
                 .id(program.getId())
                 .title(program.getTitle())
                 .description(program.getDescription())
                 .location(program.getLocation())
-                .locationType(program.getLocationType())
+                .locationType(locationType)
                 .programDates(dates)
                 .status(program.getStatus())
                 .maxSewadars(program.getMaxSewadars())
                 .createdBy(createdBy)
                 .applicationCount(applicationCount)
-                .selectionCount(selectionCount)
                 .build();
     }
 }

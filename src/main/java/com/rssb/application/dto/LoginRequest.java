@@ -11,8 +11,8 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Builder
 public class LoginRequest {
-    @NotBlank(message = "Mobile number is required")
-    private String mobile; // Mobile number is used as username
+    @NotBlank(message = "Zonal ID is required")
+    private String zonalId; // Zonal ID is used as username (can be string to handle leading zeros)
 
     @NotBlank(message = "Password is required")
     private String password;

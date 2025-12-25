@@ -19,6 +19,7 @@ public interface ProgramRepository extends JpaRepository<Program, Long> {
     @Query("SELECT DISTINCT p FROM Program p JOIN p.programDates pd WHERE pd.programDate BETWEEN :start AND :end")
     List<Program> findByProgramDateBetween(@Param("start") LocalDate start, @Param("end") LocalDate end);
     
-    List<Program> findByCreatedById(Long inchargeId);
+    @Query("SELECT p FROM Program p WHERE p.createdBy.zonalId = :inchargeZonalId")
+    List<Program> findByCreatedByZonalId(@Param("inchargeZonalId") Long inchargeZonalId);
 }
 
