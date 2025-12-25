@@ -44,6 +44,7 @@ public class SewadarRequest {
     private String emergencyContact;
     private String emergencyContactRelationship;
     private String photoUrl;
+    private String aadharNumber; // 12-digit Aadhar number
     private java.util.List<String> languages; // Languages known
 }
 

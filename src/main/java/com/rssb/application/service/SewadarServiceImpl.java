@@ -78,6 +78,7 @@ public class SewadarServiceImpl implements SewadarService {
         sewadar.setEmergencyContact(request.getEmergencyContact());
         sewadar.setEmergencyContactRelationship(request.getEmergencyContactRelationship());
         sewadar.setPhotoUrl(request.getPhotoUrl());
+        sewadar.setAadharNumber(request.getAadharNumber());
 
         // Role cannot be changed via regular update - use promoteToIncharge endpoint
 
@@ -156,7 +157,8 @@ public class SewadarServiceImpl implements SewadarService {
                 .dateOfBirth(request.getDateOfBirth())
                 .emergencyContact(request.getEmergencyContact())
                 .emergencyContactRelationship(request.getEmergencyContactRelationship())
-                .photoUrl(request.getPhotoUrl());
+                .photoUrl(request.getPhotoUrl())
+                .aadharNumber(request.getAadharNumber());
 
         // Role assignment logic:
         // 1. If no incharge exists and allowInchargeCreation=true, create as INCHARGE
@@ -265,7 +267,8 @@ public class SewadarServiceImpl implements SewadarService {
                 .dateOfBirth(sewadar.getDateOfBirth())
                 .emergencyContact(sewadar.getEmergencyContact())
                 .emergencyContactRelationship(sewadar.getEmergencyContactRelationship())
-                .photoUrl(sewadar.getPhotoUrl());
+                .photoUrl(sewadar.getPhotoUrl())
+                .aadharNumber(sewadar.getAadharNumber());
         
         // Map languages
         if (sewadar.getLanguages() != null && !sewadar.getLanguages().isEmpty()) {

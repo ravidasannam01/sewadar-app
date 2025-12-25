@@ -30,6 +30,7 @@ public class SewadarResponse {
     private String emergencyContact;
     private String emergencyContactRelationship;
     private String photoUrl;
+    private String aadharNumber; // 12-digit Aadhar number
     private List<String> languages; // Languages known
 }
 

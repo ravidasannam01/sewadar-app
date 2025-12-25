@@ -317,6 +317,11 @@
                         <input type="url" id="sewadar-photo-url" placeholder="https://example.com/photo.jpg">
                     </div>
                     <div class="form-group">
+                        <label>Aadhar Number</label>
+                        <input type="text" id="sewadar-aadhar-number" placeholder="12-digit Aadhar number" maxlength="12" pattern="[0-9]{12}" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+                        <small style="color: #666;">Enter 12-digit Aadhar number (numbers only)</small>
+                    </div>
+                    <div class="form-group">
                         <label>Languages Known</label>
                         <div id="languages-container">
                             <input type="text" class="language-input" placeholder="e.g., Hindi, English" style="margin-bottom: 5px;">

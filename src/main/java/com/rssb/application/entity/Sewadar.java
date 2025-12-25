@@ -72,6 +72,9 @@ public class Sewadar {
     @Column(name = "photo_url", length = 500)
     private String photoUrl;
 
+    @Column(name = "aadhar_number", length = 12, unique = true)
+    private String aadharNumber; // 12-digit Aadhar number
+
     @OneToMany(mappedBy = "sewadar", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<SewadarLanguage> languages = new ArrayList<>();

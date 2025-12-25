@@ -896,6 +896,7 @@ async function loadSewadarForEdit(sewadarId) {
         document.getElementById('sewadar-emergency-contact').value = sewadar.emergencyContact || '';
         document.getElementById('sewadar-emergency-relationship').value = sewadar.emergencyContactRelationship || '';
         document.getElementById('sewadar-photo-url').value = sewadar.photoUrl || '';
+        document.getElementById('sewadar-aadhar-number').value = sewadar.aadharNumber || '';
         document.getElementById('sewadar-remarks').value = sewadar.remarks || '';
         
         // Load languages
@@ -950,6 +951,7 @@ async function saveSewadar(event) {
         emergencyContact: document.getElementById('sewadar-emergency-contact').value || null,
         emergencyContactRelationship: document.getElementById('sewadar-emergency-relationship').value || null,
         photoUrl: document.getElementById('sewadar-photo-url').value || null,
+        aadharNumber: document.getElementById('sewadar-aadhar-number').value.trim() || null,
         languages: languages.length > 0 ? languages : null,
         remarks: document.getElementById('sewadar-remarks').value,
         address1: document.getElementById('sewadar-address1').value,
