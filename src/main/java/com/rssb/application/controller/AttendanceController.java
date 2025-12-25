@@ -2,12 +2,15 @@ package com.rssb.application.controller;
 
 import com.rssb.application.dto.AttendanceRequest;
 import com.rssb.application.dto.AttendanceResponse;
+import com.rssb.application.dto.ProgramAttendeeResponse;
 import com.rssb.application.service.AttendanceService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -25,7 +28,27 @@ public class AttendanceController {
     @PostMapping
     public ResponseEntity<List<AttendanceResponse>> markAttendance(@Valid @RequestBody AttendanceRequest request) {
         log.info("POST /api/attendances - Marking attendance");
-        return ResponseEntity.status(HttpStatus.CREATED).body(attendanceService.markAttendance(request));
+        
+        // Get current user (incharge) from JWT token
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || authentication.getPrincipal() == null) {
+            throw new IllegalStateException("User not authenticated");
+        }
+        
+        Long inchargeZonalId = (Long) authentication.getPrincipal();
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(attendanceService.markAttendance(request, inchargeZonalId));
+    }
+
+    /**
+     * Get approved sewadars (attendees) for a program
+     * @param programId Program ID
+     * @return List of approved sewadars who can have attendance marked
+     */
+    @GetMapping("/program/{programId}/attendees")
+    public ResponseEntity<List<ProgramAttendeeResponse>> getApprovedAttendees(@PathVariable Long programId) {
+        log.info("GET /api/attendances/program/{}/attendees", programId);
+        return ResponseEntity.ok(attendanceService.getApprovedAttendeesForProgram(programId));
     }
 
     @PutMapping("/{id}")

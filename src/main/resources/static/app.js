@@ -439,9 +439,6 @@ async function loadAdminData() {
         });
         if (response.ok) {
             const programs = await response.json();
-            // Display admin data
-            document.getElementById('admin-selections').innerHTML = `<p>You have created ${programs.length} program(s)</p>`;
-            
             // Load programs list for applications view
             loadAdminProgramsList(programs);
         }
@@ -486,8 +483,8 @@ async function loadAdminProgramsList(programs) {
             </div>
             <div class="card-body">
                 <p><strong>Location:</strong> ${program.location} (${program.locationType || 'NON_BEAS'})</p>
-                <p><strong>Applications:</strong> ${program.applicationCount || 0}</p>
-                <p><strong>Selected:</strong> ${program.selectionCount || 0}${program.maxSewadars ? ` / ${program.maxSewadars}` : ''}</p>
+                <p><strong>Applications:</strong> ${program.applicationCount || 0}${program.maxSewadars ? ` / ${program.maxSewadars}` : ''}</p>
+                <p><strong>Status:</strong> ${program.status || 'scheduled'}</p>
                 ${dropRequestsCount > 0 ? `<p style="color: orange;"><strong>Drop Requests:</strong> ${dropRequestsCount}</p>` : ''}
                 <div style="display: flex; gap: 10px; margin-top: 10px;">
                     <button class="btn btn-primary" onclick="viewProgramApplications(${program.id}, '${program.title}')">
@@ -1184,9 +1181,244 @@ async function getAdminPrograms() {
     return response.ok ? await response.json() : [];
 }
 
+// Attendance Marking Functions
+let currentProgramIdForAttendance = null;
+let currentProgramDateForAttendance = null;
+let approvedAttendeesList = [];
+
+async function showMarkAttendanceModal() {
+    document.getElementById('mark-attendance-modal').style.display = 'block';
+    await loadProgramsForAttendance();
+    // Reset form
+    document.getElementById('attendance-program-select').value = '';
+    document.getElementById('attendance-date-select').value = '';
+    document.getElementById('attendance-sewadars-list').innerHTML = '<p style="color: #666;">Select a program and date first</p>';
+    document.getElementById('attendance-notes').value = '';
+    currentProgramIdForAttendance = null;
+    currentProgramDateForAttendance = null;
+    approvedAttendeesList = [];
+}
+
+function closeMarkAttendanceModal() {
+    document.getElementById('mark-attendance-modal').style.display = 'none';
+    currentProgramIdForAttendance = null;
+    currentProgramDateForAttendance = null;
+    approvedAttendeesList = [];
+}
+
+async function loadProgramsForAttendance() {
+    const selectEl = document.getElementById('attendance-program-select');
+    selectEl.innerHTML = '<option value="">-- Select Program --</option>';
+    
+    try {
+        const response = await fetch(`${API_BASE_URL}/programs/incharge/${currentUser.zonalId}`, {
+            headers: getAuthHeaders()
+        });
+        
+        if (!response.ok) throw new Error('Failed to load programs');
+        
+        const programs = await response.json();
+        
+        programs.forEach(program => {
+            const option = document.createElement('option');
+            option.value = program.id;
+            option.textContent = `${program.title} (${program.status})`;
+            selectEl.appendChild(option);
+        });
+    } catch (error) {
+        showMessage('Error loading programs: ' + error.message, 'error');
+    }
+}
+
+async function loadProgramDatesForAttendance() {
+    const programId = document.getElementById('attendance-program-select').value;
+    const dateSelectEl = document.getElementById('attendance-date-select');
+    const sewadarsListEl = document.getElementById('attendance-sewadars-list');
+    
+    dateSelectEl.innerHTML = '<option value="">-- Select Date --</option>';
+    sewadarsListEl.innerHTML = '<p style="color: #666;">Select a date first</p>';
+    currentProgramIdForAttendance = programId;
+    currentProgramDateForAttendance = null;
+    approvedAttendeesList = [];
+    
+    if (!programId) return;
+    
+    try {
+        const response = await fetch(`${API_BASE_URL}/programs/${programId}`, {
+            headers: getAuthHeaders()
+        });
+        
+        if (!response.ok) throw new Error('Failed to load program dates');
+        
+        const program = await response.json();
+        
+        if (!program.programDates || program.programDates.length === 0) {
+            dateSelectEl.innerHTML = '<option value="">No dates available</option>';
+            return;
+        }
+        
+        // Filter out future dates (can only mark for today or past dates)
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        program.programDates.forEach(dateStr => {
+            const programDate = new Date(dateStr);
+            programDate.setHours(0, 0, 0, 0);
+            
+            // Only show today or past dates
+            if (programDate <= today) {
+                const option = document.createElement('option');
+                option.value = dateStr;
+                option.textContent = new Date(dateStr).toLocaleDateString();
+                dateSelectEl.appendChild(option);
+            }
+        });
+        
+        if (dateSelectEl.options.length === 1) {
+            dateSelectEl.innerHTML = '<option value="">No valid dates (only future dates available)</option>';
+        }
+    } catch (error) {
+        showMessage('Error loading program dates: ' + error.message, 'error');
+    }
+}
+
+async function loadApprovedAttendeesForDate() {
+    const programId = currentProgramIdForAttendance;
+    const programDate = document.getElementById('attendance-date-select').value;
+    const sewadarsListEl = document.getElementById('attendance-sewadars-list');
+    
+    if (!programId || !programDate) {
+        sewadarsListEl.innerHTML = '<p style="color: #666;">Select a program and date first</p>';
+        return;
+    }
+    
+    currentProgramDateForAttendance = programDate;
+    sewadarsListEl.innerHTML = '<p>Loading approved attendees...</p>';
+    
+    try {
+        const response = await fetch(`${API_BASE_URL}/attendances/program/${programId}/attendees`, {
+            headers: getAuthHeaders()
+        });
+        
+        if (!response.ok) throw new Error('Failed to load approved attendees');
+        
+        const attendees = await response.json();
+        approvedAttendeesList = attendees;
+        
+        if (attendees.length === 0) {
+            sewadarsListEl.innerHTML = '<p style="color: orange;">No approved sewadars for this program.</p>';
+            return;
+        }
+        
+        // Check which attendees already have attendance marked for this date
+        const attendanceResponse = await fetch(`${API_BASE_URL}/attendances/program/${programId}`, {
+            headers: getAuthHeaders()
+        });
+        const existingAttendance = attendanceResponse.ok ? await attendanceResponse.json() : [];
+        const markedSewadarIds = new Set(
+            existingAttendance
+                .filter(a => a.attendanceDate === programDate)
+                .map(a => a.sewadar.zonalId)
+        );
+        
+        sewadarsListEl.innerHTML = attendees.map(attendee => {
+            const isMarked = markedSewadarIds.has(attendee.zonalId);
+            return `
+                <div style="padding: 8px; border-bottom: 1px solid #eee;">
+                    <label style="display: flex; align-items: center; cursor: pointer;">
+                        <input type="checkbox" 
+                               class="attendee-checkbox" 
+                               value="${attendee.zonalId}" 
+                               ${isMarked ? 'checked disabled' : ''}
+                               style="margin-right: 10px;">
+                        <div>
+                            <strong>${attendee.firstName} ${attendee.lastName}</strong>
+                            <span style="color: #666; margin-left: 10px;">(${attendee.mobile})</span>
+                            ${isMarked ? '<span style="color: green; margin-left: 10px;">✓ Already marked</span>' : ''}
+                        </div>
+                    </label>
+                </div>
+            `;
+        }).join('');
+    } catch (error) {
+        showMessage('Error loading attendees: ' + error.message, 'error');
+        sewadarsListEl.innerHTML = '<p>Error loading attendees.</p>';
+    }
+}
+
+function selectAllAttendees() {
+    document.querySelectorAll('.attendee-checkbox:not(:disabled)').forEach(cb => {
+        cb.checked = true;
+    });
+}
+
+function deselectAllAttendees() {
+    document.querySelectorAll('.attendee-checkbox').forEach(cb => {
+        cb.checked = false;
+    });
+}
+
+async function submitAttendanceMarking(event) {
+    event.preventDefault();
+    
+    const programId = currentProgramIdForAttendance;
+    const programDate = currentProgramDateForAttendance;
+    const notes = document.getElementById('attendance-notes').value.trim();
+    
+    if (!programId || !programDate) {
+        showMessage('Please select a program and date', 'error');
+        return;
+    }
+    
+    // Get selected sewadar IDs
+    const selectedSewadarIds = Array.from(document.querySelectorAll('.attendee-checkbox:checked:not(:disabled)'))
+        .map(cb => parseInt(cb.value));
+    
+    if (selectedSewadarIds.length === 0) {
+        showMessage('Please select at least one sewadar', 'error');
+        return;
+    }
+    
+    try {
+        const requestBody = {
+            programId: parseInt(programId),
+            programDate: programDate,
+            sewadarIds: selectedSewadarIds,
+            notes: notes || null
+        };
+        
+        const response = await fetch(`${API_BASE_URL}/attendances`, {
+            method: 'POST',
+            headers: {
+                ...getAuthHeaders(),
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(requestBody)
+        });
+        
+        if (!response.ok) {
+            const error = await response.json().catch(() => ({ message: 'Failed to mark attendance' }));
+            throw new Error(error.message || 'Failed to mark attendance');
+        }
+        
+        const result = await response.json();
+        showMessage(`Attendance marked successfully for ${result.length} sewadar(s)!`);
+        
+        // Refresh the attendees list to show updated status
+        await loadApprovedAttendeesForDate();
+        
+        // Optionally close modal after a delay
+        setTimeout(() => {
+            closeMarkAttendanceModal();
+        }, 1500);
+    } catch (error) {
+        showMessage('Error: ' + error.message, 'error');
+    }
+}
+
 // Close modals on outside click
 window.onclick = function(event) {
-    const modals = ['program-modal', 'action-response-modal', 'sewadar-modal', 'program-applications-modal', 'sewadar-attendance-modal', 'drop-requests-modal'];
+    const modals = ['program-modal', 'action-response-modal', 'sewadar-modal', 'program-applications-modal', 'sewadar-attendance-modal', 'drop-requests-modal', 'mark-attendance-modal'];
     modals.forEach(modalId => {
         const modal = document.getElementById(modalId);
         if (event.target === modal) {

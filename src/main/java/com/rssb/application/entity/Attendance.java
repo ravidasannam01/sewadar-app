@@ -9,10 +9,14 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
 /**
- * Attendance entity - final attendance record after program completion.
+ * Attendance entity - tracks attendance for sewadars in programs by date.
+ * Normalized approach: One row per sewadar-program-date combination.
+ * References program_dates table for referential integrity.
  */
 @Entity
-@Table(name = "attendances")
+@Table(name = "attendances", uniqueConstraints = {
+    @UniqueConstraint(columnNames = {"program_date_id", "sewadar_id"})
+})
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -25,27 +29,21 @@ public class Attendance {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "program_id", nullable = false)
-    private Program program;
+    private Program program; // Denormalized for easier queries (can also get from programDate.program)
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "sewadar_id", referencedColumnName = "zonal_id", nullable = false)
     private Sewadar sewadar;
 
-    @Column(name = "attended", nullable = false)
-    @Builder.Default
-    private Boolean attended = false;
-
-    @Column(name = "marked_by", nullable = false)
-    private Long markedBy; // Incharge zonal_id who marked attendance
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "program_date_id", nullable = false)
+    private ProgramDate programDate; // Foreign key to program_dates - ensures referential integrity
 
     @Column(name = "marked_at", nullable = false)
     @Builder.Default
-    private LocalDateTime markedAt = LocalDateTime.now();
+    private LocalDateTime markedAt = LocalDateTime.now(); // When this attendance was marked
 
     @Column(name = "notes", length = 500)
-    private String notes;
-
-    @Column(name = "days_participated")
-    private Integer daysParticipated;
+    private String notes; // Optional notes for this attendance record
 }
 

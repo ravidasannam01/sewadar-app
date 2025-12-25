@@ -90,18 +90,11 @@
                     <div id="admin-applications"></div>
                 </div>
                 <div class="admin-section">
-                    <h3>Drop Requests</h3>
-                    <div id="admin-drop-requests"></div>
-                </div>
-                <div class="admin-section">
                     <h3>Attendance</h3>
-                    <button class="btn btn-primary" onclick="showAllSewadarsAttendance()">View All Sewadars Attendance</button>
+                    <button class="btn btn-primary" onclick="showMarkAttendanceModal()">Mark Attendance</button>
+                    <button class="btn btn-secondary" onclick="showAllSewadarsAttendance()">View All Sewadars Attendance</button>
                     <button class="btn btn-secondary" onclick="showSewadarAttendanceForm()">View Individual Sewadar</button>
                     <div id="admin-attendance"></div>
-                </div>
-                <div class="admin-section">
-                    <h3>Selections</h3>
-                    <div id="admin-selections"></div>
                 </div>
             </div>
         </div>
@@ -214,6 +207,46 @@
                 <span class="close" onclick="closeDropRequestsModal()">&times;</span>
                 <h3 id="drop-requests-title">Drop Requests</h3>
                 <div id="drop-requests-list" class="list-container"></div>
+            </div>
+        </div>
+
+        <!-- Mark Attendance Modal -->
+        <div id="mark-attendance-modal" class="modal">
+            <div class="modal-content" style="max-width: 900px;">
+                <span class="close" onclick="closeMarkAttendanceModal()">&times;</span>
+                <h3>Mark Attendance</h3>
+                <form id="mark-attendance-form" onsubmit="submitAttendanceMarking(event)">
+                    <div class="form-group">
+                        <label>Select Program *</label>
+                        <select id="attendance-program-select" class="form-control" onchange="loadProgramDatesForAttendance()" required>
+                            <option value="">-- Select Program --</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Select Program Date *</label>
+                        <select id="attendance-date-select" class="form-control" onchange="loadApprovedAttendeesForDate()" required>
+                            <option value="">-- Select Date --</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Select Sewadars *</label>
+                        <div id="attendance-sewadars-list" style="max-height: 300px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; border-radius: 5px;">
+                            <p style="color: #666;">Select a program and date first</p>
+                        </div>
+                        <div style="margin-top: 10px;">
+                            <button type="button" class="btn btn-sm btn-secondary" onclick="selectAllAttendees()">Select All</button>
+                            <button type="button" class="btn btn-sm btn-secondary" onclick="deselectAllAttendees()">Deselect All</button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Notes (Optional)</label>
+                        <textarea id="attendance-notes" rows="3" placeholder="Add any notes about the attendance"></textarea>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">Mark Attendance</button>
+                        <button type="button" class="btn btn-secondary" onclick="closeMarkAttendanceModal()">Cancel</button>
+                    </div>
+                </form>
             </div>
         </div>
 

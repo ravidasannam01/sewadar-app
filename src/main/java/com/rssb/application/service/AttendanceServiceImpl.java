@@ -3,11 +3,12 @@ package com.rssb.application.service;
 import com.rssb.application.dto.AllSewadarsAttendanceSummaryResponse;
 import com.rssb.application.dto.AttendanceResponse;
 import com.rssb.application.dto.AttendanceRequest;
+import com.rssb.application.dto.ProgramAttendeeResponse;
 import com.rssb.application.dto.SewadarAttendanceSummaryResponse;
 import com.rssb.application.dto.SewadarResponse;
 import com.rssb.application.entity.Attendance;
 import com.rssb.application.entity.Program;
-import com.rssb.application.entity.Role;
+import com.rssb.application.entity.ProgramDate;
 import com.rssb.application.entity.Sewadar;
 import com.rssb.application.exception.ResourceNotFoundException;
 import com.rssb.application.repository.AttendanceRepository;
@@ -33,49 +34,83 @@ public class AttendanceServiceImpl implements AttendanceService {
     private final SewadarRepository sewadarRepository;
 
     @Override
-    public List<AttendanceResponse> markAttendance(AttendanceRequest request) {
-        log.info("Incharge {} marking attendance for program {}", request.getMarkedById(), request.getProgramId());
+    public List<AttendanceResponse> markAttendance(AttendanceRequest request, Long inchargeZonalId) {
+        log.info("Incharge {} marking attendance for program {} on date {}", inchargeZonalId, request.getProgramId(), request.getProgramDate());
 
         Program program = programRepository.findById(request.getProgramId())
                 .orElseThrow(() -> new ResourceNotFoundException("Program", "id", request.getProgramId()));
 
-        Sewadar incharge = sewadarRepository.findByZonalId(request.getMarkedById())
-                .orElseThrow(() -> new ResourceNotFoundException("Sewadar", "zonal_id", request.getMarkedById()));
+        // Validate incharge is the program creator
+        if (!program.getCreatedBy().getZonalId().equals(inchargeZonalId)) {
+            throw new IllegalArgumentException("Only the program creator can mark attendance");
+        }
 
-        if (incharge.getRole() != Role.INCHARGE) {
+        // Validate incharge role
+        Sewadar incharge = sewadarRepository.findByZonalId(inchargeZonalId)
+                .orElseThrow(() -> new ResourceNotFoundException("Sewadar", "zonal_id", inchargeZonalId));
+        
+        if (incharge.getRole() != com.rssb.application.entity.Role.INCHARGE) {
             throw new IllegalArgumentException("Only incharge can mark attendance");
+        }
+
+        // Find the ProgramDate entity for the given date (ensures referential integrity)
+        ProgramDate programDate = program.getProgramDates().stream()
+                .filter(pd -> pd.getProgramDate().equals(request.getProgramDate()))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Date " + request.getProgramDate() + " is not a valid program date. Valid dates: " + 
+                        program.getProgramDates().stream().map(pd -> pd.getProgramDate()).toList()));
+        
+        // Optional: Validate that attendance cannot be marked for future dates
+        // (Allow past dates in case incharge forgot to mark on the actual day)
+        java.time.LocalDate today = java.time.LocalDate.now();
+        if (request.getProgramDate().isAfter(today)) {
+            throw new IllegalArgumentException(
+                    "Cannot mark attendance for future dates. " +
+                    "Requested date: " + request.getProgramDate() + ", Today: " + today);
         }
 
         return request.getSewadarIds().stream().map(sewadarZonalId -> {
             Sewadar sewadar = sewadarRepository.findByZonalId(sewadarZonalId)
                     .orElseThrow(() -> new ResourceNotFoundException("Sewadar", "zonal_id", sewadarZonalId));
 
-            // Check if attendance already exists
-            Attendance existing = attendanceRepository.findByProgramIdAndSewadarZonalId(request.getProgramId(), sewadarZonalId)
+            // Verify sewadar is approved for this program
+            boolean isApproved = program.getApplications().stream()
+                    .anyMatch(app -> app.getSewadar().getZonalId().equals(sewadarZonalId) 
+                            && "APPROVED".equals(app.getStatus()));
+            
+            if (!isApproved) {
+                throw new IllegalArgumentException("Sewadar " + sewadarZonalId + " is not approved for this program");
+            }
+
+            // Check if attendance already exists for this sewadar-program-date combination
+            // Unique constraint on (program_date_id, sewadar_id) prevents duplicates
+            Attendance existing = attendanceRepository.findByProgramDateIdAndSewadarZonalId(
+                    programDate.getId(), sewadarZonalId)
                     .orElse(null);
 
             Attendance attendance;
             if (existing != null) {
-                // Update existing
-                existing.setAttended(true);
-                existing.setDaysParticipated(request.getDaysParticipated());
-                existing.setNotes(request.getNotes());
+                // Update existing (if notes changed, etc.)
+                if (request.getNotes() != null && !request.getNotes().trim().isEmpty()) {
+                    existing.setNotes(request.getNotes());
+                }
                 existing.setMarkedAt(LocalDateTime.now());
                 attendance = attendanceRepository.save(existing);
             } else {
-                // Create new
+                // Create new attendance record for this date
                 attendance = Attendance.builder()
                         .program(program)
                         .sewadar(sewadar)
-                        .attended(true)
-                        .markedBy(incharge.getZonalId())
-                        .daysParticipated(request.getDaysParticipated())
+                        .programDate(programDate) // Foreign key reference - ensures referential integrity
+                        .markedAt(LocalDateTime.now())
                         .notes(request.getNotes())
                         .build();
                 attendance = attendanceRepository.save(attendance);
             }
 
-            log.info("Attendance marked for sewadar {} in program {}", sewadarZonalId, request.getProgramId());
+            log.info("Attendance marked for sewadar {} in program {} on date {}", 
+                    sewadarZonalId, request.getProgramId(), request.getProgramDate());
             return mapToResponse(attendance);
         }).collect(Collectors.toList());
     }
@@ -86,12 +121,8 @@ public class AttendanceServiceImpl implements AttendanceService {
         Attendance attendance = attendanceRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Attendance", "id", id));
 
-        if (attended != null) {
-            attendance.setAttended(attended);
-        }
-        if (daysParticipated != null) {
-            attendance.setDaysParticipated(daysParticipated);
-        }
+        // Note: attended and daysParticipated parameters are legacy - not applicable in normalized approach
+        // Only notes can be updated
         if (notes != null) {
             attendance.setNotes(notes);
         }
@@ -137,47 +168,69 @@ public class AttendanceServiceImpl implements AttendanceService {
         Sewadar sewadar = sewadarRepository.findByZonalId(sewadarZonalId)
                 .orElseThrow(() -> new ResourceNotFoundException("Sewadar", "zonal_id", sewadarZonalId));
         
-        // Get all attended programs
-        List<Attendance> allAttendances = attendanceRepository.findAttendedBySewadarId(sewadarZonalId);
+        // Use SQL aggregations for counts (more efficient)
+        Long beasProgramsCount = attendanceRepository.countAttendedProgramsBySewadarIdAndLocationType(sewadarZonalId, "BEAS");
+        Long nonBeasProgramsCount = attendanceRepository.countAttendedProgramsBySewadarIdAndLocationType(sewadarZonalId, "NON_BEAS");
+        Long totalProgramsCount = attendanceRepository.countAttendedProgramsBySewadarId(sewadarZonalId);
         
-        // Separate BEAS and non-BEAS (derive from location)
-        List<SewadarAttendanceSummaryResponse.AttendanceDetail> beasAttendances = allAttendances.stream()
-                .filter(a -> "BEAS".equalsIgnoreCase(a.getProgram().getLocation()))
-                .map(this::mapToAttendanceDetail)
-                .collect(Collectors.toList());
+        // Count days using SQL (count of attendance records)
+        Long beasDays = attendanceRepository.countDaysAttendedBySewadarIdAndLocationType(sewadarZonalId, "BEAS");
+        Long nonBeasDays = attendanceRepository.countDaysAttendedBySewadarIdAndLocationType(sewadarZonalId, "NON_BEAS");
+        Long totalDays = attendanceRepository.countDaysAttendedBySewadarId(sewadarZonalId);
         
-        List<SewadarAttendanceSummaryResponse.AttendanceDetail> nonBeasAttendances = allAttendances.stream()
-                .filter(a -> !"BEAS".equalsIgnoreCase(a.getProgram().getLocation()))
-                .map(this::mapToAttendanceDetail)
-                .collect(Collectors.toList());
+        // Get attendance records by location for detail list
+        List<Attendance> beasAttendanceEntities = attendanceRepository.findAttendedBySewadarIdAndLocationType(sewadarZonalId, "BEAS");
+        List<Attendance> nonBeasAttendanceEntities = attendanceRepository.findAttendedBySewadarIdAndLocationType(sewadarZonalId, "NON_BEAS");
         
-        // Calculate counts
-        Long beasProgramsCount = (long) beasAttendances.size();
-        Long nonBeasProgramsCount = (long) nonBeasAttendances.size();
-        Long totalProgramsCount = (long) allAttendances.size();
+        // Group by program and map to DTOs (one detail per program, with day count)
+        List<SewadarAttendanceSummaryResponse.AttendanceDetail> beasAttendances = 
+                groupAttendancesByProgram(beasAttendanceEntities);
         
-        // Calculate days
-        Integer beasDays = beasAttendances.stream()
-                .mapToInt(a -> a.getDaysParticipated() != null ? a.getDaysParticipated() : 0)
-                .sum();
-        Integer nonBeasDays = nonBeasAttendances.stream()
-                .mapToInt(a -> a.getDaysParticipated() != null ? a.getDaysParticipated() : 0)
-                .sum();
-        Integer totalDays = beasDays + nonBeasDays;
+        List<SewadarAttendanceSummaryResponse.AttendanceDetail> nonBeasAttendances = 
+                groupAttendancesByProgram(nonBeasAttendanceEntities);
         
         return SewadarAttendanceSummaryResponse.builder()
                 .sewadarId(sewadar.getZonalId())
                 .sewadarName(sewadar.getFirstName() + " " + sewadar.getLastName())
                 .mobile(sewadar.getMobile())
                 .beasProgramsCount(beasProgramsCount)
-                .beasDaysAttended(beasDays)
+                .beasDaysAttended(beasDays != null ? beasDays.intValue() : 0)
                 .beasAttendances(beasAttendances)
                 .nonBeasProgramsCount(nonBeasProgramsCount)
-                .nonBeasDaysAttended(nonBeasDays)
+                .nonBeasDaysAttended(nonBeasDays != null ? nonBeasDays.intValue() : 0)
                 .nonBeasAttendances(nonBeasAttendances)
                 .totalProgramsCount(totalProgramsCount)
-                .totalDaysAttended(totalDays)
+                .totalDaysAttended(totalDays != null ? totalDays.intValue() : 0)
                 .build();
+    }
+    
+    /**
+     * Group attendance records by program and create summary details
+     * Each program gets one detail entry with the count of days attended
+     */
+    private List<SewadarAttendanceSummaryResponse.AttendanceDetail> groupAttendancesByProgram(List<Attendance> attendances) {
+        return attendances.stream()
+                .collect(Collectors.groupingBy(Attendance::getProgram))
+                .entrySet().stream()
+                .map(entry -> {
+                    Program program = entry.getKey();
+                    List<Attendance> programAttendances = entry.getValue();
+                    String locationType = "BEAS".equalsIgnoreCase(program.getLocation()) ? "BEAS" : "NON_BEAS";
+                    
+                    return SewadarAttendanceSummaryResponse.AttendanceDetail.builder()
+                            .programId(program.getId())
+                            .programTitle(program.getTitle())
+                            .location(program.getLocation())
+                            .locationType(locationType)
+                            .attended(true) // If record exists, they attended
+                            .daysParticipated(programAttendances.size()) // Count of attendance records = days
+                            .markedAt(programAttendances.stream()
+                                    .map(Attendance::getMarkedAt)
+                                    .max(LocalDateTime::compareTo)
+                                    .orElse(LocalDateTime.now()))
+                            .build();
+                })
+                .collect(Collectors.toList());
     }
     
     @Override
@@ -195,22 +248,23 @@ public class AttendanceServiceImpl implements AttendanceService {
                             sewadar.getZonalId(), "NON_BEAS");
                     Long totalCount = attendanceRepository.countAttendedProgramsBySewadarId(sewadar.getZonalId());
                     
-                    Integer beasDays = attendanceRepository.sumDaysAttendedBySewadarIdAndLocationType(
+                    // Use SQL aggregations for efficient counting
+                    Long beasDays = attendanceRepository.countDaysAttendedBySewadarIdAndLocationType(
                             sewadar.getZonalId(), "BEAS");
-                    Integer nonBeasDays = attendanceRepository.sumDaysAttendedBySewadarIdAndLocationType(
+                    Long nonBeasDays = attendanceRepository.countDaysAttendedBySewadarIdAndLocationType(
                             sewadar.getZonalId(), "NON_BEAS");
-                    Integer totalDays = attendanceRepository.sumDaysAttendedBySewadarId(sewadar.getZonalId());
+                    Long totalDays = attendanceRepository.countDaysAttendedBySewadarId(sewadar.getZonalId());
                     
                     return AllSewadarsAttendanceSummaryResponse.SewadarSummary.builder()
                             .sewadarId(sewadar.getZonalId())
                             .sewadarName(sewadar.getFirstName() + " " + sewadar.getLastName())
                             .mobile(sewadar.getMobile())
                             .beasProgramsCount(beasCount)
-                            .beasDaysAttended(beasDays != null ? beasDays : 0)
+                            .beasDaysAttended(beasDays != null ? beasDays.intValue() : 0)
                             .nonBeasProgramsCount(nonBeasCount)
-                            .nonBeasDaysAttended(nonBeasDays != null ? nonBeasDays : 0)
+                            .nonBeasDaysAttended(nonBeasDays != null ? nonBeasDays.intValue() : 0)
                             .totalProgramsCount(totalCount)
-                            .totalDaysAttended(totalDays != null ? totalDays : 0)
+                            .totalDaysAttended(totalDays != null ? totalDays.intValue() : 0)
                             .build();
                 })
                 .collect(Collectors.toList());
@@ -220,19 +274,7 @@ public class AttendanceServiceImpl implements AttendanceService {
                 .build();
     }
     
-    private SewadarAttendanceSummaryResponse.AttendanceDetail mapToAttendanceDetail(Attendance attendance) {
-        // Derive locationType from location
-        String locationType = "BEAS".equalsIgnoreCase(attendance.getProgram().getLocation()) ? "BEAS" : "NON_BEAS";
-        return SewadarAttendanceSummaryResponse.AttendanceDetail.builder()
-                .programId(attendance.getProgram().getId())
-                .programTitle(attendance.getProgram().getTitle())
-                .location(attendance.getProgram().getLocation())
-                .locationType(locationType)
-                .attended(attendance.getAttended())
-                .daysParticipated(attendance.getDaysParticipated())
-                .markedAt(attendance.getMarkedAt())
-                .build();
-    }
+    // mapToAttendanceDetail removed - now using groupAttendancesByProgram for summary
 
     private AttendanceResponse mapToResponse(Attendance attendance) {
         SewadarResponse sewadar = SewadarResponse.builder()
@@ -247,12 +289,36 @@ public class AttendanceServiceImpl implements AttendanceService {
                 .programId(attendance.getProgram().getId())
                 .programTitle(attendance.getProgram().getTitle())
                 .sewadar(sewadar)
-                .attended(attendance.getAttended())
-                .markedBy(attendance.getMarkedBy())
+                .attendanceDate(attendance.getProgramDate().getProgramDate()) // Get date from ProgramDate entity
+                .programDateId(attendance.getProgramDate().getId())
                 .markedAt(attendance.getMarkedAt())
                 .notes(attendance.getNotes())
-                .daysParticipated(attendance.getDaysParticipated())
                 .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ProgramAttendeeResponse> getApprovedAttendeesForProgram(Long programId) {
+        log.info("Fetching approved attendees for program: {}", programId);
+        
+        Program program = programRepository.findById(programId)
+                .orElseThrow(() -> new ResourceNotFoundException("Program", "id", programId));
+        
+        // Get all APPROVED applications for this program
+        return program.getApplications().stream()
+                .filter(app -> "APPROVED".equals(app.getStatus()))
+                .map(app -> {
+                    Sewadar sewadar = app.getSewadar();
+                    return ProgramAttendeeResponse.builder()
+                            .zonalId(sewadar.getZonalId())
+                            .firstName(sewadar.getFirstName())
+                            .lastName(sewadar.getLastName())
+                            .mobile(sewadar.getMobile())
+                            .applicationId(app.getId())
+                            .applicationStatus(app.getStatus())
+                            .build();
+                })
+                .collect(Collectors.toList());
     }
 }
 

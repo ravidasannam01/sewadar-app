@@ -29,6 +29,7 @@ public class ProgramServiceImpl implements ProgramService {
     private final SewadarRepository sewadarRepository;
     private final ProgramApplicationRepository applicationRepository;
     private final ProgramDateRepository programDateRepository;
+    private final com.rssb.application.repository.AttendanceRepository attendanceRepository;
 
     @Override
     public ProgramResponse createProgram(ProgramRequest request) {
@@ -104,20 +105,67 @@ public class ProgramServiceImpl implements ProgramService {
         }
         program.setMaxSewadars(request.getMaxSewadars());
 
-        // Update program dates
+        // Update program dates intelligently to preserve referential integrity
         if (request.getProgramDates() != null) {
-            // Delete existing dates
-            programDateRepository.findByProgramId(id).forEach(programDateRepository::delete);
+            List<com.rssb.application.entity.ProgramDate> oldProgramDates = 
+                    programDateRepository.findByProgramId(id);
+            List<java.time.LocalDate> newDates = request.getProgramDates();
             
-            // Create new dates
-            for (java.time.LocalDate date : request.getProgramDates()) {
-                ProgramDate programDate = ProgramDate.builder()
-                        .program(program)
-                        .programDate(date)
-                        .status("SCHEDULED")
-                        .build();
-                programDateRepository.save(programDate);
+            // Map old dates by their date value for quick lookup
+            java.util.Map<java.time.LocalDate, com.rssb.application.entity.ProgramDate> oldDatesMap = 
+                    oldProgramDates.stream()
+                            .collect(Collectors.toMap(
+                                    ProgramDate::getProgramDate,
+                                    pd -> pd,
+                                    (existing, replacement) -> existing // Keep first if duplicates
+                            ));
+            
+            // 1. DELETE: Remove ProgramDate entities for dates that are no longer in the new list
+            // This will cascade delete attendance records (or we handle manually)
+            List<com.rssb.application.entity.ProgramDate> toDelete = oldProgramDates.stream()
+                    .filter(pd -> !newDates.contains(pd.getProgramDate()))
+                    .collect(Collectors.toList());
+            
+            if (!toDelete.isEmpty()) {
+                log.info("Removing {} program dates that are no longer in the program", toDelete.size());
+                for (com.rssb.application.entity.ProgramDate pdToDelete : toDelete) {
+                    // Delete attendance records first (if not using CASCADE)
+                    List<com.rssb.application.entity.Attendance> attendancesToDelete = 
+                            attendanceRepository.findByProgramDateId(pdToDelete.getId());
+                    if (!attendancesToDelete.isEmpty()) {
+                        attendanceRepository.deleteAll(attendancesToDelete);
+                        log.info("Deleted {} attendance records for removed program_date_id {} (date: {})", 
+                                attendancesToDelete.size(), pdToDelete.getId(), pdToDelete.getProgramDate());
+                    }
+                    programDateRepository.delete(pdToDelete);
+                }
             }
+            
+            // 2. UPDATE/PRESERVE: For dates that exist in both old and new lists, keep the ProgramDate entity
+            // This preserves the ID and maintains foreign key relationships with attendance records
+            List<java.time.LocalDate> datesToPreserve = newDates.stream()
+                    .filter(oldDatesMap::containsKey)
+                    .collect(Collectors.toList());
+            
+            // 3. CREATE: For dates that are new (not in old list), create new ProgramDate entities
+            List<java.time.LocalDate> datesToCreate = newDates.stream()
+                    .filter(date -> !oldDatesMap.containsKey(date))
+                    .collect(Collectors.toList());
+            
+            if (!datesToCreate.isEmpty()) {
+                log.info("Creating {} new program dates", datesToCreate.size());
+                for (java.time.LocalDate date : datesToCreate) {
+                    ProgramDate programDate = ProgramDate.builder()
+                            .program(program)
+                            .programDate(date)
+                            .status("SCHEDULED")
+                            .build();
+                    programDateRepository.save(programDate);
+                }
+            }
+            
+            log.info("Program dates updated: {} preserved, {} created, {} deleted", 
+                    datesToPreserve.size(), datesToCreate.size(), toDelete.size());
         }
 
         Program updated = programRepository.save(program);

@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @Data
@@ -16,13 +17,12 @@ public class AttendanceRequest {
     @NotNull(message = "Program ID is required")
     private Long programId;
 
+    @NotNull(message = "Program date is required")
+    private LocalDate programDate; // The specific date for which attendance is being marked
+
     @NotNull(message = "Sewadar zonal IDs are required")
-    private List<Long> sewadarIds; // List of sewadar zonal IDs
+    private List<Long> sewadarIds; // List of sewadar zonal IDs to mark attendance for
 
-    @NotNull(message = "Marked by (Incharge zonal ID) is required")
-    private Long markedById; // Incharge zonal ID who marked attendance
-
-    private Integer daysParticipated;
-    private String notes;
+    private String notes; // Optional notes for this attendance marking (applied to all records)
 }
 

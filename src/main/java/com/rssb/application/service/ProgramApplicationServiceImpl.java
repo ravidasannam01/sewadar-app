@@ -227,15 +227,16 @@ public class ProgramApplicationServiceImpl implements ProgramApplicationService 
                     Long nonBeasAttendance = attendanceRepository.countAttendedProgramsBySewadarIdAndLocationType(
                             sewadar.getZonalId(), "NON_BEAS");
                     
-                    Integer totalDays = attendanceRepository.sumDaysAttendedBySewadarId(sewadar.getZonalId());
-                    Integer beasDays = attendanceRepository.sumDaysAttendedBySewadarIdAndLocationType(
+                    // Use SQL aggregations for efficient counting
+                    Long totalDays = attendanceRepository.countDaysAttendedBySewadarId(sewadar.getZonalId());
+                    Long beasDays = attendanceRepository.countDaysAttendedBySewadarIdAndLocationType(
                             sewadar.getZonalId(), "BEAS");
-                    Integer nonBeasDays = attendanceRepository.sumDaysAttendedBySewadarIdAndLocationType(
+                    Long nonBeasDays = attendanceRepository.countDaysAttendedBySewadarIdAndLocationType(
                             sewadar.getZonalId(), "NON_BEAS");
                     
                     // Calculate priority score (weighted)
                     // Higher attendance = higher score
-                    Long priorityScore = (totalAttendance * 10L) + (totalDays != null ? totalDays : 0);
+                    Long priorityScore = (totalAttendance * 10L) + (totalDays != null ? totalDays : 0L);
                     
                     SewadarResponse sewadarResponse = SewadarResponse.builder()
                             .zonalId(sewadar.getZonalId())
@@ -258,9 +259,9 @@ public class ProgramApplicationServiceImpl implements ProgramApplicationService 
                             .totalAttendanceCount(totalAttendance)
                             .beasAttendanceCount(beasAttendance)
                             .nonBeasAttendanceCount(nonBeasAttendance)
-                            .totalDaysAttended(totalDays)
-                            .beasDaysAttended(beasDays)
-                            .nonBeasDaysAttended(nonBeasDays)
+                            .totalDaysAttended(totalDays != null ? totalDays.intValue() : 0)
+                            .beasDaysAttended(beasDays != null ? beasDays.intValue() : 0)
+                            .nonBeasDaysAttended(nonBeasDays != null ? nonBeasDays.intValue() : 0)
                             .profession(sewadar.getProfession())
                             .joiningDate(sewadar.getJoiningDate())
                             .priorityScore(priorityScore)

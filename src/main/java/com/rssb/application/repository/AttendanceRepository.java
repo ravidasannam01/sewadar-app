@@ -6,48 +6,55 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
 @Repository
 public interface AttendanceRepository extends JpaRepository<Attendance, Long> {
+    // Find all attendance records for a program
     List<Attendance> findByProgramId(Long programId);
     
+    // Find all attendance records for a sewadar
     @Query("SELECT a FROM Attendance a WHERE a.sewadar.zonalId = :sewadarZonalId")
     List<Attendance> findBySewadarZonalId(@Param("sewadarZonalId") Long sewadarZonalId);
     
+    // Find attendance for a specific sewadar-program-date combination
+    @Query("SELECT a FROM Attendance a WHERE a.programDate.id = :programDateId AND a.sewadar.zonalId = :sewadarZonalId")
+    Optional<Attendance> findByProgramDateIdAndSewadarZonalId(
+            @Param("programDateId") Long programDateId, 
+            @Param("sewadarZonalId") Long sewadarZonalId);
+    
+    // Find all attendance records for a sewadar in a program (all dates)
     @Query("SELECT a FROM Attendance a WHERE a.program.id = :programId AND a.sewadar.zonalId = :sewadarZonalId")
-    Optional<Attendance> findByProgramIdAndSewadarZonalId(@Param("programId") Long programId, @Param("sewadarZonalId") Long sewadarZonalId);
+    List<Attendance> findByProgramIdAndSewadarZonalId(@Param("programId") Long programId, @Param("sewadarZonalId") Long sewadarZonalId);
     
-    @Query("SELECT a FROM Attendance a WHERE a.sewadar.zonalId = :sewadarZonalId AND a.attended = true")
-    List<Attendance> findAttendedBySewadarId(@Param("sewadarZonalId") Long sewadarZonalId);
+    // Find attendance for a specific program date
+    @Query("SELECT a FROM Attendance a WHERE a.programDate.id = :programDateId")
+    List<Attendance> findByProgramDateId(@Param("programDateId") Long programDateId);
     
-    @Query("SELECT a FROM Attendance a WHERE a.sewadar.zonalId = :sewadarZonalId AND a.attended = true AND (CASE WHEN UPPER(a.program.location) = 'BEAS' THEN 'BEAS' ELSE 'NON_BEAS' END) = :locationType")
-    List<Attendance> findAttendedBySewadarIdAndLocationType(@Param("sewadarZonalId") Long sewadarZonalId, @Param("locationType") String locationType);
-    
-    @Query("SELECT COUNT(a) FROM Attendance a WHERE a.sewadar.zonalId = :sewadarZonalId AND a.attended = true")
+    // Count distinct programs a sewadar attended (using DISTINCT program_id)
+    @Query("SELECT COUNT(DISTINCT a.program.id) FROM Attendance a WHERE a.sewadar.zonalId = :sewadarZonalId")
     Long countAttendedProgramsBySewadarId(@Param("sewadarZonalId") Long sewadarZonalId);
     
-    @Query("SELECT COUNT(a) FROM Attendance a WHERE a.sewadar.zonalId = :sewadarZonalId AND a.attended = true AND (CASE WHEN UPPER(a.program.location) = 'BEAS' THEN 'BEAS' ELSE 'NON_BEAS' END) = :locationType")
+    // Count distinct programs by location type
+    @Query("SELECT COUNT(DISTINCT a.program.id) FROM Attendance a WHERE a.sewadar.zonalId = :sewadarZonalId AND (CASE WHEN UPPER(a.program.location) = 'BEAS' THEN 'BEAS' ELSE 'NON_BEAS' END) = :locationType")
     Long countAttendedProgramsBySewadarIdAndLocationType(@Param("sewadarZonalId") Long sewadarZonalId, @Param("locationType") String locationType);
     
-    @Query("SELECT COALESCE(SUM(a.daysParticipated), 0) FROM Attendance a WHERE a.sewadar.zonalId = :sewadarZonalId AND a.attended = true")
-    Integer sumDaysAttendedBySewadarId(@Param("sewadarZonalId") Long sewadarZonalId);
+    // Count total days attended (count of attendance records)
+    @Query("SELECT COUNT(a) FROM Attendance a WHERE a.sewadar.zonalId = :sewadarZonalId")
+    Long countDaysAttendedBySewadarId(@Param("sewadarZonalId") Long sewadarZonalId);
     
-    @Query("SELECT COALESCE(SUM(a.daysParticipated), 0) FROM Attendance a WHERE a.sewadar.zonalId = :sewadarZonalId AND a.attended = true AND (CASE WHEN UPPER(a.program.location) = 'BEAS' THEN 'BEAS' ELSE 'NON_BEAS' END) = :locationType")
-    Integer sumDaysAttendedBySewadarIdAndLocationType(@Param("sewadarZonalId") Long sewadarZonalId, @Param("locationType") String locationType);
+    // Count days by location type
+    @Query("SELECT COUNT(a) FROM Attendance a WHERE a.sewadar.zonalId = :sewadarZonalId AND (CASE WHEN UPPER(a.program.location) = 'BEAS' THEN 'BEAS' ELSE 'NON_BEAS' END) = :locationType")
+    Long countDaysAttendedBySewadarIdAndLocationType(@Param("sewadarZonalId") Long sewadarZonalId, @Param("locationType") String locationType);
     
-    // Legacy methods for backward compatibility (deprecated)
-    @Deprecated
-    @Query("SELECT a FROM Attendance a WHERE a.sewadar.zonalId = :sewadarId")
-    default List<Attendance> findBySewadarId(Long sewadarId) {
-        return findBySewadarZonalId(sewadarId);
-    }
+    // Get all attendance records for a sewadar (for summary)
+    @Query("SELECT a FROM Attendance a WHERE a.sewadar.zonalId = :sewadarZonalId")
+    List<Attendance> findAttendedBySewadarId(@Param("sewadarZonalId") Long sewadarZonalId);
     
-    @Deprecated
-    @Query("SELECT a FROM Attendance a WHERE a.program.id = :programId AND a.sewadar.zonalId = :sewadarId")
-    default Optional<Attendance> findByProgramIdAndSewadarId(Long programId, Long sewadarId) {
-        return findByProgramIdAndSewadarZonalId(programId, sewadarId);
-    }
+    // Get attendance records by location type
+    @Query("SELECT a FROM Attendance a WHERE a.sewadar.zonalId = :sewadarZonalId AND (CASE WHEN UPPER(a.program.location) = 'BEAS' THEN 'BEAS' ELSE 'NON_BEAS' END) = :locationType")
+    List<Attendance> findAttendedBySewadarIdAndLocationType(@Param("sewadarZonalId") Long sewadarZonalId, @Param("locationType") String locationType);
 }
 
