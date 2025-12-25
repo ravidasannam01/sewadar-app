@@ -37,14 +37,14 @@ public class SewadarController {
     }
 
     /**
-     * Get a sewadar by ID.
+     * Get a sewadar by zonal ID.
      *
-     * @param id The sewadar ID
+     * @param id The sewadar zonal ID
      * @return The sewadar response
      */
     @GetMapping("/{id}")
     public ResponseEntity<SewadarResponse> getSewadarById(@PathVariable Long id) {
-        log.info("GET /api/sewadars/{} - Fetching sewadar by id", id);
+        log.info("GET /api/sewadars/{} - Fetching sewadar by zonal_id", id);
         SewadarResponse sewadar = sewadarService.getSewadarById(id);
         return ResponseEntity.ok(sewadar);
     }
@@ -65,7 +65,7 @@ public class SewadarController {
     /**
      * Update an existing sewadar.
      *
-     * @param id      The sewadar ID
+     * @param id      The sewadar zonal ID
      * @param request The sewadar request DTO
      * @return The updated sewadar response
      */
@@ -79,9 +79,9 @@ public class SewadarController {
     }
 
     /**
-     * Delete a sewadar by ID.
+     * Delete a sewadar by zonal ID.
      *
-     * @param id The sewadar ID
+     * @param id The sewadar zonal ID
      * @return No content response
      */
     @DeleteMapping("/{id}")
@@ -95,8 +95,8 @@ public class SewadarController {
      * Promote a sewadar to incharge role.
      * Only existing incharge can perform this action.
      *
-     * @param sewadarId The sewadar ID to promote
-     * @param inchargeId The incharge ID performing the promotion
+     * @param sewadarId The sewadar zonal ID to promote
+     * @param inchargeId The incharge zonal ID performing the promotion
      * @return The updated sewadar response
      */
     @PostMapping("/{sewadarId}/promote")

@@ -32,6 +32,11 @@ public class ProgramApplicationController {
         return ResponseEntity.ok(applicationService.getApplicationsByProgram(programId));
     }
 
+    /**
+     * Get applications by sewadar zonal ID
+     * @param sewadarId Sewadar zonal ID
+     * @return List of applications
+     */
     @GetMapping("/sewadar/{sewadarId}")
     public ResponseEntity<List<ProgramApplicationResponse>> getApplicationsBySewadar(@PathVariable Long sewadarId) {
         return ResponseEntity.ok(applicationService.getApplicationsBySewadar(sewadarId));
@@ -61,6 +66,8 @@ public class ProgramApplicationController {
 
     /**
      * Sewadar requests to drop from a program (requires incharge approval)
+     * @param id Application ID
+     * @param sewadarId Sewadar zonal ID (must own the application)
      */
     @PutMapping("/{id}/request-drop")
     public ResponseEntity<ProgramApplicationResponse> requestDrop(
@@ -71,18 +78,18 @@ public class ProgramApplicationController {
     }
 
     /**
-     * Incharge approves/rejects drop request
+     * Incharge approves drop request
+     * Note: Reapply is always allowed (reapply_allowed field removed from schema)
      * @param id Application ID
-     * @param inchargeId Incharge ID
-     * @param allowReapply Whether sewadar can reapply (default: true)
+     * @param inchargeId Incharge zonal ID (must be program creator)
+     * @param allowReapply Deprecated - kept for backward compatibility, always true
      */
     @PutMapping("/{id}/approve-drop")
     public ResponseEntity<ProgramApplicationResponse> approveDropRequest(
             @PathVariable Long id,
             @RequestParam Long inchargeId,
             @RequestParam(required = false, defaultValue = "true") Boolean allowReapply) {
-        log.info("PUT /api/program-applications/{}/approve-drop - incharge: {}, allowReapply: {}", 
-                id, inchargeId, allowReapply);
+        log.info("PUT /api/program-applications/{}/approve-drop - incharge: {}", id, inchargeId);
         return ResponseEntity.ok(applicationService.approveDropRequest(id, inchargeId, allowReapply));
     }
 

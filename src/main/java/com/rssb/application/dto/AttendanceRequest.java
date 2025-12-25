@@ -16,11 +16,11 @@ public class AttendanceRequest {
     @NotNull(message = "Program ID is required")
     private Long programId;
 
-    @NotNull(message = "Sewadar IDs are required")
-    private List<Long> sewadarIds;
+    @NotNull(message = "Sewadar zonal IDs are required")
+    private List<Long> sewadarIds; // List of sewadar zonal IDs
 
-    @NotNull(message = "Marked by (Incharge ID) is required")
-    private Long markedById;
+    @NotNull(message = "Marked by (Incharge zonal ID) is required")
+    private Long markedById; // Incharge zonal ID who marked attendance
 
     private Integer daysParticipated;
     private String notes;

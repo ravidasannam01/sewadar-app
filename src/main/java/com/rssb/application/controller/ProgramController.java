@@ -40,6 +40,11 @@ public class ProgramController {
         return ResponseEntity.ok(programService.getProgramById(id));
     }
 
+    /**
+     * Get programs created by an incharge
+     * @param inchargeId Incharge zonal ID
+     * @return List of programs
+     */
     @GetMapping("/incharge/{inchargeId}")
     public ResponseEntity<List<ProgramResponse>> getProgramsByIncharge(@PathVariable Long inchargeId) {
         log.info("GET /api/programs/incharge/{} - Fetching programs for incharge", inchargeId);

@@ -14,8 +14,8 @@ public class ProgramApplicationRequest {
     @NotNull(message = "Program ID is required")
     private Long programId;
 
-    @NotNull(message = "Sewadar ID is required")
-    private Long sewadarId;
+    @NotNull(message = "Sewadar zonal ID is required")
+    private Long sewadarId; // Sewadar zonal ID
 
     private String notes;
 }

@@ -41,6 +41,11 @@ public class AttendanceController {
         return ResponseEntity.ok(attendanceService.getAttendanceByProgram(programId));
     }
 
+    /**
+     * Get attendance records by sewadar zonal ID
+     * @param sewadarId Sewadar zonal ID
+     * @return List of attendance records
+     */
     @GetMapping("/sewadar/{sewadarId}")
     public ResponseEntity<List<AttendanceResponse>> getAttendanceBySewadar(@PathVariable Long sewadarId) {
         return ResponseEntity.ok(attendanceService.getAttendanceBySewadar(sewadarId));
@@ -53,6 +58,7 @@ public class AttendanceController {
 
     /**
      * Get attendance summary for a specific sewadar with BEAS/non-BEAS breakdown
+     * @param sewadarId Sewadar zonal ID
      */
     @GetMapping("/sewadar/{sewadarId}/summary")
     public ResponseEntity<com.rssb.application.dto.SewadarAttendanceSummaryResponse> getSewadarAttendanceSummary(

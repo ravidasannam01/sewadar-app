@@ -26,9 +26,9 @@ public class ProgramRequest {
     @NotNull(message = "Program dates are required")
     private List<LocalDate> programDates; // Multiple dates for one program
 
-    private String status;
+    private String status; // scheduled, active, cancelled (default: scheduled)
     private Integer maxSewadars;
-    @NotNull(message = "Created by (Incharge ID) is required")
-    private Long createdById;
+    @NotNull(message = "Created by (Incharge zonal ID) is required")
+    private Long createdById; // Incharge zonal ID
 }
 
