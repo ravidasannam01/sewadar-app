@@ -17,6 +17,7 @@ import java.util.List;
 @RequiredArgsConstructor
 @Slf4j
 @CrossOrigin(origins = "*")
+@SuppressWarnings("unused") // REST endpoints are used via HTTP, not direct Java calls
 public class AttendanceController {
 
     private final AttendanceService attendanceService;
