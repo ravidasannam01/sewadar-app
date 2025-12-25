@@ -1,5 +1,5 @@
 // API Configuration
-const API_BASE_URL = 'http://localhost:8080/api';
+const API_BASE_URL = window.location.origin + '/api'; // Use relative URL for production compatibility
 
 // Global state
 let currentUser = null;
@@ -35,14 +35,14 @@ function getAuthHeaders() {
 // Authentication
 async function handleLogin(event) {
     event.preventDefault();
-    const mobile = document.getElementById('login-mobile').value;
+    const zonalId = document.getElementById('login-zonal-id').value;
     const password = document.getElementById('login-password').value;
 
     try {
         const response = await fetch(`${API_BASE_URL}/auth/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ mobile, password })
+            body: JSON.stringify({ zonalId, password })
         });
 
         if (!response.ok) {
@@ -101,6 +101,10 @@ function checkAuth() {
     if (token && user) {
         authToken = token;
         currentUser = JSON.parse(user);
+        // Ensure zonalId is available (backward compatibility for old localStorage data)
+        if (!currentUser.zonalId && currentUser.id) {
+            currentUser.zonalId = currentUser.id;
+        }
         document.getElementById('login-screen').style.display = 'none';
         document.getElementById('main-app').style.display = 'block';
         updateUserInfo();
@@ -125,10 +129,6 @@ function showTab(tabName) {
         loadPrograms();
     } else if (tabName === 'applications') {
         loadMyApplications();
-    } else if (tabName === 'selections') {
-        loadMySelections();
-    } else if (tabName === 'actions') {
-        loadMyActions();
     } else if (tabName === 'admin') {
         // Always load sewadars when admin tab is clicked (if incharge)
         if (currentUser && currentUser.role === 'INCHARGE') {
@@ -158,7 +158,7 @@ async function loadPrograms() {
         let myApplications = [];
         if (currentUser.role === 'SEWADAR') {
             try {
-                const appsResponse = await fetch(`${API_BASE_URL}/program-applications/sewadar/${currentUser.id}`, {
+                const appsResponse = await fetch(`${API_BASE_URL}/program-applications/sewadar/${currentUser.zonalId}`, {
                     headers: getAuthHeaders()
                 });
                 if (appsResponse.ok) {
@@ -175,16 +175,20 @@ async function loadPrograms() {
             let applyButton = '';
             
             if (currentUser.role === 'SEWADAR') {
-                if (myApp && myApp.status === 'DROPPED') {
-                    if (myApp.reapplyAllowed !== false) {
-                        applyButton = `<button class="btn btn-primary" onclick="reapplyToProgram(${program.id})">Reapply</button>`;
+                // Only show apply button for active programs
+                if (program.status === 'active') {
+                    if (myApp && myApp.status === 'DROPPED') {
+                        // Always allow reapply (reapply_allowed field removed)
+                        applyButton = `<button class="btn btn-primary" onclick="applyToProgram(${program.id})">Reapply</button>`;
+                    } else if (!myApp || myApp.status === 'DROPPED') {
+                        applyButton = `<button class="btn btn-primary" onclick="applyToProgram(${program.id})">Apply</button>`;
+                    } else if (myApp.status === 'PENDING' || myApp.status === 'APPROVED') {
+                        applyButton = `<span class="status-badge">${myApp.status}</span>`;
                     } else {
-                        applyButton = `<span class="status-badge" style="background: red;">Reapply Not Allowed</span>`;
+                        applyButton = `<span class="status-badge">${myApp.status}</span>`;
                     }
-                } else if (!myApp || myApp.status === 'DROPPED') {
-                    applyButton = `<button class="btn btn-primary" onclick="applyToProgram(${program.id})">Apply</button>`;
                 } else {
-                    applyButton = `<span class="status-badge">${myApp.status}</span>`;
+                    applyButton = `<span class="status-badge" style="background: #999;">Only active programs accept applications</span>`;
                 }
             }
             
@@ -201,10 +205,9 @@ async function loadPrograms() {
                 </div>
                 <div class="card-body">
                     <p><strong>Location:</strong> ${program.location} ${program.locationType ? `(${program.locationType})` : ''}</p>
-                    <p><strong>Dates:</strong> ${program.programDates ? program.programDates.join(', ') : 'N/A'}</p>
-                    <p><strong>Status:</strong> ${program.status}</p>
-                    <p><strong>Applications:</strong> ${program.applicationCount || 0}</p>
-                    <p><strong>Selected:</strong> ${program.selectionCount || 0}${program.maxSewadars ? ` / ${program.maxSewadars}` : ''}</p>
+                    <p><strong>Dates:</strong> ${program.programDates ? program.programDates.map(d => new Date(d).toLocaleDateString()).join(', ') : 'N/A'}</p>
+                    <p><strong>Status:</strong> <span class="status-badge">${program.status || 'scheduled'}</span></p>
+                    <p><strong>Applications:</strong> ${program.applicationCount || 0}${program.maxSewadars ? ` / Max: ${program.maxSewadars}` : ''}</p>
                     ${applyButton}
                 </div>
             </div>
@@ -224,7 +227,7 @@ async function applyToProgram(programId) {
             headers: getAuthHeaders(),
             body: JSON.stringify({
                 programId: programId,
-                sewadarId: currentUser.id
+                sewadarId: currentUser.zonalId
             })
         });
 
@@ -293,11 +296,12 @@ async function saveProgram(event) {
         title: document.getElementById('program-title').value,
         description: document.getElementById('program-description').value,
         location: document.getElementById('program-location').value,
-        locationType: document.getElementById('program-location-type').value,
+        // locationType is derived from location (if location='BEAS' then BEAS, else NON_BEAS)
+        status: document.getElementById('program-status').value || 'scheduled',
         programDates: dates,
         maxSewadars: document.getElementById('program-max-sewadars').value ? 
             parseInt(document.getElementById('program-max-sewadars').value) : null,
-        createdById: currentUser.id
+        createdById: currentUser.zonalId
     };
 
     try {
@@ -327,7 +331,11 @@ function closeProgramForm() {
 // Applications
 async function loadMyApplications() {
     try {
-        const response = await fetch(`${API_BASE_URL}/program-applications/sewadar/${currentUser.id}`, {
+        if (!currentUser || !currentUser.zonalId) {
+            showMessage('User information not available. Please login again.', 'error');
+            return;
+        }
+        const response = await fetch(`${API_BASE_URL}/program-applications/sewadar/${currentUser.zonalId}`, {
             headers: getAuthHeaders()
         });
         if (!response.ok) throw new Error('Failed to load applications');
@@ -349,11 +357,8 @@ async function loadMyApplications() {
             } else if (app.status === 'DROP_REQUESTED') {
                 actionButton = `<span class="status-badge" style="background: orange;">Drop Request Pending</span>`;
             } else if (app.status === 'DROPPED') {
-                if (app.reapplyAllowed !== false) {
-                    actionButton = `<button class="btn btn-primary" onclick="reapplyToProgram(${app.programId})">Reapply</button>`;
-                } else {
-                    actionButton = `<span class="status-badge" style="background: red;">Reapply Not Allowed</span>`;
-                }
+                // Always allow reapply (reapply_allowed field removed)
+                actionButton = `<button class="btn btn-primary" onclick="applyToProgram(${app.programId})">Reapply</button>`;
             }
             
             return `
@@ -380,7 +385,7 @@ async function requestDrop(applicationId) {
     if (!confirm('Request to drop from this program? This requires incharge approval.')) return;
 
     try {
-        const response = await fetch(`${API_BASE_URL}/program-applications/${applicationId}/request-drop?sewadarId=${currentUser.id}`, {
+        const response = await fetch(`${API_BASE_URL}/program-applications/${applicationId}/request-drop?sewadarId=${currentUser.zonalId}`, {
             method: 'PUT',
             headers: getAuthHeaders()
         });
@@ -400,7 +405,7 @@ async function requestDrop(applicationId) {
 async function requestDropFromSelection(programId) {
     // Find the application for this program
     try {
-        const appsResponse = await fetch(`${API_BASE_URL}/program-applications/sewadar/${currentUser.id}`, {
+        const appsResponse = await fetch(`${API_BASE_URL}/program-applications/sewadar/${currentUser.zonalId}`, {
             headers: getAuthHeaders()
         });
         if (!appsResponse.ok) throw new Error('Failed to load applications');
@@ -419,193 +424,9 @@ async function requestDropFromSelection(programId) {
     }
 }
 
-async function reapplyToProgram(programId) {
-    if (!confirm('Reapply to this program?')) return;
-    
-    try {
-        const response = await fetch(`${API_BASE_URL}/program-applications`, {
-            method: 'POST',
-            headers: getAuthHeaders(),
-            body: JSON.stringify({
-                programId: programId,
-                sewadarId: currentUser.id
-            })
-        });
-        
-        if (!response.ok) {
-            const error = await response.json().catch(() => ({ message: 'Failed to reapply' }));
-            throw new Error(error.message || 'Failed to reapply');
-        }
-        
-        showMessage('Reapplication submitted successfully!');
-        loadMyApplications();
-        loadPrograms();
-    } catch (error) {
-        showMessage('Error: ' + error.message, 'error');
-    }
-}
+// reapplyToProgram removed - use applyToProgram instead (reapply logic handled by backend)
 
-// Selections
-async function loadMySelections() {
-    try {
-        const response = await fetch(`${API_BASE_URL}/program-selections/sewadar/${currentUser.id}`, {
-            headers: getAuthHeaders()
-        });
-        if (!response.ok) throw new Error('Failed to load selections');
-        
-        const selections = await response.json();
-        const listEl = document.getElementById('selections-list');
-        
-        if (selections.length === 0) {
-            listEl.innerHTML = '<p>You have not been selected for any programs yet.</p>';
-            return;
-        }
-
-        // Get applications to find drop request status
-        let myApplications = [];
-        try {
-            const appsResponse = await fetch(`${API_BASE_URL}/program-applications/sewadar/${currentUser.id}`, {
-                headers: getAuthHeaders()
-            });
-            if (appsResponse.ok) {
-                myApplications = await appsResponse.json();
-            }
-        } catch (e) {
-            console.error('Error loading applications:', e);
-        }
-        
-        listEl.innerHTML = selections.map(sel => {
-            const statusClass = sel.status.toLowerCase();
-            const myApp = myApplications.find(a => a.programId === sel.programId);
-            let actionButton = '';
-            
-            if (sel.status === 'SELECTED' || sel.status === 'CONFIRMED') {
-                // Find the application to request drop
-                if (myApp) {
-                    if (myApp.status === 'DROP_REQUESTED') {
-                        actionButton = `<span class="status-badge" style="background: orange;">Drop Request Pending</span>`;
-                    } else {
-                        actionButton = `<button class="btn btn-danger" onclick="requestDropFromSelection(${sel.programId})">Request Drop</button>`;
-                    }
-                }
-            } else if (sel.status === 'DROPPED') {
-                actionButton = `<span class="status-badge" style="background: red;">Dropped</span>`;
-            }
-            
-            return `
-            <div class="card">
-                <div class="card-header">
-                    <h3>${sel.programTitle}</h3>
-                    <span class="status-badge ${statusClass}">${sel.status}</span>
-                </div>
-                <div class="card-body">
-                    <p><strong>Selected on:</strong> ${new Date(sel.selectedAt).toLocaleDateString()}</p>
-                    <p><strong>Status:</strong> ${sel.status}</p>
-                    ${actionButton}
-                </div>
-            </div>
-        `;
-        }).join('');
-    } catch (error) {
-        showMessage('Error loading selections: ' + error.message, 'error');
-    }
-}
-
-// Actions
-async function loadMyActions() {
-    try {
-        // Get all programs where user is selected
-        const selectionsResponse = await fetch(`${API_BASE_URL}/program-selections/sewadar/${currentUser.id}`, {
-            headers: getAuthHeaders()
-        });
-        if (!selectionsResponse.ok) throw new Error('Failed to load selections');
-        
-        const selections = await selectionsResponse.json();
-        const listEl = document.getElementById('actions-list');
-        
-        if (selections.length === 0) {
-            listEl.innerHTML = '<p>No pending actions.</p>';
-            return;
-        }
-
-        // Get actions for all selected programs
-        let allActions = [];
-        for (const sel of selections) {
-            try {
-                const actionsResponse = await fetch(`${API_BASE_URL}/actions/program/${sel.programId}/sewadar/${currentUser.id}`, {
-                    headers: getAuthHeaders()
-                });
-                if (actionsResponse.ok) {
-                    const actions = await actionsResponse.json();
-                    allActions = allActions.concat(actions);
-                }
-            } catch (e) {
-                console.error('Error loading actions for program:', sel.programId);
-            }
-        }
-
-        if (allActions.length === 0) {
-            listEl.innerHTML = '<p>No pending actions.</p>';
-            return;
-        }
-
-        listEl.innerHTML = allActions.map(action => `
-            <div class="card">
-                <div class="card-header">
-                    <h3>${action.title}</h3>
-                    <span class="status-badge">${action.status}</span>
-                </div>
-                <div class="card-body">
-                    <p><strong>Program:</strong> ${action.programTitle}</p>
-                    <p><strong>Description:</strong> ${action.description || 'N/A'}</p>
-                    <p><strong>Due Date:</strong> ${action.dueDate ? new Date(action.dueDate).toLocaleDateString() : 'N/A'}</p>
-                    <button class="btn btn-primary" onclick="showActionResponseForm(${action.id}, '${action.title}')">Respond</button>
-                </div>
-            </div>
-        `).join('');
-    } catch (error) {
-        showMessage('Error loading actions: ' + error.message, 'error');
-    }
-}
-
-function showActionResponseForm(actionId, actionTitle) {
-    document.getElementById('action-response-action-id').value = actionId;
-    document.getElementById('action-response-title').textContent = `Respond to: ${actionTitle}`;
-    document.getElementById('action-response-form').reset();
-    document.getElementById('action-response-modal').style.display = 'block';
-}
-
-async function submitActionResponse(event) {
-    event.preventDefault();
-    
-    const actionId = document.getElementById('action-response-action-id').value;
-    const data = {
-        actionId: parseInt(actionId),
-        sewadarId: currentUser.id,
-        responseData: document.getElementById('action-response-data').value,
-        notes: document.getElementById('action-response-notes').value
-    };
-
-    try {
-        const response = await fetch(`${API_BASE_URL}/action-responses`, {
-            method: 'POST',
-            headers: getAuthHeaders(),
-            body: JSON.stringify(data)
-        });
-
-        if (!response.ok) throw new Error('Failed to submit response');
-
-        showMessage('Response submitted successfully!');
-        closeActionResponseForm();
-        loadMyActions();
-    } catch (error) {
-        showMessage('Error: ' + error.message, 'error');
-    }
-}
-
-function closeActionResponseForm() {
-    document.getElementById('action-response-modal').style.display = 'none';
-}
+// Selections and Actions features removed - tables dropped from schema
 
 // Admin Functions
 async function loadAdminData() {
@@ -613,7 +434,7 @@ async function loadAdminData() {
     
     // Load programs created by this incharge
     try {
-        const response = await fetch(`${API_BASE_URL}/programs/incharge/${currentUser.id}`, {
+        const response = await fetch(`${API_BASE_URL}/programs/incharge/${currentUser.zonalId}`, {
             headers: getAuthHeaders()
         });
         if (response.ok) {
@@ -661,7 +482,7 @@ async function loadAdminProgramsList(programs) {
         <div class="card" style="margin-bottom: 15px;">
             <div class="card-header">
                 <h4>${program.title}</h4>
-                <span class="status-badge">${program.status || 'UPCOMING'}</span>
+                <span class="status-badge">${program.status || 'scheduled'}</span>
             </div>
             <div class="card-body">
                 <p><strong>Location:</strong> ${program.location} (${program.locationType || 'NON_BEAS'})</p>
@@ -745,10 +566,15 @@ async function loadPrioritizedApplications() {
                         <p><strong>BEAS:</strong> ${app.beasAttendanceCount || 0} programs, ${app.beasDaysAttended || 0} days</p>
                         <p><strong>Non-BEAS:</strong> ${app.nonBeasAttendanceCount || 0} programs, ${app.nonBeasDaysAttended || 0} days</p>
                     </div>
-                    <div class="card-actions">
-                        <button class="btn btn-sm btn-success" onclick="selectApplication(${app.id}, ${app.sewadar.id}, ${currentProgramIdForApplications})">
-                            Select
-                        </button>
+                    <div class="card-actions" style="margin-top: 10px; display: flex; gap: 10px;">
+                        ${app.status === 'PENDING' ? `
+                            <button class="btn btn-sm btn-success" onclick="approveApplication(${app.id})">Approve</button>
+                            <button class="btn btn-sm btn-danger" onclick="rejectApplication(${app.id})">Reject</button>
+                        ` : app.status === 'APPROVED' ? `
+                            <span class="status-badge" style="background: green;">APPROVED</span>
+                        ` : app.status === 'REJECTED' ? `
+                            <span class="status-badge" style="background: red;">REJECTED</span>
+                        ` : ''}
                     </div>
                 </div>
             </div>
@@ -759,33 +585,49 @@ async function loadPrioritizedApplications() {
     }
 }
 
-async function selectApplication(applicationId, sewadarId, programId) {
-    if (!confirm('Are you sure you want to select this sewadar for the program?')) {
+// Application approval/rejection functions
+async function approveApplication(applicationId) {
+    if (!confirm('Are you sure you want to approve this application?')) {
         return;
     }
     
     try {
-        const response = await fetch(`${API_BASE_URL}/program-selections`, {
-            method: 'POST',
-            headers: getAuthHeaders(),
-            body: JSON.stringify({
-                programId: programId,
-                sewadarIds: [sewadarId], // Backend expects array
-                selectedById: currentUser.id // Required field
-            })
+        const response = await fetch(`${API_BASE_URL}/program-applications/${applicationId}/status?status=APPROVED`, {
+            method: 'PUT',
+            headers: getAuthHeaders()
         });
         
         if (!response.ok) {
-            const errorData = await response.json().catch(() => ({ message: 'Failed to select sewadar' }));
-            throw new Error(errorData.message || 'Failed to select sewadar');
+            const error = await response.json().catch(() => ({ message: 'Failed to approve application' }));
+            throw new Error(error.message || 'Failed to approve application');
         }
         
-        showMessage('Sewadar selected successfully!');
-        loadPrioritizedApplications();
-        // Refresh admin data to update selection counts
-        loadAdminData();
+        showMessage('Application approved successfully!');
+        loadPrioritizedApplications(); // Refresh the list
     } catch (error) {
-        console.error('Error selecting sewadar:', error);
+        showMessage('Error: ' + error.message, 'error');
+    }
+}
+
+async function rejectApplication(applicationId) {
+    if (!confirm('Are you sure you want to reject this application?')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`${API_BASE_URL}/program-applications/${applicationId}/status?status=REJECTED`, {
+            method: 'PUT',
+            headers: getAuthHeaders()
+        });
+        
+        if (!response.ok) {
+            const error = await response.json().catch(() => ({ message: 'Failed to reject application' }));
+            throw new Error(error.message || 'Failed to reject application');
+        }
+        
+        showMessage('Application rejected.');
+        loadPrioritizedApplications(); // Refresh the list
+    } catch (error) {
         showMessage('Error: ' + error.message, 'error');
     }
 }
@@ -867,7 +709,7 @@ async function loadSewadarsForAttendance() {
         const sewadars = await response.json();
         
         selectEl.innerHTML = '<option value="">-- Select Sewadar --</option>' +
-            sewadars.map(s => `<option value="${s.id}">${s.firstName} ${s.lastName} (${s.mobile})</option>`).join('');
+            sewadars.map(s => `<option value="${s.zonalId}">${s.firstName} ${s.lastName} (${s.mobile})</option>`).join('');
     } catch (error) {
         showMessage('Error loading sewadars: ' + error.message, 'error');
     }
@@ -977,7 +819,7 @@ async function loadProgramForEdit(programId) {
         document.getElementById('program-title').value = program.title;
         document.getElementById('program-description').value = program.description || '';
         document.getElementById('program-location').value = program.location;
-        document.getElementById('program-location-type').value = program.locationType || 'NON_BEAS';
+        document.getElementById('program-status').value = program.status || 'scheduled';
         document.getElementById('program-max-sewadars').value = program.maxSewadars || '';
         
         // Set dates
@@ -1013,11 +855,25 @@ function showSewadarForm(sewadarId = null) {
     document.getElementById('sewadar-id').value = '';
     document.getElementById('sewadar-form-title').textContent = sewadarId ? 'Edit Sewadar' : 'Add Sewadar';
     
+    // Reset languages container
+    const languagesContainer = document.getElementById('languages-container');
+    languagesContainer.innerHTML = '<input type="text" class="language-input" placeholder="e.g., Hindi, English" style="margin-bottom: 5px;">';
+    
     if (sewadarId) {
         loadSewadarForEdit(sewadarId);
     }
     
     document.getElementById('sewadar-modal').style.display = 'block';
+}
+
+function addLanguageInput() {
+    const container = document.getElementById('languages-container');
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'language-input';
+    input.placeholder = 'e.g., Hindi, English';
+    input.style.marginBottom = '5px';
+    container.appendChild(input);
 }
 
 function closeSewadarForm() {
@@ -1032,14 +888,28 @@ async function loadSewadarForEdit(sewadarId) {
         if (!response.ok) throw new Error('Failed to load sewadar');
         
         const sewadar = await response.json();
-        document.getElementById('sewadar-id').value = sewadar.id;
+        document.getElementById('sewadar-id').value = sewadar.zonalId;
         document.getElementById('sewadar-first-name').value = sewadar.firstName || '';
         document.getElementById('sewadar-last-name').value = sewadar.lastName || '';
         document.getElementById('sewadar-mobile').value = sewadar.mobile || '';
-        document.getElementById('sewadar-dept').value = sewadar.dept || '';
+        document.getElementById('sewadar-location').value = sewadar.location || '';
         document.getElementById('sewadar-profession').value = sewadar.profession || '';
+        document.getElementById('sewadar-date-of-birth').value = sewadar.dateOfBirth || '';
         document.getElementById('sewadar-joining-date').value = sewadar.joiningDate || '';
+        document.getElementById('sewadar-emergency-contact').value = sewadar.emergencyContact || '';
+        document.getElementById('sewadar-emergency-relationship').value = sewadar.emergencyContactRelationship || '';
+        document.getElementById('sewadar-photo-url').value = sewadar.photoUrl || '';
         document.getElementById('sewadar-remarks').value = sewadar.remarks || '';
+        
+        // Load languages
+        const languagesContainer = document.getElementById('languages-container');
+        if (sewadar.languages && sewadar.languages.length > 0) {
+            languagesContainer.innerHTML = sewadar.languages.map(lang => 
+                `<input type="text" class="language-input" value="${lang}" style="margin-bottom: 5px;">`
+            ).join('');
+        } else {
+            languagesContainer.innerHTML = '<input type="text" class="language-input" placeholder="e.g., Hindi, English" style="margin-bottom: 5px;">';
+        }
         
         if (sewadar.address) {
             document.getElementById('sewadar-address1').value = sewadar.address.address1 || '';
@@ -1059,13 +929,31 @@ async function saveSewadar(event) {
     event.preventDefault();
     
     const sewadarId = document.getElementById('sewadar-id').value;
+    
+    // Collect languages from inputs
+    const languageInputs = Array.from(document.querySelectorAll('.language-input'))
+        .map(input => input.value.trim())
+        .filter(lang => lang.length > 0);
+    
+    // Split comma-separated languages and combine
+    const languages = [];
+    languageInputs.forEach(input => {
+        const langs = input.split(',').map(l => l.trim()).filter(l => l.length > 0);
+        languages.push(...langs);
+    });
+    
     const data = {
         firstName: document.getElementById('sewadar-first-name').value,
         lastName: document.getElementById('sewadar-last-name').value,
         mobile: document.getElementById('sewadar-mobile').value,
-        dept: document.getElementById('sewadar-dept').value,
+        location: document.getElementById('sewadar-location').value,
         profession: document.getElementById('sewadar-profession').value,
+        dateOfBirth: document.getElementById('sewadar-date-of-birth').value || null,
         joiningDate: document.getElementById('sewadar-joining-date').value || null,
+        emergencyContact: document.getElementById('sewadar-emergency-contact').value || null,
+        emergencyContactRelationship: document.getElementById('sewadar-emergency-relationship').value || null,
+        photoUrl: document.getElementById('sewadar-photo-url').value || null,
+        languages: languages.length > 0 ? languages : null,
         remarks: document.getElementById('sewadar-remarks').value,
         address1: document.getElementById('sewadar-address1').value,
         address2: document.getElementById('sewadar-address2').value,
@@ -1146,14 +1034,18 @@ async function loadAllSewadars() {
                     <span class="role-badge ${sewadar.role ? sewadar.role.toLowerCase() : 'sewadar'}">${sewadar.role || 'SEWADAR'}</span>
                 </div>
                 <div class="card-body">
+                    <p><strong>Zonal ID:</strong> ${sewadar.zonalId || 'N/A'}</p>
                     <p><strong>Mobile:</strong> ${sewadar.mobile || 'N/A'}</p>
-                    <p><strong>Department:</strong> ${sewadar.dept || 'N/A'}</p>
+                    <p><strong>Location:</strong> ${sewadar.location || 'N/A'}</p>
                     <p><strong>Profession:</strong> ${sewadar.profession || 'N/A'}</p>
+                    ${sewadar.dateOfBirth ? `<p><strong>Date of Birth:</strong> ${new Date(sewadar.dateOfBirth).toLocaleDateString()}</p>` : ''}
                     ${sewadar.joiningDate ? `<p><strong>Joining Date:</strong> ${new Date(sewadar.joiningDate).toLocaleDateString()}</p>` : ''}
+                    ${sewadar.emergencyContact ? `<p><strong>Emergency Contact:</strong> ${sewadar.emergencyContact} (${sewadar.emergencyContactRelationship || 'N/A'})</p>` : ''}
+                    ${sewadar.languages && sewadar.languages.length > 0 ? `<p><strong>Languages:</strong> ${sewadar.languages.join(', ')}</p>` : ''}
                     ${sewadar.address ? `<p><strong>Email:</strong> ${sewadar.address.email || 'N/A'}</p>` : ''}
                     <div class="card-actions" style="margin-top: 15px; display: flex; gap: 10px;">
-                        <button class="btn btn-sm btn-primary" onclick="showSewadarForm(${sewadar.id})">Edit</button>
-                        ${sewadar.role !== 'INCHARGE' ? `<button class="btn btn-sm btn-success" onclick="promoteSewadar(${sewadar.id}, '${fullName}')">Promote to Incharge</button>` : '<span class="role-badge incharge">Already Incharge</span>'}
+                        <button class="btn btn-sm btn-primary" onclick="showSewadarForm(${sewadar.zonalId})">Edit</button>
+                        ${sewadar.role !== 'INCHARGE' ? `<button class="btn btn-sm btn-success" onclick="promoteSewadar(${sewadar.zonalId}, '${fullName}')">Promote to Incharge</button>` : '<span class="role-badge incharge">Already Incharge</span>'}
                     </div>
                 </div>
             </div>
@@ -1172,7 +1064,7 @@ async function promoteSewadar(sewadarId, sewadarName) {
     }
     
     try {
-        const response = await fetch(`${API_BASE_URL}/sewadars/${sewadarId}/promote?inchargeId=${currentUser.id}`, {
+        const response = await fetch(`${API_BASE_URL}/sewadars/${sewadarId}/promote?inchargeId=${currentUser.zonalId}`, {
             method: 'POST',
             headers: getAuthHeaders()
         });
@@ -1244,21 +1136,11 @@ async function loadDropRequests() {
                     <p><strong>Mobile:</strong> ${req.sewadar.mobile}</p>
                     <p><strong>Applied:</strong> ${new Date(req.appliedAt).toLocaleDateString()}</p>
                     <p><strong>Drop Requested:</strong> ${req.dropRequestedAt ? new Date(req.dropRequestedAt).toLocaleDateString() : 'N/A'}</p>
-                    <div style="margin-top: 15px;">
-                        <label>
-                            <input type="checkbox" id="allow-reapply-${req.id}" checked> Allow Reapply
-                        </label>
-                    </div>
                     <div class="card-actions" style="margin-top: 15px; display: flex; gap: 10px;">
                         <button class="btn btn-success" onclick="approveDropRequest(${req.id}, true)">
-                            Approve (Allow Reapply)
+                            Approve Drop Request
                         </button>
-                        <button class="btn btn-warning" onclick="approveDropRequest(${req.id}, false)">
-                            Approve (No Reapply)
-                        </button>
-                        <button class="btn btn-secondary" onclick="rejectDropRequest(${req.id})">
-                            Reject
-                        </button>
+                        <small style="color: #666; margin-left: 10px;">Note: Reapply is always allowed</small>
                     </div>
                 </div>
             </div>
@@ -1272,7 +1154,7 @@ async function loadDropRequests() {
 async function approveDropRequest(applicationId, allowReapply) {
     try {
         const response = await fetch(
-            `${API_BASE_URL}/program-applications/${applicationId}/approve-drop?inchargeId=${currentUser.id}&allowReapply=${allowReapply}`,
+            `${API_BASE_URL}/program-applications/${applicationId}/approve-drop?inchargeId=${currentUser.zonalId}&allowReapply=${allowReapply}`,
             {
                 method: 'PUT',
                 headers: getAuthHeaders()
@@ -1293,30 +1175,10 @@ async function approveDropRequest(applicationId, allowReapply) {
     }
 }
 
-async function rejectDropRequest(applicationId) {
-    if (!confirm('Reject this drop request? The sewadar will remain in the program.')) {
-        return;
-    }
-    
-    try {
-        // Reject by setting status back to APPROVED or PENDING
-        const response = await fetch(`${API_BASE_URL}/program-applications/${applicationId}/status?status=APPROVED`, {
-            method: 'PUT',
-            headers: getAuthHeaders()
-        });
-        
-        if (!response.ok) throw new Error('Failed to reject drop request');
-        
-        showMessage('Drop request rejected. Sewadar remains in program.');
-        loadDropRequests();
-        loadAdminProgramsList(await getAdminPrograms());
-    } catch (error) {
-        showMessage('Error: ' + error.message, 'error');
-    }
-}
+// rejectDropRequest removed - incharge can only approve drop requests
 
 async function getAdminPrograms() {
-    const response = await fetch(`${API_BASE_URL}/programs/incharge/${currentUser.id}`, {
+    const response = await fetch(`${API_BASE_URL}/programs/incharge/${currentUser.zonalId}`, {
         headers: getAuthHeaders()
     });
     return response.ok ? await response.json() : [];

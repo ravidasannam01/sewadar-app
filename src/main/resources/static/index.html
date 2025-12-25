@@ -14,8 +14,8 @@
             <h2>Login</h2>
             <form id="login-form" onsubmit="handleLogin(event)">
                 <div class="form-group">
-                    <label>Mobile Number</label>
-                    <input type="text" id="login-mobile" placeholder="Enter mobile number" required>
+                    <label>Zonal ID</label>
+                    <input type="text" id="login-zonal-id" placeholder="Enter zonal ID" required>
                 </div>
                 <div class="form-group">
                     <label>Password</label>
@@ -43,8 +43,6 @@
         <div class="tabs">
             <button class="tab-btn active" onclick="showTab('programs')">Programs</button>
             <button class="tab-btn" onclick="showTab('applications')">My Applications</button>
-            <button class="tab-btn" onclick="showTab('selections')">My Selections</button>
-            <button class="tab-btn" onclick="showTab('actions')">Actions</button>
             <button id="admin-tab-btn" class="tab-btn" onclick="showTab('admin')" style="display: none;">Admin</button>
         </div>
 
@@ -65,26 +63,6 @@
                 <h2>My Applications</h2>
             </div>
             <div id="applications-list" class="list-container">
-                <p>Loading...</p>
-            </div>
-        </div>
-
-        <!-- Selections Tab -->
-        <div id="selections-tab" class="tab-content">
-            <div class="section-header">
-                <h2>My Selections</h2>
-            </div>
-            <div id="selections-list" class="list-container">
-                <p>Loading...</p>
-            </div>
-        </div>
-
-        <!-- Actions Tab -->
-        <div id="actions-tab" class="tab-content">
-            <div class="section-header">
-                <h2>Pending Actions</h2>
-            </div>
-            <div id="actions-list" class="list-container">
                 <p>Loading...</p>
             </div>
         </div>
@@ -145,14 +123,17 @@
                     </div>
                     <div class="form-group">
                         <label>Location *</label>
-                        <input type="text" id="program-location" required>
+                        <input type="text" id="program-location" placeholder="Enter location (e.g., BEAS, Delhi, etc.)" required>
+                        <small style="color: #666;">If location is 'BEAS', it will be treated as BEAS location, otherwise NON_BEAS</small>
                     </div>
                     <div class="form-group">
-                        <label>Location Type *</label>
-                        <select id="program-location-type" required>
-                            <option value="NON_BEAS">Non-BEAS</option>
-                            <option value="BEAS">BEAS</option>
+                        <label>Status *</label>
+                        <select id="program-status" required>
+                            <option value="scheduled">Scheduled</option>
+                            <option value="active">Active</option>
+                            <option value="cancelled">Cancelled</option>
                         </select>
+                        <small style="color: #666;">Only active programs can receive applications</small>
                     </div>
                     <div class="form-group">
                         <label>Program Dates * (Add multiple dates)</label>
@@ -275,16 +256,40 @@
                         <input type="password" id="sewadar-password" required>
                     </div>
                     <div class="form-group">
-                        <label>Department</label>
-                        <input type="text" id="sewadar-dept">
+                        <label>Location/Center</label>
+                        <input type="text" id="sewadar-location" placeholder="Location or center name">
                     </div>
                     <div class="form-group">
                         <label>Profession</label>
                         <input type="text" id="sewadar-profession">
                     </div>
                     <div class="form-group">
+                        <label>Date of Birth</label>
+                        <input type="date" id="sewadar-date-of-birth">
+                    </div>
+                    <div class="form-group">
                         <label>Joining Date</label>
                         <input type="date" id="sewadar-joining-date">
+                    </div>
+                    <div class="form-group">
+                        <label>Emergency Contact</label>
+                        <input type="text" id="sewadar-emergency-contact" placeholder="Emergency contact number">
+                    </div>
+                    <div class="form-group">
+                        <label>Emergency Contact Relationship</label>
+                        <input type="text" id="sewadar-emergency-relationship" placeholder="e.g., Father, Mother, Spouse">
+                    </div>
+                    <div class="form-group">
+                        <label>Photo URL</label>
+                        <input type="url" id="sewadar-photo-url" placeholder="https://example.com/photo.jpg">
+                    </div>
+                    <div class="form-group">
+                        <label>Languages Known</label>
+                        <div id="languages-container">
+                            <input type="text" class="language-input" placeholder="e.g., Hindi, English" style="margin-bottom: 5px;">
+                        </div>
+                        <button type="button" class="btn btn-sm btn-secondary" onclick="addLanguageInput()">+ Add Language</button>
+                        <small style="color: #666;">Enter languages separated by comma or add multiple inputs</small>
                     </div>
                     <div class="form-group">
                         <label>Address Line 1</label>
