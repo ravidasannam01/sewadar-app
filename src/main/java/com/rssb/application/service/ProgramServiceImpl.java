@@ -41,7 +41,7 @@ public class ProgramServiceImpl implements ProgramService {
                 .title(request.getTitle())
                 .description(request.getDescription())
                 .location(request.getLocation())
-                .status(request.getStatus() != null ? request.getStatus() : "UPCOMING")
+                .status(request.getStatus() != null ? request.getStatus() : "scheduled")
                 .maxSewadars(request.getMaxSewadars())
                 .createdBy(incharge)
                 .build();

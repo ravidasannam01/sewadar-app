@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -39,21 +40,42 @@ public class ProgramApplicationServiceImpl implements ProgramApplicationService 
         Program program = programRepository.findById(request.getProgramId())
                 .orElseThrow(() -> new ResourceNotFoundException("Program", "id", request.getProgramId()));
 
+        // Check program status - only active programs can receive applications
+        if (!"active".equalsIgnoreCase(program.getStatus())) {
+            throw new IllegalArgumentException("Applications can only be submitted to active programs. Current program status: " + program.getStatus());
+        }
+
         Sewadar sewadar = sewadarRepository.findByZonalId(request.getSewadarId())
                 .orElseThrow(() -> new ResourceNotFoundException("Sewadar", "zonal_id", request.getSewadarId()));
 
-        // Check if already applied - always allow reapply if dropped
-        applicationRepository.findByProgramIdAndSewadarZonalId(request.getProgramId(), request.getSewadarId())
-                .ifPresent(existing -> {
-                    // If not dropped, throw error
-                    if (!"DROPPED".equals(existing.getStatus())) {
-                        throw new IllegalArgumentException("Sewadar has already applied to this program");
-                    }
-                    // If dropped, delete old application to create new one (always allow reapply)
-                    applicationRepository.delete(existing);
-                    log.info("Deleted old dropped application to allow reapply");
-                });
+        // Check if already applied
+        Optional<ProgramApplication> existingOpt = applicationRepository.findByProgramIdAndSewadarZonalId(
+                request.getProgramId(), request.getSewadarId());
+        
+        if (existingOpt.isPresent()) {
+            ProgramApplication existing = existingOpt.get();
+            
+            // If status is PENDING, reject (already has active application)
+            if ("PENDING".equals(existing.getStatus()) || "APPROVED".equals(existing.getStatus())) {
+                throw new IllegalArgumentException("Sewadar has already applied to this program with status: " + existing.getStatus());
+            }
+            
+            // If DROPPED, update existing application to PENDING (reapply)
+            // Keep drop history fields (drop_requested_at, drop_approved_at, drop_approved_by) as proof of previous drop
+            if ("DROPPED".equals(existing.getStatus())) {
+                existing.setStatus("PENDING");
+                existing.setNotes(request.getNotes());
+                existing.setAppliedAt(java.time.LocalDateTime.now());
+                // DO NOT clear drop history fields - they serve as audit trail
+                // drop_requested_at, drop_approved_at, drop_approved_by remain unchanged
+                
+                ProgramApplication saved = applicationRepository.save(existing);
+                log.info("Application {} updated from DROPPED to PENDING (reapply), drop history preserved", saved.getId());
+                return mapToResponse(saved);
+            }
+        }
 
+        // Create new application if no existing application found
         ProgramApplication application = ProgramApplication.builder()
                 .program(program)
                 .sewadar(sewadar)
@@ -132,7 +154,7 @@ public class ProgramApplicationServiceImpl implements ProgramApplicationService 
             throw new IllegalArgumentException("Drop request already pending");
         }
         
-        // Set status to DROP_REQUESTED
+        // Update existing application row to DROP_REQUESTED (reuse same row)
         application.setStatus("DROP_REQUESTED");
         application.setDropRequestedAt(java.time.LocalDateTime.now());
         
@@ -323,6 +345,7 @@ public class ProgramApplicationServiceImpl implements ProgramApplicationService 
                 .notes(application.getNotes())
                 .dropRequestedAt(application.getDropRequestedAt())
                 .dropApprovedAt(application.getDropApprovedAt())
+                .dropApprovedBy(application.getDropApprovedBy())
                 .build();
     }
 }

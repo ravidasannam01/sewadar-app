@@ -35,7 +35,7 @@ public class Program {
 
     @Column(name = "status", length = 50)
     @Builder.Default
-    private String status = "UPCOMING"; // UPCOMING, IN_PROGRESS, COMPLETED, CANCELLED
+    private String status = "scheduled"; // scheduled, active, cancelled
 
     @Column(name = "max_sewadars")
     private Integer maxSewadars;
