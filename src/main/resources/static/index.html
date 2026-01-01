@@ -43,6 +43,7 @@
         <div class="tabs">
             <button class="tab-btn active" onclick="showTab('programs')">Programs</button>
             <button class="tab-btn" onclick="showTab('applications')">My Applications</button>
+            <button class="tab-btn" onclick="showTab('dashboard')">Dashboard</button>
             <button id="admin-tab-btn" class="tab-btn" onclick="showTab('admin')" style="display: none;">Admin</button>
         </div>
 
@@ -64,6 +65,159 @@
             </div>
             <div id="applications-list" class="list-container">
                 <p>Loading...</p>
+            </div>
+        </div>
+
+        <!-- Dashboard Tab -->
+        <div id="dashboard-tab" class="tab-content">
+            <div class="section-header">
+                <h2>Dashboard</h2>
+            </div>
+            
+            <!-- Dashboard Tabs -->
+            <div class="dashboard-tabs">
+                <button class="dashboard-tab-btn active" onclick="showDashboardSection('sewadars')">Sewadars</button>
+                <button class="dashboard-tab-btn" onclick="showDashboardSection('sewadar-attendance')">Sewadar Attendance</button>
+                <button class="dashboard-tab-btn" onclick="showDashboardSection('program-attendance')">Program Attendance</button>
+                <button class="dashboard-tab-btn" onclick="showDashboardSection('applications')">Applications</button>
+            </div>
+
+            <!-- Sewadars Dashboard Section -->
+            <div id="dashboard-sewadars" class="dashboard-section active">
+                <div class="dashboard-filters">
+                    <h3>Filters & Sorting</h3>
+                    <div class="filter-row">
+                        <div class="filter-group">
+                            <label>Location:</label>
+                            <input type="text" id="filter-location" placeholder="e.g., BEAS">
+                        </div>
+                        <div class="filter-group">
+                            <label>Languages:</label>
+                            <input type="text" id="filter-languages" placeholder="e.g., Hindi, English">
+                            <select id="filter-language-match">
+                                <option value="ANY">Match Any</option>
+                                <option value="ALL">Match All</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label>Joining Date From:</label>
+                            <input type="date" id="filter-joining-from">
+                        </div>
+                        <div class="filter-group">
+                            <label>Joining Date To:</label>
+                            <input type="date" id="filter-joining-to">
+                        </div>
+                    </div>
+                    <div class="filter-row">
+                        <div class="filter-group">
+                            <label>Sort By:</label>
+                            <select id="sort-sewadars">
+                                <option value="">Default</option>
+                                <option value="totalPrograms">Total Programs</option>
+                                <option value="totalDays">Total Days</option>
+                                <option value="beasDays">BEAS Days</option>
+                                <option value="nonBeasDays">Non-BEAS Days</option>
+                                <option value="joiningDate">Joining Date</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label>Order:</label>
+                            <select id="sort-order-sewadars">
+                                <option value="ASC">Ascending</option>
+                                <option value="DESC">Descending</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <button class="btn btn-primary" onclick="loadSewadarsDashboard()">Apply Filters</button>
+                            <button class="btn btn-secondary" onclick="clearSewadarsFilters()">Clear</button>
+                        </div>
+                        <div class="filter-group">
+                            <button class="btn btn-sm" onclick="exportSewadars('CSV')">Export CSV</button>
+                            <button class="btn btn-sm" onclick="exportSewadars('XLSX')">Export XLSX</button>
+                            <button class="btn btn-sm" onclick="exportSewadars('PDF')">Export PDF</button>
+                        </div>
+                    </div>
+                </div>
+                <div id="sewadars-dashboard-content" class="dashboard-content">
+                    <p>Click "Apply Filters" to load sewadars</p>
+                </div>
+                <div id="sewadars-pagination" class="pagination"></div>
+            </div>
+
+            <!-- Sewadar Attendance Dashboard Section -->
+            <div id="dashboard-sewadar-attendance" class="dashboard-section">
+                <div class="dashboard-filters">
+                    <h3>Sewadar Detailed Attendance</h3>
+                    <div class="filter-row">
+                        <div class="filter-group">
+                            <label>Sewadar Zonal ID:</label>
+                            <input type="number" id="filter-sewadar-id" placeholder="Enter zonal ID">
+                            <button class="btn btn-primary" onclick="loadSewadarAttendance()">Load Attendance</button>
+                            <button class="btn btn-sm" onclick="exportSewadarAttendance('CSV')">Export CSV</button>
+                            <button class="btn btn-sm" onclick="exportSewadarAttendance('XLSX')">Export XLSX</button>
+                            <button class="btn btn-sm" onclick="exportSewadarAttendance('PDF')">Export PDF</button>
+                        </div>
+                    </div>
+                </div>
+                <div id="sewadar-attendance-content" class="dashboard-content">
+                    <p>Enter sewadar zonal ID and click "Load Attendance"</p>
+                </div>
+            </div>
+
+            <!-- Program Attendance Dashboard Section -->
+            <div id="dashboard-program-attendance" class="dashboard-section">
+                <div class="dashboard-filters">
+                    <h3>Program Detailed Attendance</h3>
+                    <div class="filter-row">
+                        <div class="filter-group">
+                            <label>Program ID:</label>
+                            <input type="number" id="filter-program-id" placeholder="Enter program ID">
+                            <button class="btn btn-primary" onclick="loadProgramAttendance()">Load Attendance</button>
+                            <button class="btn btn-sm" onclick="exportProgramAttendance('CSV')">Export CSV</button>
+                            <button class="btn btn-sm" onclick="exportProgramAttendance('XLSX')">Export XLSX</button>
+                            <button class="btn btn-sm" onclick="exportProgramAttendance('PDF')">Export PDF</button>
+                        </div>
+                    </div>
+                </div>
+                <div id="program-attendance-content" class="dashboard-content">
+                    <p>Enter program ID and click "Load Attendance"</p>
+                </div>
+            </div>
+
+            <!-- Applications Dashboard Section -->
+            <div id="dashboard-applications" class="dashboard-section">
+                <div class="dashboard-filters">
+                    <h3>Application Filters</h3>
+                    <div class="filter-row">
+                        <div class="filter-group">
+                            <label>Program ID:</label>
+                            <input type="number" id="filter-app-program-id" placeholder="Enter program ID">
+                        </div>
+                        <div class="filter-group">
+                            <label>Status:</label>
+                            <select id="filter-app-status" multiple style="min-width: 200px;">
+                                <option value="PENDING">PENDING</option>
+                                <option value="APPROVED">APPROVED</option>
+                                <option value="REJECTED">REJECTED</option>
+                                <option value="DROPPED">DROPPED</option>
+                            </select>
+                            <small>Hold Ctrl/Cmd to select multiple</small>
+                        </div>
+                        <div class="filter-group">
+                            <button class="btn btn-primary" onclick="loadApplicationsDashboard()">Apply Filters</button>
+                            <button class="btn btn-secondary" onclick="clearApplicationsFilters()">Clear</button>
+                        </div>
+                        <div class="filter-group">
+                            <button class="btn btn-sm" onclick="exportApplications('CSV')">Export CSV</button>
+                            <button class="btn btn-sm" onclick="exportApplications('XLSX')">Export XLSX</button>
+                            <button class="btn btn-sm" onclick="exportApplications('PDF')">Export PDF</button>
+                        </div>
+                    </div>
+                </div>
+                <div id="applications-dashboard-content" class="dashboard-content">
+                    <p>Click "Apply Filters" to load applications</p>
+                </div>
+                <div id="applications-pagination" class="pagination"></div>
             </div>
         </div>
 

@@ -129,6 +129,12 @@ function showTab(tabName) {
         loadPrograms();
     } else if (tabName === 'applications') {
         loadMyApplications();
+    } else if (tabName === 'dashboard') {
+        // Dashboard loads on demand when filters are applied
+        // Just ensure the first section is shown
+        if (!document.querySelector('.dashboard-section.active')) {
+            showDashboardSection('sewadars');
+        }
     } else if (tabName === 'admin') {
         // Always load sewadars when admin tab is clicked (if incharge)
         if (currentUser && currentUser.role === 'INCHARGE') {
@@ -1427,5 +1433,593 @@ window.onclick = function(event) {
             modal.style.display = 'none';
         }
     });
+}
+
+// ==================== DASHBOARD FUNCTIONS ====================
+
+// Dashboard state
+let dashboardState = {
+    sewadars: {
+        page: 0,
+        size: 25,
+        filters: {},
+        sortBy: '',
+        sortOrder: 'ASC'
+    },
+    applications: {
+        page: 0,
+        size: 25,
+        filters: {}
+    }
+};
+
+// Load saved preferences from localStorage
+function loadDashboardPreferences() {
+    const saved = localStorage.getItem('dashboardPreferences');
+    if (saved) {
+        try {
+            dashboardState = JSON.parse(saved);
+        } catch (e) {
+            console.error('Error loading dashboard preferences:', e);
+        }
+    }
+}
+
+// Save preferences to localStorage
+function saveDashboardPreferences() {
+    localStorage.setItem('dashboardPreferences', JSON.stringify(dashboardState));
+}
+
+// Initialize dashboard preferences on load
+loadDashboardPreferences();
+
+// Show dashboard section
+function showDashboardSection(section) {
+    // Hide all sections
+    document.querySelectorAll('.dashboard-section').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.dashboard-tab-btn').forEach(el => el.classList.remove('active'));
+    
+    // Show selected section
+    document.getElementById(`dashboard-${section}`).classList.add('active');
+    event.target.classList.add('active');
+}
+
+// Load sewadars dashboard
+async function loadSewadarsDashboard(page = dashboardState.sewadars.page) {
+    try {
+        const location = document.getElementById('filter-location').value.trim();
+        const languagesInput = document.getElementById('filter-languages').value.trim();
+        const languageMatch = document.getElementById('filter-language-match').value;
+        const joiningFrom = document.getElementById('filter-joining-from').value;
+        const joiningTo = document.getElementById('filter-joining-to').value;
+        const sortBy = document.getElementById('sort-sewadars').value;
+        const sortOrder = document.getElementById('sort-order-sewadars').value;
+        const pageSize = 25; // Can be made configurable
+        
+        // Parse languages - split by comma and trim, filter out empty strings
+        let languages = null;
+        if (languagesInput && languagesInput.trim()) {
+            const langArray = languagesInput.split(',').map(l => l.trim()).filter(l => l.length > 0);
+            if (langArray.length > 0) {
+                languages = langArray;
+            }
+        }
+        
+        // Ensure location is trimmed and null if empty
+        const locationValue = location && location.trim() ? location.trim() : null;
+        
+        const request = {
+            page: page,
+            size: pageSize,
+            location: locationValue,
+            languages: languages,
+            languageMatchType: languageMatch || 'ANY',
+            joiningDateFrom: joiningFrom && joiningFrom.trim() ? joiningFrom.trim() : null,
+            joiningDateTo: joiningTo && joiningTo.trim() ? joiningTo.trim() : null,
+            sortBy: sortBy || null,
+            sortOrder: sortOrder || 'ASC'
+        };
+        
+        // Debug logging
+        console.log('Dashboard request:', JSON.stringify(request, null, 2));
+        
+        // Save to state
+        dashboardState.sewadars = { page, size: pageSize, filters: request, sortBy, sortOrder };
+        saveDashboardPreferences();
+        
+        const response = await fetch(`${API_BASE_URL}/dashboard/sewadars`, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify(request)
+        });
+        
+        if (!response.ok) throw new Error('Failed to load sewadars');
+        
+        const data = await response.json();
+        displaySewadarsDashboard(data);
+        displayPagination('sewadars-pagination', data, page, loadSewadarsDashboard);
+        
+    } catch (error) {
+        showMessage('Error loading sewadars: ' + error.message, 'error');
+    }
+}
+
+// Display sewadars in dashboard
+function displaySewadarsDashboard(data) {
+    const container = document.getElementById('sewadars-dashboard-content');
+    
+    if (!data.sewadars || data.sewadars.length === 0) {
+        container.innerHTML = '<p>No sewadars found matching the filters.</p>';
+        return;
+    }
+    
+    let html = `
+        <div style="overflow-x: auto; width: 100%;">
+        <table class="dashboard-table">
+            <thead>
+                <tr>
+                    <th>Zonal ID</th>
+                    <th>Name</th>
+                    <th>Mobile</th>
+                    <th>Location</th>
+                    <th>Profession</th>
+                    <th>Joining Date</th>
+                    <th>Languages</th>
+                    <th>Total Programs</th>
+                    <th>Total Days</th>
+                    <th>BEAS Programs</th>
+                    <th>BEAS Days</th>
+                    <th>Non-BEAS Programs</th>
+                    <th>Non-BEAS Days</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+    
+    data.sewadars.forEach(sewadar => {
+        html += `
+            <tr>
+                <td>${sewadar.zonalId}</td>
+                <td>${sewadar.firstName} ${sewadar.lastName}</td>
+                <td>${sewadar.mobile || ''}</td>
+                <td>${sewadar.location || ''}</td>
+                <td>${sewadar.profession || ''}</td>
+                <td>${sewadar.joiningDate || ''}</td>
+                <td>${sewadar.languages ? sewadar.languages.join(', ') : ''}</td>
+                <td>${sewadar.totalProgramsCount || 0}</td>
+                <td>${sewadar.totalDaysAttended || 0}</td>
+                <td>${sewadar.beasProgramsCount || 0}</td>
+                <td>${sewadar.beasDaysAttended || 0}</td>
+                <td>${sewadar.nonBeasProgramsCount || 0}</td>
+                <td>${sewadar.nonBeasDaysAttended || 0}</td>
+            </tr>
+        `;
+    });
+    
+    html += `
+            </tbody>
+        </table>
+        </div>
+        <p style="margin-top: 10px;">Showing ${data.sewadars.length} of ${data.totalElements} sewadars</p>
+    `;
+    
+    container.innerHTML = html;
+}
+
+// Clear sewadars filters
+function clearSewadarsFilters() {
+    document.getElementById('filter-location').value = '';
+    document.getElementById('filter-languages').value = '';
+    document.getElementById('filter-language-match').value = 'ANY';
+    document.getElementById('filter-joining-from').value = '';
+    document.getElementById('filter-joining-to').value = '';
+    document.getElementById('sort-sewadars').value = '';
+    document.getElementById('sort-order-sewadars').value = 'ASC';
+    loadSewadarsDashboard(0);
+}
+
+// Load sewadar detailed attendance
+async function loadSewadarAttendance() {
+    try {
+        const sewadarId = document.getElementById('filter-sewadar-id').value;
+        if (!sewadarId) {
+            showMessage('Please enter a sewadar zonal ID', 'error');
+            return;
+        }
+        
+        const response = await fetch(`${API_BASE_URL}/dashboard/sewadar/${sewadarId}/attendance`, {
+            headers: getAuthHeaders()
+        });
+        
+        if (!response.ok) throw new Error('Failed to load attendance');
+        
+        const data = await response.json();
+        displaySewadarAttendance(data);
+        
+    } catch (error) {
+        showMessage('Error loading attendance: ' + error.message, 'error');
+    }
+}
+
+// Display sewadar attendance
+function displaySewadarAttendance(data) {
+    const container = document.getElementById('sewadar-attendance-content');
+    
+    if (!data.records || data.records.length === 0) {
+        container.innerHTML = `<p>No attendance records found for sewadar ${data.sewadarId}.</p>`;
+        return;
+    }
+    
+    let html = `
+        <h4>Sewadar: ${data.sewadarName} (${data.sewadarId})</h4>
+        <p>Mobile: ${data.mobile || ''}</p>
+        <p>Total Records: ${data.totalRecords}</p>
+        <div style="overflow-x: auto; width: 100%;">
+        <table class="dashboard-table">
+            <thead>
+                <tr>
+                    <th>Program ID</th>
+                    <th>Program Title</th>
+                    <th>Location</th>
+                    <th>Date</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+    
+    data.records.forEach(record => {
+        html += `
+            <tr>
+                <td>${record.programId}</td>
+                <td>${record.programTitle}</td>
+                <td>${record.programLocation}</td>
+                <td>${record.attendanceDate}</td>
+                <td>${record.status}</td>
+            </tr>
+        `;
+    });
+    
+    html += `
+            </tbody>
+        </table>
+        </div>
+    `;
+    
+    container.innerHTML = html;
+}
+
+// Load program detailed attendance
+async function loadProgramAttendance() {
+    try {
+        const programId = document.getElementById('filter-program-id').value;
+        if (!programId) {
+            showMessage('Please enter a program ID', 'error');
+            return;
+        }
+        
+        const response = await fetch(`${API_BASE_URL}/dashboard/program/${programId}/attendance`, {
+            headers: getAuthHeaders()
+        });
+        
+        if (!response.ok) throw new Error('Failed to load attendance');
+        
+        const data = await response.json();
+        displayProgramAttendance(data);
+        
+    } catch (error) {
+        showMessage('Error loading attendance: ' + error.message, 'error');
+    }
+}
+
+// Display program attendance
+function displayProgramAttendance(data) {
+    const container = document.getElementById('program-attendance-content');
+    
+    if (!data.sewadarRows || data.sewadarRows.length === 0) {
+        container.innerHTML = `<p>No attendance records found for program ${data.programId}.</p>`;
+        return;
+    }
+    
+    let html = `
+        <h4>Program: ${data.programTitle} (${data.programId})</h4>
+        <p>Total Sewadars: ${data.totalSewadars}</p>
+        <div style="overflow-x: auto; width: 100%;">
+            <table class="dashboard-table">
+                <thead>
+                    <tr>
+                        <th>Zonal ID</th>
+                        <th>Name</th>
+                        <th>Mobile</th>
+    `;
+    
+    // Add date columns
+    data.programDates.forEach(date => {
+        html += `<th>${date}</th>`;
+    });
+    
+    html += `
+                    </tr>
+                </thead>
+                <tbody>
+    `;
+    
+    data.sewadarRows.forEach(row => {
+        html += `
+            <tr>
+                <td>${row.zonalId}</td>
+                <td>${row.sewadarName}</td>
+                <td>${row.mobile || ''}</td>
+        `;
+        
+        // Add status for each date
+        data.programDates.forEach(date => {
+            const status = row.dateStatusMap[date] || 'Absent';
+            html += `<td>${status}</td>`;
+        });
+        
+        html += `</tr>`;
+    });
+    
+    html += `
+                </tbody>
+            </table>
+        </div>
+    `;
+    
+    container.innerHTML = html;
+}
+
+// Load applications dashboard
+async function loadApplicationsDashboard(page = dashboardState.applications.page) {
+    try {
+        const programId = document.getElementById('filter-app-program-id').value.trim();
+        const statusSelect = document.getElementById('filter-app-status');
+        const selectedStatuses = Array.from(statusSelect.selectedOptions).map(opt => opt.value);
+        const pageSize = 25;
+        
+        const request = {
+            page: page,
+            size: pageSize,
+            programId: programId ? parseInt(programId) : null,
+            statuses: selectedStatuses.length > 0 ? selectedStatuses : null
+        };
+        
+        // Save to state
+        dashboardState.applications = { page, size: pageSize, filters: request };
+        saveDashboardPreferences();
+        
+        const response = await fetch(`${API_BASE_URL}/dashboard/applications`, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify(request)
+        });
+        
+        if (!response.ok) throw new Error('Failed to load applications');
+        
+        const data = await response.json();
+        displayApplicationsDashboard(data);
+        displayPagination('applications-pagination', data, page, loadApplicationsDashboard);
+        
+    } catch (error) {
+        showMessage('Error loading applications: ' + error.message, 'error');
+    }
+}
+
+// Display applications in dashboard
+function displayApplicationsDashboard(data) {
+    const container = document.getElementById('applications-dashboard-content');
+    
+    if (!data.applications || data.applications.length === 0) {
+        container.innerHTML = '<p>No applications found matching the filters.</p>';
+        return;
+    }
+    
+    let html = `
+        <div style="overflow-x: auto; width: 100%;">
+        <table class="dashboard-table">
+            <thead>
+                <tr>
+                    <th>Application ID</th>
+                    <th>Zonal ID</th>
+                    <th>Name</th>
+                    <th>Mobile</th>
+                    <th>Status</th>
+                    <th>Applied At</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+    
+    data.applications.forEach(app => {
+        html += `
+            <tr>
+                <td>${app.applicationId}</td>
+                <td>${app.sewadarZonalId}</td>
+                <td>${app.sewadarName}</td>
+                <td>${app.mobile || ''}</td>
+                <td>${app.status}</td>
+                <td>${app.appliedAt || ''}</td>
+            </tr>
+        `;
+    });
+    
+    html += `
+            </tbody>
+        </table>
+        </div>
+        <p style="margin-top: 10px;">Showing ${data.applications.length} of ${data.totalElements} applications</p>
+    `;
+    
+    container.innerHTML = html;
+}
+
+// Clear applications filters
+function clearApplicationsFilters() {
+    document.getElementById('filter-app-program-id').value = '';
+    document.getElementById('filter-app-status').selectedIndex = -1;
+    loadApplicationsDashboard(0);
+}
+
+// Pagination helper
+function displayPagination(containerId, data, currentPage, loadFunction) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    
+    const totalPages = data.totalPages || 0;
+    if (totalPages <= 1) {
+        container.innerHTML = '';
+        return;
+    }
+    
+    let html = '<div class="pagination-controls">';
+    
+    // Previous button
+    if (currentPage > 0) {
+        html += `<button class="btn btn-sm" onclick="${loadFunction.name}(${currentPage - 1})">Previous</button>`;
+    }
+    
+    // Page numbers
+    for (let i = 0; i < totalPages; i++) {
+        if (i === currentPage) {
+            html += `<span class="pagination-current">${i + 1}</span>`;
+        } else if (i < 3 || i > totalPages - 4 || Math.abs(i - currentPage) <= 2) {
+            html += `<button class="btn btn-sm" onclick="${loadFunction.name}(${i})">${i + 1}</button>`;
+        } else if (i === 3 || i === totalPages - 4) {
+            html += `<span>...</span>`;
+        }
+    }
+    
+    // Next button
+    if (currentPage < totalPages - 1) {
+        html += `<button class="btn btn-sm" onclick="${loadFunction.name}(${currentPage + 1})">Next</button>`;
+    }
+    
+    html += '</div>';
+    container.innerHTML = html;
+}
+
+// Export functions
+async function exportSewadars(format) {
+    try {
+        const request = {
+            page: 0,
+            size: 10000, // Large number to get all
+            location: document.getElementById('filter-location').value.trim() || null,
+            languages: document.getElementById('filter-languages').value.trim().split(',').map(l => l.trim()).filter(l => l) || null,
+            languageMatchType: document.getElementById('filter-language-match').value,
+            joiningDateFrom: document.getElementById('filter-joining-from').value || null,
+            joiningDateTo: document.getElementById('filter-joining-to').value || null,
+            sortBy: document.getElementById('sort-sewadars').value || null,
+            sortOrder: document.getElementById('sort-order-sewadars').value
+        };
+        
+        const response = await fetch(`${API_BASE_URL}/dashboard/sewadars/export/${format}`, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify(request)
+        });
+        
+        if (!response.ok) throw new Error('Export failed');
+        
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `sewadars.${format.toLowerCase()}`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+        
+        showMessage(`Exported sewadars as ${format}`);
+    } catch (error) {
+        showMessage('Export error: ' + error.message, 'error');
+    }
+}
+
+async function exportSewadarAttendance(format) {
+    try {
+        const sewadarId = document.getElementById('filter-sewadar-id').value;
+        if (!sewadarId) {
+            showMessage('Please enter a sewadar zonal ID', 'error');
+            return;
+        }
+        
+        const response = await fetch(`${API_BASE_URL}/dashboard/sewadar/${sewadarId}/attendance/export/${format}`, {
+            headers: getAuthHeaders()
+        });
+        
+        if (!response.ok) throw new Error('Export failed');
+        
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `sewadar_${sewadarId}_attendance.${format.toLowerCase()}`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+        
+        showMessage(`Exported attendance as ${format}`);
+    } catch (error) {
+        showMessage('Export error: ' + error.message, 'error');
+    }
+}
+
+async function exportProgramAttendance(format) {
+    try {
+        const programId = document.getElementById('filter-program-id').value;
+        if (!programId) {
+            showMessage('Please enter a program ID', 'error');
+            return;
+        }
+        
+        const response = await fetch(`${API_BASE_URL}/dashboard/program/${programId}/attendance/export/${format}`, {
+            headers: getAuthHeaders()
+        });
+        
+        if (!response.ok) throw new Error('Export failed');
+        
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `program_${programId}_attendance.${format.toLowerCase()}`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+        
+        showMessage(`Exported attendance as ${format}`);
+    } catch (error) {
+        showMessage('Export error: ' + error.message, 'error');
+    }
+}
+
+async function exportApplications(format) {
+    try {
+        const request = {
+            page: 0,
+            size: 10000,
+            programId: document.getElementById('filter-app-program-id').value.trim() ? parseInt(document.getElementById('filter-app-program-id').value) : null,
+            statuses: Array.from(document.getElementById('filter-app-status').selectedOptions).map(opt => opt.value)
+        };
+        
+        const response = await fetch(`${API_BASE_URL}/dashboard/applications/export/${format}`, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify(request)
+        });
+        
+        if (!response.ok) throw new Error('Export failed');
+        
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `applications.${format.toLowerCase()}`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+        
+        showMessage(`Exported applications as ${format}`);
+    } catch (error) {
+        showMessage('Export error: ' + error.message, 'error');
+    }
 }
 

@@ -2,6 +2,7 @@ package com.rssb.application.repository;
 
 import com.rssb.application.entity.ProgramApplication;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -10,7 +11,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface ProgramApplicationRepository extends JpaRepository<ProgramApplication, Long> {
+public interface ProgramApplicationRepository extends JpaRepository<ProgramApplication, Long>, JpaSpecificationExecutor<ProgramApplication> {
     List<ProgramApplication> findByProgramId(Long programId);
     
     @Query("SELECT pa FROM ProgramApplication pa WHERE pa.sewadar.zonalId = :sewadarZonalId")

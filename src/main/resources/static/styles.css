@@ -470,3 +470,212 @@ header {
         align-items: flex-start;
     }
 }
+
+/* Dashboard Styles */
+.dashboard-tabs {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    border-bottom: 2px solid var(--rssb-bg-light);
+}
+
+.dashboard-tab-btn {
+    padding: 10px 20px;
+    background: none;
+    border: none;
+    border-bottom: 3px solid transparent;
+    cursor: pointer;
+    font-size: 1em;
+    color: var(--rssb-text-dark);
+    transition: all 0.3s;
+}
+
+.dashboard-tab-btn:hover {
+    color: var(--rssb-header-red);
+    border-bottom-color: var(--rssb-header-red-light);
+}
+
+.dashboard-tab-btn.active {
+    color: var(--rssb-header-red);
+    border-bottom-color: var(--rssb-header-red);
+    font-weight: 600;
+}
+
+.dashboard-section {
+    display: none;
+}
+
+.dashboard-section.active {
+    display: block;
+}
+
+.dashboard-filters {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    border: 1px solid #ddd;
+}
+
+.dashboard-filters h3 {
+    margin-bottom: 15px;
+    color: var(--rssb-header-red);
+    font-size: 1.2em;
+}
+
+.filter-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    margin-bottom: 15px;
+    align-items: flex-end;
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    min-width: 150px;
+}
+
+.filter-group label {
+    font-size: 0.9em;
+    color: var(--rssb-text-dark);
+    font-weight: 500;
+}
+
+.filter-group input,
+.filter-group select {
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 0.9em;
+}
+
+.filter-group input:focus,
+.filter-group select:focus {
+    outline: none;
+    border-color: var(--rssb-header-red);
+}
+
+.filter-group small {
+    font-size: 0.8em;
+    color: #666;
+}
+
+.dashboard-content {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    min-height: 200px;
+    overflow-x: auto;
+    overflow-y: visible;
+}
+
+.dashboard-table {
+    width: 100%;
+    min-width: 1200px; /* Ensure table has minimum width for all columns */
+    border-collapse: collapse;
+    margin-top: 10px;
+}
+
+.dashboard-table th {
+    background: var(--rssb-bg-light);
+    padding: 12px;
+    text-align: left;
+    font-weight: 600;
+    color: var(--rssb-text-black);
+    border-bottom: 2px solid var(--rssb-header-red);
+    position: sticky;
+    top: 0;
+}
+
+.dashboard-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid #eee;
+}
+
+.dashboard-table tr:hover {
+    background: var(--rssb-bg-main);
+}
+
+.dashboard-table tr:nth-child(even) {
+    background: #fafafa;
+}
+
+.dashboard-table tr:nth-child(even):hover {
+    background: var(--rssb-bg-main);
+}
+
+.pagination {
+    margin-top: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.pagination-controls {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.pagination-controls button {
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    background: white;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.pagination-controls button:hover {
+    background: var(--rssb-header-red);
+    color: white;
+    border-color: var(--rssb-header-red);
+}
+
+.pagination-current {
+    padding: 8px 12px;
+    background: var(--rssb-header-red);
+    color: white;
+    border-radius: 4px;
+    font-weight: 600;
+}
+
+.pagination-controls span {
+    padding: 8px;
+    color: #666;
+}
+
+/* Responsive Dashboard */
+@media (max-width: 768px) {
+    .dashboard-tabs {
+        flex-wrap: wrap;
+    }
+    
+    .filter-row {
+        flex-direction: column;
+    }
+    
+    .filter-group {
+        width: 100%;
+    }
+    
+    .dashboard-table {
+        font-size: 0.85em;
+        min-width: 800px; /* Smaller min-width for mobile */
+    }
+    
+    .dashboard-table th,
+    .dashboard-table td {
+        padding: 8px 6px;
+    }
+    
+    .dashboard-content {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+    }
+}
