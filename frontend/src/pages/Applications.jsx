@@ -26,11 +26,45 @@ const Applications = () => {
   const loadApplications = async () => {
     try {
       const response = await api.get(`/program-applications/sewadar/${user.zonalId}`)
-      setApplications(response.data)
+      // Filter out applications for completed programs
+      const applicationsWithPrograms = await Promise.all(
+        response.data.map(async (app) => {
+          try {
+            const programResponse = await api.get(`/programs/${app.programId}`)
+            return {
+              ...app,
+              programStatus: programResponse.data.status,
+            }
+          } catch (error) {
+            return { ...app, programStatus: null }
+          }
+        })
+      )
+      
+      // Filter out completed programs
+      const filtered = applicationsWithPrograms.filter((app) => app.programStatus !== 'completed')
+      setApplications(filtered)
     } catch (error) {
       console.error('Error loading applications:', error)
     } finally {
       setLoading(false)
+    }
+  }
+  
+  const handleReapply = async (programId) => {
+    if (!window.confirm('Reapply to this program?')) {
+      return
+    }
+
+    try {
+      await api.post('/program-applications', {
+        programId,
+        sewadarId: user.zonalId,
+      })
+      alert('Application submitted successfully!')
+      loadApplications()
+    } catch (error) {
+      alert(error.response?.data?.message || 'Failed to reapply')
     }
   }
 
@@ -116,7 +150,7 @@ const Applications = () => {
                     </Typography>
                   )}
 
-                  <Box mt={2}>
+                  <Box mt={2} display="flex" gap={1}>
                     {(app.status === 'PENDING' || app.status === 'APPROVED') && (
                       <Button
                         variant="outlined"
@@ -129,6 +163,16 @@ const Applications = () => {
                     )}
                     {app.status === 'DROP_REQUESTED' && (
                       <Chip label="Drop Request Pending" color="warning" size="small" />
+                    )}
+                    {app.status === 'DROPPED' && (
+                      <Button
+                        variant="contained"
+                        color="primary"
+                        size="small"
+                        onClick={() => handleReapply(app.programId)}
+                      >
+                        Reapply
+                      </Button>
                     )}
                   </Box>
                 </CardContent>

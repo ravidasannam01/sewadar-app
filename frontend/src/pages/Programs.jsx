@@ -90,6 +90,27 @@ const Programs = () => {
   }
 
   const filteredPrograms = programs.filter((program) => {
+    // For SEWADAR: Only show active programs where last date >= today
+    if (user?.role === 'SEWADAR') {
+      // Must be active
+      if (program.status !== 'active') {
+        return false
+      }
+      
+      // Check if last date is in the future
+      if (program.programDates && program.programDates.length > 0) {
+        const lastDate = new Date(Math.max(...program.programDates.map(d => new Date(d))))
+        const today = new Date()
+        today.setHours(0, 0, 0, 0)
+        lastDate.setHours(0, 0, 0, 0)
+        
+        if (lastDate < today) {
+          return false
+        }
+      }
+    }
+    
+    // For INCHARGE: Show all programs (no filtering)
     const matchesSearch =
       program.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       program.location?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -173,6 +194,7 @@ const Programs = () => {
             <MenuItem value="all">All</MenuItem>
             <MenuItem value="scheduled">Scheduled</MenuItem>
             <MenuItem value="active">Active</MenuItem>
+            <MenuItem value="completed">Completed</MenuItem>
             <MenuItem value="cancelled">Cancelled</MenuItem>
           </Select>
         </FormControl>
@@ -211,6 +233,8 @@ const Programs = () => {
                           color={
                             program.status === 'active'
                               ? 'success'
+                              : program.status === 'completed'
+                              ? 'info'
                               : program.status === 'cancelled'
                               ? 'error'
                               : 'default'
@@ -236,7 +260,16 @@ const Programs = () => {
 
                       {user?.role === 'SEWADAR' && program.status === 'active' && (
                         <Box mt="auto">
-                          {appStatus ? (
+                          {appStatus === 'DROPPED' ? (
+                            <Button
+                              variant="contained"
+                              fullWidth
+                              size="small"
+                              onClick={() => handleApply(program.id)}
+                            >
+                              Reapply
+                            </Button>
+                          ) : appStatus ? (
                             <Chip
                               label={appStatus}
                               color={appStatus === 'APPROVED' ? 'success' : 'default'}

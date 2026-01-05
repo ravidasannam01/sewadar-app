@@ -138,6 +138,7 @@ const ProgramForm = ({ program, onClose, onSuccess }) => {
       >
         <MenuItem value="scheduled">Scheduled</MenuItem>
         <MenuItem value="active">Active</MenuItem>
+        <MenuItem value="completed">Completed</MenuItem>
         <MenuItem value="cancelled">Cancelled</MenuItem>
       </TextField>
       <TextField

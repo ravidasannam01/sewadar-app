@@ -80,6 +80,12 @@ public class SewadarServiceImpl implements SewadarService {
         sewadar.setPhotoUrl(request.getPhotoUrl());
         sewadar.setAadharNumber(request.getAadharNumber());
 
+        // Update password if provided
+        if (request.getPassword() != null && !request.getPassword().trim().isEmpty()) {
+            log.info("Updating password for sewadar with zonal_id: {}", zonalId);
+            sewadar.setPassword(passwordEncoder.encode(request.getPassword()));
+        }
+
         // Role cannot be changed via regular update - use promoteToIncharge endpoint
 
         // Handle address - create or update address if address fields are provided
@@ -91,17 +97,21 @@ public class SewadarServiceImpl implements SewadarService {
             sewadar.setAddress(null);
         }
 
-        // Handle languages
-        if (request.getLanguages() != null && !request.getLanguages().isEmpty()) {
+        // Handle languages - only update if provided, otherwise keep existing
+        if (request.getLanguages() != null) {
             // Remove existing languages
             sewadar.getLanguages().clear();
-            // Add new languages
-            for (String lang : request.getLanguages()) {
-                com.rssb.application.entity.SewadarLanguage language = com.rssb.application.entity.SewadarLanguage.builder()
-                        .sewadar(sewadar)
-                        .language(lang)
-                        .build();
-                sewadar.getLanguages().add(language);
+            // Add new languages if list is not empty
+            if (!request.getLanguages().isEmpty()) {
+                for (String lang : request.getLanguages()) {
+                    if (lang != null && !lang.trim().isEmpty()) {
+                        com.rssb.application.entity.SewadarLanguage language = com.rssb.application.entity.SewadarLanguage.builder()
+                                .sewadar(sewadar)
+                                .language(lang.trim())
+                                .build();
+                        sewadar.getLanguages().add(language);
+                    }
+                }
             }
         }
 

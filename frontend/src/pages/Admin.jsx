@@ -53,6 +53,9 @@ const Admin = () => {
   const [openSewadarForm, setOpenSewadarForm] = useState(false)
   const [openApplicationsDialog, setOpenApplicationsDialog] = useState(false)
   const [openDropRequestsDialog, setOpenDropRequestsDialog] = useState(false)
+  const [openPasswordDialog, setOpenPasswordDialog] = useState(false)
+  const [selectedSewadarForPassword, setSelectedSewadarForPassword] = useState(null)
+  const [newPassword, setNewPassword] = useState('')
   const [prioritizedApplications, setPrioritizedApplications] = useState([])
   const [dropRequests, setDropRequests] = useState([])
   const [loading, setLoading] = useState(false)
@@ -154,6 +157,61 @@ const Admin = () => {
       }
     } catch (error) {
       alert(error.response?.data?.message || 'Failed to approve drop request')
+    }
+  }
+
+  const handleChangePassword = (sewadar) => {
+    setSelectedSewadarForPassword(sewadar)
+    setNewPassword('')
+    setOpenPasswordDialog(true)
+  }
+
+  const handleSavePassword = async () => {
+    if (!newPassword || newPassword.length < 6) {
+      alert('Password must be at least 6 characters long')
+      return
+    }
+
+    try {
+      setLoading(true)
+      // Get current sewadar data
+      const sewadarResponse = await api.get(`/sewadars/${selectedSewadarForPassword.zonalId}`)
+      const sewadarData = sewadarResponse.data
+
+      // Prepare update payload with all required fields
+      const updatePayload = {
+        firstName: sewadarData.firstName || '',
+        lastName: sewadarData.lastName || '',
+        mobile: sewadarData.mobile || '',
+        location: sewadarData.location || '',
+        profession: sewadarData.profession || '',
+        password: newPassword, // New password
+        dateOfBirth: sewadarData.dateOfBirth || null,
+        joiningDate: sewadarData.joiningDate || null,
+        emergencyContact: sewadarData.emergencyContact || null,
+        emergencyContactRelationship: sewadarData.emergencyContactRelationship || null,
+        photoUrl: sewadarData.photoUrl || null,
+        aadharNumber: sewadarData.aadharNumber || null,
+        languages: sewadarData.languages || [],
+        remarks: sewadarData.remarks || '',
+        address1: sewadarData.address?.address1 || '',
+        address2: sewadarData.address?.address2 || '',
+        email: sewadarData.address?.email || '',
+      }
+
+      // Update with new password
+      await api.put(`/sewadars/${selectedSewadarForPassword.zonalId}`, updatePayload)
+
+      alert('Password changed successfully!')
+      setOpenPasswordDialog(false)
+      setSelectedSewadarForPassword(null)
+      setNewPassword('')
+    } catch (error) {
+      console.error('Password change error:', error)
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to change password'
+      alert(`Error: ${errorMessage}`)
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -291,38 +349,50 @@ const Admin = () => {
                   <TableCell>Mobile</TableCell>
                   <TableCell>Location</TableCell>
                   <TableCell>Role</TableCell>
-                  <TableCell>Actions</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {sewadars.map((sewadar) => (
-                  <TableRow key={sewadar.zonalId}>
-                    <TableCell>{sewadar.zonalId}</TableCell>
-                    <TableCell>
-                      {sewadar.firstName} {sewadar.lastName}
-                    </TableCell>
-                    <TableCell>{sewadar.mobile || ''}</TableCell>
-                    <TableCell>{sewadar.location || ''}</TableCell>
-                    <TableCell>
-                      <Chip
-                        label={sewadar.role || 'SEWADAR'}
-                        size="small"
-                        color={sewadar.role === 'INCHARGE' ? 'warning' : 'default'}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <IconButton
-                        size="small"
-                        onClick={() => {
-                          setSelectedProgram(sewadar)
-                          setOpenSewadarForm(true)
-                        }}
-                      >
-                        <EditIcon fontSize="small" />
-                      </IconButton>
-                    </TableCell>
+                    <TableCell>Actions</TableCell>
                   </TableRow>
-                ))}
+                </TableHead>
+                <TableBody>
+                  {sewadars.map((sewadar) => (
+                    <TableRow key={sewadar.zonalId}>
+                      <TableCell>{sewadar.zonalId}</TableCell>
+                      <TableCell>
+                        {sewadar.firstName} {sewadar.lastName}
+                      </TableCell>
+                      <TableCell>{sewadar.mobile || ''}</TableCell>
+                      <TableCell>{sewadar.location || ''}</TableCell>
+                      <TableCell>
+                        <Chip
+                          label={sewadar.role || 'SEWADAR'}
+                          size="small"
+                          color={sewadar.role === 'INCHARGE' ? 'warning' : 'default'}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Box display="flex" gap={1}>
+                          <IconButton
+                            size="small"
+                            onClick={() => {
+                              setSelectedProgram(sewadar)
+                              setOpenSewadarForm(true)
+                            }}
+                            title="Edit Sewadar"
+                          >
+                            <EditIcon fontSize="small" />
+                          </IconButton>
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            color="primary"
+                            onClick={() => handleChangePassword(sewadar)}
+                            title="Change Password"
+                          >
+                            Change Password
+                          </Button>
+                        </Box>
+                      </TableCell>
+                    </TableRow>
+                  ))}
               </TableBody>
             </Table>
           </TableContainer>
@@ -573,6 +643,41 @@ const Admin = () => {
             }}
           />
         </DialogContent>
+      </Dialog>
+
+      {/* Password Change Dialog */}
+      <Dialog open={openPasswordDialog} onClose={() => {
+        setOpenPasswordDialog(false)
+        setSelectedSewadarForPassword(null)
+        setNewPassword('')
+      }} maxWidth="sm" fullWidth>
+        <DialogTitle>
+          Change Password for {selectedSewadarForPassword?.firstName} {selectedSewadarForPassword?.lastName}
+        </DialogTitle>
+        <DialogContent>
+          <TextField
+            fullWidth
+            type="password"
+            label="New Password"
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+            margin="normal"
+            required
+            helperText="Password must be at least 6 characters long"
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => {
+            setOpenPasswordDialog(false)
+            setSelectedSewadarForPassword(null)
+            setNewPassword('')
+          }}>
+            Cancel
+          </Button>
+          <Button onClick={handleSavePassword} variant="contained" disabled={!newPassword || newPassword.length < 6}>
+            Change Password
+          </Button>
+        </DialogActions>
       </Dialog>
     </Box>
   )
