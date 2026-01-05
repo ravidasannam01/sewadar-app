@@ -1,0 +1,87 @@
+{
+  "job_id": "repayment-reminder-before-pdd-20260101043129-yhk21",
+  "job_spec_name": "repayment-reminder-before-pdd",
+  "cluster_type": "ALWAYS_ON",
+  "state": "FAILED",
+  "tenant_id": 1,
+  "request_id": "db05635b-c6f3-40b9-9d92-a1d68024db96",
+  "flink_cluster_name": "perseus-session-cluster",
+  "job_config": {
+    "apiVersion": "flink.apache.org/v1beta1",
+    "kind": "JobResource",
+    "metadata": {
+      "annotations": {
+        "job.spec.metadata": "{\"tenantID\":1,\"jobSpecName\":\"repayment-reminder-before-pdd\",\"clusterName\":\"plutuscore\",\"jobCreationDate\":\"2026-01-01 10:01:29\",\"executionMode\":\"BATCH\",\"flinkClusterName\":\"perseus-session-cluster\",\"jobCriticality\":\"LOW\",\"workflowId\":\"NA\",\"executionId\":1}"
+      },
+      "labels": {
+        "cluster-type": "always-on",
+        "app.kubernetes.io/name": "perseus-session-cluster"
+      },
+      "name": "repayment-reminder-before-pdd-20260101043129-yhk21",
+      "namespace": "perseus"
+    },
+    "spec": {
+      "deploymentName": "perseus-session-cluster",
+      "job": {
+        "jarURI": "s3://hbl-aws-aps1-zeta-nonpcidss-prod-perseus-inputs/jars/util-1.5.2.jar",
+        "entryClass": "in.zeta.perseus.core.JobDriver",
+        "parallelism": 1,
+        "upgradeMode": "stateless",
+        "state": "running",
+        "args": [
+          "--name",
+          "repayment-reminder-before-pdd-20260101043129-yhk21",
+          "--executionMode",
+          "BATCH",
+          "--tenantId",
+          "1",
+          "--parallelism",
+          "1",
+          "--checkPointStoragePath",
+          "s3://hbl-aws-aps1-zeta-nonpcidss-prod-perseus-outputs/flink/checkpoints",
+          "--checkpointInterval",
+          "20",
+          "--sideOutputPath",
+          "s3://hbl-aws-aps1-zeta-nonpcidss-prod-perseus-outputs/side-output/v2/batch/job_creation_date=2026-01-01/repayment-reminder-before-pdd-20260101043129-yhk21",
+          "--jobCreationDate",
+          "2026-01-01",
+          "--jobInputParams",
+          "{\"executionId\":\"1\",\"shouldSkipRecordsProcessing\":\"false\"}",
+          "--monitoringAttributes",
+          "{\"logAttributes\":{},\"metricLabels\":{}}",
+          "--isOperatorSpecEncrypted",
+          "true",
+          "--operatorSpecs",
+          "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"
+        ]
+      }
+    }
+  },
+  "created_at": "2026-01-01T04:31:29.021+00:00",
+  "updated_at": "2026-01-01T04:31:29.196+00:00",
+  "job_context": {
+    "parallelism": 1,
+    "resolvedMonitoringAttributes": {
+      "logAttributes": {},
+      "metricLabels": {}
+    },
+    "job_spec_version": 4,
+    "job_request": {
+      "jobSpecName": "repayment-reminder-before-pdd",
+      "requestId": "db05635b-c6f3-40b9-9d92-a1d68024db96",
+      "args": {
+        "inputFilePath": "/TURBOCREDIT/statement-reminders/inputs/Statement_Reminder_Before_PDD_01-Jan-2026_04_30_24.csv",
+        "outputFilePath": "/TURBOCREDIT/statement-reminders/outputs/Statement_Reminder_Before_PDD_01-Jan-2026_04_30_24.csv_output.txt"
+      },
+      "tags": null,
+      "kaleJobId": null,
+      "workflowContext": null
+    },
+    "job_criticality": "LOW",
+    "triggering_mechanism": {
+      "mechanism": "MANUAL_TRIGGER",
+      "parameters": null
+    },
+    "execution_mode": "BATCH"
+  }
+}
