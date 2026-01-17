@@ -60,7 +60,7 @@ const Admin = () => {
   const [prioritizedApplications, setPrioritizedApplications] = useState([])
   const [dropRequests, setDropRequests] = useState([])
   const [loading, setLoading] = useState(false)
-  const [sortBy, setSortBy] = useState('priorityScore')
+  const [sortBy, setSortBy] = useState('attendance')
   const [sortOrder, setSortOrder] = useState('desc')
 
   useEffect(() => {
@@ -437,46 +437,49 @@ const Admin = () => {
           Applications for: {selectedProgram?.title}
         </DialogTitle>
         <DialogContent>
-          <Box display="flex" gap={2} mb={2}>
-            <FormControl size="small" sx={{ minWidth: 200 }}>
-              <InputLabel>Sort By</InputLabel>
-              <Select
-                value={sortBy}
-                onChange={(e) => {
-                  setSortBy(e.target.value)
-                  if (selectedProgram) {
-                    loadPrioritizedApplications(selectedProgram.id)
-                  }
-                }}
-                label="Sort By"
-              >
-                <MenuItem value="priorityScore">Priority Score</MenuItem>
-                <MenuItem value="attendance">Total Attendance</MenuItem>
-                <MenuItem value="beasAttendance">BEAS Attendance</MenuItem>
-                <MenuItem value="nonBeasAttendance">Non-BEAS Attendance</MenuItem>
-                <MenuItem value="days">Total Days</MenuItem>
-                <MenuItem value="beasDays">BEAS Days</MenuItem>
-                <MenuItem value="nonBeasDays">Non-BEAS Days</MenuItem>
-                <MenuItem value="profession">Profession</MenuItem>
-                <MenuItem value="joiningDate">Joining Date</MenuItem>
-              </Select>
-            </FormControl>
-            <FormControl size="small" sx={{ minWidth: 150 }}>
-              <InputLabel>Order</InputLabel>
-              <Select
-                value={sortOrder}
-                onChange={(e) => {
-                  setSortOrder(e.target.value)
-                  if (selectedProgram) {
-                    loadPrioritizedApplications(selectedProgram.id)
-                  }
-                }}
-                label="Order"
-              >
-                <MenuItem value="desc">Descending</MenuItem>
-                <MenuItem value="asc">Ascending</MenuItem>
-              </Select>
-            </FormControl>
+          <Box display="flex" gap={2} mb={2} alignItems="flex-end">
+            <Box>
+              <Typography variant="caption" sx={{ mb: 0.5, display: 'block', color: 'text.secondary' }}>
+                Sort By
+              </Typography>
+              <FormControl size="small" sx={{ minWidth: 250 }}>
+                <Select
+                  value={sortBy}
+                  onChange={(e) => {
+                    setSortBy(e.target.value)
+                    if (selectedProgram) {
+                      loadPrioritizedApplications(selectedProgram.id)
+                    }
+                  }}
+                >
+                  <MenuItem value="attendance">Total Attendance</MenuItem>
+                  <MenuItem value="beasAttendance">BEAS Attendance</MenuItem>
+                  <MenuItem value="nonBeasAttendance">Non-BEAS Attendance</MenuItem>
+                  <MenuItem value="days">Total Days</MenuItem>
+                  <MenuItem value="beasDays">BEAS Days</MenuItem>
+                  <MenuItem value="nonBeasDays">Non-BEAS Days</MenuItem>
+                </Select>
+              </FormControl>
+            </Box>
+            <Box>
+              <Typography variant="caption" sx={{ mb: 0.5, display: 'block', color: 'text.secondary' }}>
+                Order By
+              </Typography>
+              <FormControl size="small" sx={{ minWidth: 200 }}>
+                <Select
+                  value={sortOrder}
+                  onChange={(e) => {
+                    setSortOrder(e.target.value)
+                    if (selectedProgram) {
+                      loadPrioritizedApplications(selectedProgram.id)
+                    }
+                  }}
+                >
+                  <MenuItem value="desc">Descending</MenuItem>
+                  <MenuItem value="asc">Ascending</MenuItem>
+                </Select>
+              </FormControl>
+            </Box>
           </Box>
 
           {loading ? (
@@ -490,7 +493,6 @@ const Admin = () => {
                   <TableRow>
                     <TableCell>Name</TableCell>
                     <TableCell>Mobile</TableCell>
-                    <TableCell>Priority Score</TableCell>
                     <TableCell>Total Attendance</TableCell>
                     <TableCell>Total Days</TableCell>
                     <TableCell>Status</TableCell>
@@ -504,7 +506,6 @@ const Admin = () => {
                         {app.sewadar.firstName} {app.sewadar.lastName}
                       </TableCell>
                       <TableCell>{app.sewadar.mobile}</TableCell>
-                      <TableCell>{app.priorityScore || 0}</TableCell>
                       <TableCell>{app.totalAttendanceCount || 0}</TableCell>
                       <TableCell>{app.totalDaysAttended || 0}</TableCell>
                       <TableCell>
