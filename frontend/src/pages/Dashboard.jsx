@@ -23,10 +23,16 @@ import {
   Grid,
   Card,
   CardContent,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Chip,
 } from '@mui/material'
 import {
   Search as SearchIcon,
   Download as DownloadIcon,
+  Visibility as VisibilityIcon,
 } from '@mui/icons-material'
 import api from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
@@ -43,6 +49,12 @@ const Dashboard = () => {
   const [applicationsRowsPerPage, setApplicationsRowsPerPage] = useState(25)
   const [totalSewadars, setTotalSewadars] = useState(0)
   const [totalApplications, setTotalApplications] = useState(0)
+  const [selectedSewadarForAttendance, setSelectedSewadarForAttendance] = useState(null)
+  const [selectedProgramForAttendance, setSelectedProgramForAttendance] = useState(null)
+  const [sewadarAttendanceDetails, setSewadarAttendanceDetails] = useState(null)
+  const [programAttendanceDetails, setProgramAttendanceDetails] = useState(null)
+  const [openSewadarAttendanceDialog, setOpenSewadarAttendanceDialog] = useState(false)
+  const [openProgramAttendanceDialog, setOpenProgramAttendanceDialog] = useState(false)
 
   // Sewadars filters
   const [sewadarsFilters, setSewadarsFilters] = useState({
@@ -103,6 +115,21 @@ const Dashboard = () => {
       setTotalApplications(response.data.totalElements || 0)
     } catch (error) {
       console.error('Error loading applications:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleViewSewadarAttendance = async (sewadarId) => {
+    try {
+      setLoading(true)
+      const response = await api.get(`/dashboard/sewadar/${sewadarId}/attendance`)
+      setSewadarAttendanceDetails(response.data)
+      setSelectedSewadarForAttendance(sewadarId)
+      setOpenSewadarAttendanceDialog(true)
+    } catch (error) {
+      console.error('Error loading sewadar attendance:', error)
+      alert('Error loading attendance details: ' + (error.response?.data?.message || error.message))
     } finally {
       setLoading(false)
     }
@@ -321,6 +348,13 @@ const Dashboard = () => {
                   >
                     Export XLSX
                   </Button>
+                  <Button
+                    variant="outlined"
+                    startIcon={<DownloadIcon />}
+                    onClick={() => handleExport('sewadars', 'PDF')}
+                  >
+                    Export PDF
+                  </Button>
                 </Box>
               </Grid>
             </Grid>
@@ -339,18 +373,22 @@ const Dashboard = () => {
                     <TableCell>Name</TableCell>
                     <TableCell>Mobile</TableCell>
                     <TableCell>Location</TableCell>
+                    <TableCell>Profession</TableCell>
+                    <TableCell>Joining Date</TableCell>
+                    <TableCell>Languages</TableCell>
                     <TableCell>Total Programs</TableCell>
                     <TableCell>Total Days</TableCell>
                     <TableCell>BEAS Programs</TableCell>
                     <TableCell>BEAS Days</TableCell>
                     <TableCell>Non-BEAS Programs</TableCell>
                     <TableCell>Non-BEAS Days</TableCell>
+                    <TableCell>Actions</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {sewadars.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={10} align="center">
+                      <TableCell colSpan={14} align="center">
                         <Alert severity="info">Click "Apply Filters" to load sewadars</Alert>
                       </TableCell>
                     </TableRow>
@@ -363,12 +401,31 @@ const Dashboard = () => {
                         </TableCell>
                         <TableCell>{sewadar.mobile || ''}</TableCell>
                         <TableCell>{sewadar.location || ''}</TableCell>
+                        <TableCell>{sewadar.profession || '-'}</TableCell>
+                        <TableCell>
+                          {sewadar.joiningDate ? format(new Date(sewadar.joiningDate), 'MMM dd, yyyy') : '-'}
+                        </TableCell>
+                        <TableCell>
+                          {sewadar.languages && sewadar.languages.length > 0
+                            ? sewadar.languages.join(', ')
+                            : '-'}
+                        </TableCell>
                         <TableCell>{sewadar.totalProgramsCount || 0}</TableCell>
                         <TableCell>{sewadar.totalDaysAttended || 0}</TableCell>
                         <TableCell>{sewadar.beasProgramsCount || 0}</TableCell>
                         <TableCell>{sewadar.beasDaysAttended || 0}</TableCell>
                         <TableCell>{sewadar.nonBeasProgramsCount || 0}</TableCell>
                         <TableCell>{sewadar.nonBeasDaysAttended || 0}</TableCell>
+                        <TableCell>
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            startIcon={<VisibilityIcon />}
+                            onClick={() => handleViewSewadarAttendance(sewadar.zonalId)}
+                          >
+                            View Details
+                          </Button>
+                        </TableCell>
                       </TableRow>
                     ))
                   )}
@@ -459,6 +516,20 @@ const Dashboard = () => {
                   >
                     Export CSV
                   </Button>
+                  <Button
+                    variant="outlined"
+                    startIcon={<DownloadIcon />}
+                    onClick={() => handleExport('applications', 'XLSX')}
+                  >
+                    Export XLSX
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    startIcon={<DownloadIcon />}
+                    onClick={() => handleExport('applications', 'PDF')}
+                  >
+                    Export PDF
+                  </Button>
                 </Box>
               </Grid>
             </Grid>
@@ -495,8 +566,22 @@ const Dashboard = () => {
                         <TableCell>{app.sewadarZonalId}</TableCell>
                         <TableCell>{app.sewadarName}</TableCell>
                         <TableCell>{app.mobile || ''}</TableCell>
-                        <TableCell>{app.status}</TableCell>
-                        <TableCell>{app.appliedAt || ''}</TableCell>
+                        <TableCell>
+                          <Chip
+                            label={app.status}
+                            size="small"
+                            color={
+                              app.status === 'APPROVED'
+                                ? 'success'
+                                : app.status === 'REJECTED' || app.status === 'DROPPED'
+                                ? 'error'
+                                : 'default'
+                            }
+                          />
+                        </TableCell>
+                        <TableCell>
+                          {app.appliedAt ? format(new Date(app.appliedAt), 'MMM dd, yyyy HH:mm') : '-'}
+                        </TableCell>
                       </TableRow>
                     ))
                   )}
@@ -522,6 +607,136 @@ const Dashboard = () => {
           )}
         </Box>
       )}
+
+      {/* Sewadar Detailed Attendance Dialog */}
+      <Dialog
+        open={openSewadarAttendanceDialog}
+        onClose={() => {
+          setOpenSewadarAttendanceDialog(false)
+          setSelectedSewadarForAttendance(null)
+          setSewadarAttendanceDetails(null)
+        }}
+        maxWidth="lg"
+        fullWidth
+      >
+        <DialogTitle>
+          Detailed Attendance - Sewadar {selectedSewadarForAttendance}
+        </DialogTitle>
+        <DialogContent>
+          {loading ? (
+            <Box display="flex" justifyContent="center" p={4}>
+              <CircularProgress />
+            </Box>
+          ) : sewadarAttendanceDetails ? (
+            <Box>
+              <Typography variant="h6" gutterBottom>
+                {sewadarAttendanceDetails.sewadarName || `Sewadar ${selectedSewadarForAttendance}`}
+              </Typography>
+              {sewadarAttendanceDetails.mobile && (
+                <Typography variant="body2" color="text.secondary" gutterBottom>
+                  Mobile: {sewadarAttendanceDetails.mobile}
+                </Typography>
+              )}
+              <TableContainer sx={{ mt: 2 }}>
+                <Table>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Program</TableCell>
+                      <TableCell>Location</TableCell>
+                      <TableCell>Date</TableCell>
+                      <TableCell>Status</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {sewadarAttendanceDetails.records && sewadarAttendanceDetails.records.length > 0 ? (
+                      sewadarAttendanceDetails.records.map((record, index) => (
+                        <TableRow key={index}>
+                          <TableCell>{record.programTitle || '-'}</TableCell>
+                          <TableCell>{record.programLocation || '-'}</TableCell>
+                          <TableCell>
+                            {record.attendanceDate ? format(new Date(record.attendanceDate), 'MMM dd, yyyy') : '-'}
+                          </TableCell>
+                          <TableCell>
+                            <Chip
+                              label={record.status || 'Present'}
+                              size="small"
+                              color={record.status === 'Present' ? 'success' : 'default'}
+                            />
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={4} align="center">
+                          <Alert severity="info">No attendance records found</Alert>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+              <Box mt={2}>
+                <Button
+                  variant="outlined"
+                  startIcon={<DownloadIcon />}
+                  onClick={async () => {
+                    try {
+                      const response = await api.get(
+                        `/dashboard/sewadar/${selectedSewadarForAttendance}/attendance/export/CSV`,
+                        { responseType: 'blob' }
+                      )
+                      const blob = new Blob([response.data])
+                      const downloadUrl = window.URL.createObjectURL(blob)
+                      const link = document.createElement('a')
+                      link.href = downloadUrl
+                      link.download = `sewadar_${selectedSewadarForAttendance}_attendance.csv`
+                      link.click()
+                    } catch (error) {
+                      alert('Export failed: ' + (error.response?.data?.message || error.message))
+                    }
+                  }}
+                >
+                  Export CSV
+                </Button>
+                <Button
+                  variant="outlined"
+                  startIcon={<DownloadIcon />}
+                  onClick={async () => {
+                    try {
+                      const response = await api.get(
+                        `/dashboard/sewadar/${selectedSewadarForAttendance}/attendance/export/XLSX`,
+                        { responseType: 'blob' }
+                      )
+                      const blob = new Blob([response.data])
+                      const downloadUrl = window.URL.createObjectURL(blob)
+                      const link = document.createElement('a')
+                      link.href = downloadUrl
+                      link.download = `sewadar_${selectedSewadarForAttendance}_attendance.xlsx`
+                      link.click()
+                    } catch (error) {
+                      alert('Export failed: ' + (error.response?.data?.message || error.message))
+                    }
+                  }}
+                  sx={{ ml: 1 }}
+                >
+                  Export XLSX
+                </Button>
+              </Box>
+            </Box>
+          ) : (
+            <Alert severity="info">No attendance details available</Alert>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => {
+            setOpenSewadarAttendanceDialog(false)
+            setSelectedSewadarForAttendance(null)
+            setSewadarAttendanceDetails(null)
+          }}>
+            Close
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   )
 }

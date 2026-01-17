@@ -43,12 +43,13 @@ import ProgramForm from '../components/ProgramForm'
 import SewadarForm from '../components/SewadarForm'
 
 const Admin = () => {
-  const { user } = useAuth()
+  const { user, loading: authLoading } = useAuth()
   const [activeTab, setActiveTab] = useState(0)
   const [programs, setPrograms] = useState([])
   const [sewadars, setSewadars] = useState([])
   const [applications, setApplications] = useState([])
   const [selectedProgram, setSelectedProgram] = useState(null)
+  const [selectedSewadar, setSelectedSewadar] = useState(null)
   const [openProgramForm, setOpenProgramForm] = useState(false)
   const [openSewadarForm, setOpenSewadarForm] = useState(false)
   const [openApplicationsDialog, setOpenApplicationsDialog] = useState(false)
@@ -71,19 +72,25 @@ const Admin = () => {
 
   const loadPrograms = async () => {
     try {
+      if (!user?.zonalId) {
+        console.error('User zonalId not available')
+        return
+      }
       const response = await api.get(`/programs/incharge/${user.zonalId}`)
-      setPrograms(response.data)
+      setPrograms(response.data || [])
     } catch (error) {
       console.error('Error loading programs:', error)
+      setPrograms([])
     }
   }
 
   const loadSewadars = async () => {
     try {
       const response = await api.get('/sewadars')
-      setSewadars(response.data)
+      setSewadars(response.data || [])
     } catch (error) {
       console.error('Error loading sewadars:', error)
+      setSewadars([])
     }
   }
 
@@ -227,6 +234,24 @@ const Admin = () => {
     loadDropRequests(program.id)
   }
 
+  // Show loading state while auth is being checked
+  if (authLoading) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+        <CircularProgress />
+      </Box>
+    )
+  }
+
+  // Guard: Only show for INCHARGE role
+  if (!user || user.role !== 'INCHARGE') {
+    return (
+      <Box p={3}>
+        <Alert severity="error">Access denied. This page is only available for INCHARGE users.</Alert>
+      </Box>
+    )
+  }
+
   return (
     <Box>
       <Typography variant="h4" component="h1" sx={{ fontWeight: 600, mb: 3 }}>
@@ -281,8 +306,8 @@ const Admin = () => {
                         {program.maxSewadars && ` / ${program.maxSewadars}`}
                       </Typography>
                       {dropRequestsCount > 0 && (
-                        <Typography variant="body2" color="warning.main" gutterBottom>
-                          <strong>Drop Requests:</strong> {dropRequestsCount}
+                        <Typography variant="body2" sx={{ color: 'error.main' }} gutterBottom>
+                          <strong>Drop Requests:</strong> {dropRequestsCount} pending
                         </Typography>
                       )}
 
@@ -294,16 +319,15 @@ const Admin = () => {
                         >
                           View Applications
                         </Button>
-                        {dropRequestsCount > 0 && (
-                          <Button
-                            variant="outlined"
-                            color="warning"
-                            size="small"
-                            onClick={() => handleViewDropRequests(program)}
-                          >
-                            Drop Requests ({dropRequestsCount})
-                          </Button>
-                        )}
+                        <Button
+                          variant={dropRequestsCount > 0 ? "contained" : "outlined"}
+                          color={dropRequestsCount > 0 ? "error" : "primary"}
+                          size="small"
+                          onClick={() => handleViewDropRequests(program)}
+                        >
+                          Review Drop Requests
+                          {dropRequestsCount > 0 && ` (${dropRequestsCount})`}
+                        </Button>
                         <IconButton
                           size="small"
                           onClick={() => {
@@ -365,7 +389,7 @@ const Admin = () => {
                         <Chip
                           label={sewadar.role || 'SEWADAR'}
                           size="small"
-                          color={sewadar.role === 'INCHARGE' ? 'warning' : 'default'}
+                          color={sewadar.role === 'INCHARGE' ? 'primary' : 'default'}
                         />
                       </TableCell>
                       <TableCell>
@@ -373,7 +397,7 @@ const Admin = () => {
                           <IconButton
                             size="small"
                             onClick={() => {
-                              setSelectedProgram(sewadar)
+                              setSelectedSewadar(sewadar)
                               setOpenSewadarForm(true)
                             }}
                             title="Edit Sewadar"
@@ -624,21 +648,21 @@ const Admin = () => {
       {/* Sewadar Form Dialog */}
       <Dialog open={openSewadarForm} onClose={() => {
         setOpenSewadarForm(false)
-        setSelectedProgram(null)
+        setSelectedSewadar(null)
       }} maxWidth="md" fullWidth>
         <DialogTitle>
-          {selectedProgram ? 'Edit Sewadar' : 'Add Sewadar'}
+          {selectedSewadar ? 'Edit Sewadar' : 'Add Sewadar'}
         </DialogTitle>
         <DialogContent>
           <SewadarForm
-            sewadar={selectedProgram}
+            sewadar={selectedSewadar}
             onClose={() => {
               setOpenSewadarForm(false)
-              setSelectedProgram(null)
+              setSelectedSewadar(null)
             }}
             onSuccess={() => {
               setOpenSewadarForm(false)
-              setSelectedProgram(null)
+              setSelectedSewadar(null)
               loadSewadars()
             }}
           />

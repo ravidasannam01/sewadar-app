@@ -38,15 +38,27 @@ export const AuthProvider = ({ children }) => {
       const response = await api.post('/auth/login', { zonalId, password })
       const { token, sewadar } = response.data
       
+      if (!token || !sewadar) {
+        return {
+          success: false,
+          error: 'Invalid response from server',
+        }
+      }
+      
       localStorage.setItem('authToken', token)
       localStorage.setItem('currentUser', JSON.stringify(sewadar))
       api.defaults.headers.common['Authorization'] = `Bearer ${token}`
       setUser(sewadar)
       return { success: true }
     } catch (error) {
+      console.error('Login error:', error)
+      const errorMessage = error.response?.data?.message || 
+                          error.response?.data?.error || 
+                          error.message || 
+                          'Login failed. Please check your credentials.'
       return {
         success: false,
-        error: error.response?.data?.message || 'Login failed',
+        error: errorMessage,
       }
     }
   }

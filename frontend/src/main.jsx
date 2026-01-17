@@ -7,11 +7,42 @@ import App from './App'
 
 const theme = createTheme({
   palette: {
+    mode: 'light',
     primary: {
       main: '#800000', // RSSB red
+      light: '#a00000',
+      dark: '#600000',
+      contrastText: '#ffffff',
     },
     secondary: {
       main: '#0066CC',
+      light: '#3388dd',
+      dark: '#004499',
+      contrastText: '#ffffff',
+    },
+    warning: {
+      main: '#ed6c02', // Orange for warnings
+      light: '#ff9800',
+      dark: '#c55a00',
+      contrastText: '#ffffff',
+    },
+    error: {
+      main: '#d32f2f',
+      light: '#ef5350',
+      dark: '#c62828',
+      contrastText: '#ffffff',
+    },
+    success: {
+      main: '#2e7d32',
+      light: '#4caf50',
+      dark: '#1b5e20',
+      contrastText: '#ffffff',
+    },
+    info: {
+      main: '#0288d1',
+      light: '#03a9f4',
+      dark: '#01579b',
+      contrastText: '#ffffff',
     },
     background: {
       default: '#F8F8F0',

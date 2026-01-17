@@ -1,0 +1,330 @@
+import { useState, useEffect } from 'react'
+import {
+  Box,
+  Typography,
+  Card,
+  CardContent,
+  Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  Grid,
+  Alert,
+  CircularProgress,
+} from '@mui/material'
+import { Assignment as AssignmentIcon } from '@mui/icons-material'
+// Using native datetime-local input for simplicity
+// Can upgrade to MUI DatePicker later if needed
+import api from '../services/api'
+import { useAuth } from '../contexts/AuthContext'
+
+const PendingActions = () => {
+  const { user } = useAuth()
+  const [pendingPrograms, setPendingPrograms] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [openForm, setOpenForm] = useState(false)
+  const [selectedProgram, setSelectedProgram] = useState(null)
+  const [formData, setFormData] = useState({
+    name: '',
+    startingDateTimeFromHome: null,
+    reachingDateTimeToHome: null,
+    onwardTrainFlightDateTime: null,
+    onwardTrainFlightNo: '',
+    returnTrainFlightDateTime: null,
+    returnTrainFlightNo: '',
+    stayInHotel: '',
+    stayInPandal: '',
+  })
+  const [submitting, setSubmitting] = useState(false)
+
+  useEffect(() => {
+    if (user?.role === 'SEWADAR') {
+      loadPendingPrograms()
+    }
+  }, [user])
+
+  const loadPendingPrograms = async () => {
+    try {
+      setLoading(true)
+      // Get all programs where form is released
+      const programsResponse = await api.get('/programs')
+      const allPrograms = programsResponse.data
+
+      // Get workflows to find programs with form released
+      const workflowPromises = allPrograms.map((p) =>
+        api.get(`/workflow/program/${p.id}`).catch(() => null)
+      )
+      const workflows = await Promise.all(workflowPromises)
+
+      // Filter programs where form is released and sewadar hasn't submitted
+      const pending = []
+      for (let i = 0; i < allPrograms.length; i++) {
+        const workflow = workflows[i]?.data
+        if (workflow && workflow.formReleased && workflow.currentNode >= 4) {
+          // Check if sewadar already submitted
+          try {
+            const submission = await api.get(
+              `/form-submissions/program/${allPrograms[i].id}/sewadar/${user.zonalId}`
+            )
+            if (!submission.data) {
+              pending.push(allPrograms[i])
+            }
+          } catch (e) {
+            // No submission found, add to pending
+            pending.push(allPrograms[i])
+          }
+        }
+      }
+
+      setPendingPrograms(pending)
+    } catch (error) {
+      console.error('Error loading pending programs:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleOpenForm = (program) => {
+    setSelectedProgram(program)
+    setOpenForm(true)
+  }
+
+  const handleCloseForm = () => {
+    setOpenForm(false)
+    setSelectedProgram(null)
+    setFormData({
+      name: '',
+      startingDateTimeFromHome: null,
+      reachingDateTimeToHome: null,
+      onwardTrainFlightDateTime: null,
+      onwardTrainFlightNo: '',
+      returnTrainFlightDateTime: null,
+      returnTrainFlightNo: '',
+      stayInHotel: '',
+      stayInPandal: '',
+    })
+  }
+
+  const handleSubmit = async () => {
+    try {
+      setSubmitting(true)
+      await api.post('/form-submissions', {
+        programId: selectedProgram.id,
+        ...formData,
+      })
+      alert('Form submitted successfully!')
+      handleCloseForm()
+      loadPendingPrograms()
+    } catch (error) {
+      alert(error.response?.data?.message || 'Failed to submit form')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  if (loading) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+        <CircularProgress />
+      </Box>
+    )
+  }
+
+  return (
+    <Box>
+      <Typography variant="h4" component="h1" sx={{ fontWeight: 600, mb: 3 }}>
+        Pending Actions
+      </Typography>
+
+      {pendingPrograms.length === 0 ? (
+        <Alert severity="info">No pending actions at this time.</Alert>
+      ) : (
+        <Grid container spacing={3}>
+          {pendingPrograms.map((program) => (
+            <Grid item xs={12} md={6} key={program.id}>
+              <Card>
+                <CardContent>
+                  <Box display="flex" alignItems="center" gap={2} mb={2}>
+                    <AssignmentIcon color="primary" />
+                    <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                      {program.title}
+                    </Typography>
+                  </Box>
+                  <Typography variant="body2" color="text.secondary" gutterBottom>
+                    Please fill the travel details form for this program.
+                  </Typography>
+                  <Button
+                    variant="contained"
+                    fullWidth
+                    sx={{ mt: 2 }}
+                    onClick={() => handleOpenForm(program)}
+                  >
+                    Fill Form
+                  </Button>
+                </CardContent>
+              </Card>
+            </Grid>
+          ))}
+        </Grid>
+      )}
+
+      {/* Form Dialog */}
+      <Dialog open={openForm} onClose={handleCloseForm} maxWidth="md" fullWidth>
+        <DialogTitle>Travel Details Form - {selectedProgram?.title}</DialogTitle>
+        <DialogContent>
+          <Grid container spacing={2} sx={{ mt: 1 }}>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Name"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                type="datetime-local"
+                label="Starting Date and time from Home"
+                value={
+                  formData.startingDateTimeFromHome
+                    ? new Date(formData.startingDateTimeFromHome).toISOString().slice(0, 16)
+                    : ''
+                }
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    startingDateTimeFromHome: e.target.value ? new Date(e.target.value) : null,
+                  })
+                }
+                InputLabelProps={{ shrink: true }}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                type="datetime-local"
+                label="Reaching Date and time to Home"
+                value={
+                  formData.reachingDateTimeToHome
+                    ? new Date(formData.reachingDateTimeToHome).toISOString().slice(0, 16)
+                    : ''
+                }
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    reachingDateTimeToHome: e.target.value ? new Date(e.target.value) : null,
+                  })
+                }
+                InputLabelProps={{ shrink: true }}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <Typography variant="subtitle2" sx={{ mt: 2, mb: 1, fontWeight: 600 }}>
+                Journey Details
+              </Typography>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                type="datetime-local"
+                label="Onward Train/Flight date and time"
+                value={
+                  formData.onwardTrainFlightDateTime
+                    ? new Date(formData.onwardTrainFlightDateTime).toISOString().slice(0, 16)
+                    : ''
+                }
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    onwardTrainFlightDateTime: e.target.value ? new Date(e.target.value) : null,
+                  })
+                }
+                InputLabelProps={{ shrink: true }}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Onward Train/Flight No."
+                value={formData.onwardTrainFlightNo}
+                onChange={(e) =>
+                  setFormData({ ...formData, onwardTrainFlightNo: e.target.value })
+                }
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                type="datetime-local"
+                label="Return Train/Flight date and time"
+                value={
+                  formData.returnTrainFlightDateTime
+                    ? new Date(formData.returnTrainFlightDateTime).toISOString().slice(0, 16)
+                    : ''
+                }
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    returnTrainFlightDateTime: e.target.value ? new Date(e.target.value) : null,
+                  })
+                }
+                InputLabelProps={{ shrink: true }}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Return Train/Flight No."
+                value={formData.returnTrainFlightNo}
+                onChange={(e) =>
+                  setFormData({ ...formData, returnTrainFlightNo: e.target.value })
+                }
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <Typography variant="subtitle2" sx={{ mt: 2, mb: 1, fontWeight: 600 }}>
+                Stay Details
+              </Typography>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="In Hotel"
+                multiline
+                rows={3}
+                value={formData.stayInHotel}
+                onChange={(e) => setFormData({ ...formData, stayInHotel: e.target.value })}
+                placeholder="Enter hotel stay details"
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="In pandal"
+                multiline
+                rows={3}
+                value={formData.stayInPandal}
+                onChange={(e) => setFormData({ ...formData, stayInPandal: e.target.value })}
+                placeholder="Enter pandal stay details"
+              />
+            </Grid>
+          </Grid>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseForm} disabled={submitting}>
+            Cancel
+          </Button>
+          <Button onClick={handleSubmit} variant="contained" disabled={submitting}>
+            {submitting ? 'Submitting...' : 'Submit'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
+  )
+}
+
+export default PendingActions
+

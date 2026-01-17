@@ -6,6 +6,9 @@ import Dashboard from './pages/Dashboard'
 import Programs from './pages/Programs'
 import Applications from './pages/Applications'
 import Admin from './pages/Admin'
+import Workflow from './pages/Workflow'
+import PendingActions from './pages/PendingActions'
+import Attendance from './pages/Attendance'
 import Layout from './components/Layout'
 
 function App() {
@@ -26,6 +29,9 @@ function App() {
           <Route path="applications" element={<Applications />} />
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="admin" element={<Admin />} />
+          <Route path="workflow" element={<Workflow />} />
+          <Route path="attendance" element={<Attendance />} />
+          <Route path="pending-actions" element={<PendingActions />} />
         </Route>
       </Routes>
     </AuthProvider>

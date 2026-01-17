@@ -162,7 +162,7 @@ const Applications = () => {
                       </Button>
                     )}
                     {app.status === 'DROP_REQUESTED' && (
-                      <Chip label="Drop Request Pending" color="warning" size="small" />
+                      <Chip label="Drop Request Pending" color="error" size="small" />
                     )}
                     {app.status === 'DROPPED' && (
                       <Button

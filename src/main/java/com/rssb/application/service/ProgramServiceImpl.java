@@ -30,6 +30,7 @@ public class ProgramServiceImpl implements ProgramService {
     private final ProgramApplicationRepository applicationRepository;
     private final ProgramDateRepository programDateRepository;
     private final com.rssb.application.repository.AttendanceRepository attendanceRepository;
+    private final ProgramWorkflowService workflowService;
 
     @Override
     public ProgramResponse createProgram(ProgramRequest request) {
@@ -60,6 +61,10 @@ public class ProgramServiceImpl implements ProgramService {
                 programDateRepository.save(programDate);
             }
         }
+
+        // Initialize workflow for new program
+        workflowService.initializeWorkflow(saved);
+
         log.info("Program created with id: {}", saved.getId());
         return mapToResponse(saved);
     }
@@ -169,6 +174,10 @@ public class ProgramServiceImpl implements ProgramService {
         }
 
         Program updated = programRepository.save(program);
+        
+        // Check and advance workflow based on program state changes
+        workflowService.checkAndAdvanceWorkflow(updated);
+        
         log.info("Program updated with id: {}", updated.getId());
         return mapToResponse(updated);
     }
@@ -192,6 +201,9 @@ public class ProgramServiceImpl implements ProgramService {
         // Count only active applications (exclude DROPPED)
         Long applicationCount = applicationRepository.findByProgramIdAndStatusNot(program.getId(), "DROPPED").stream().count();
 
+        // Count pending drop requests
+        Long dropRequestsCount = applicationRepository.findByProgramIdAndStatus(program.getId(), "DROP_REQUESTED").stream().count();
+
         // Get program dates
         List<java.time.LocalDate> dates = programDateRepository.findByProgramIdOrderByProgramDateAsc(program.getId())
                 .stream()
@@ -212,6 +224,7 @@ public class ProgramServiceImpl implements ProgramService {
                 .maxSewadars(program.getMaxSewadars())
                 .createdBy(createdBy)
                 .applicationCount(applicationCount)
+                .dropRequestsCount(dropRequestsCount)
                 .build();
     }
 }

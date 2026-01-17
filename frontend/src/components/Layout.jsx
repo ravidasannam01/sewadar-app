@@ -14,6 +14,9 @@ import DashboardIcon from '@mui/icons-material/Dashboard'
 import EventIcon from '@mui/icons-material/Event'
 import AssignmentIcon from '@mui/icons-material/Assignment'
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings'
+import WorkflowIcon from '@mui/icons-material/AccountTree'
+import PendingActionsIcon from '@mui/icons-material/PendingActions'
+import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 
 const Layout = () => {
   const { user, logout } = useAuth()
@@ -32,10 +35,28 @@ const Layout = () => {
   ]
 
   if (user?.role === 'INCHARGE') {
+    navItems.push(
+      {
+        path: '/admin',
+        label: 'Admin',
+        icon: <AdminPanelSettingsIcon />,
+      },
+      {
+        path: '/attendance',
+        label: 'Attendance',
+        icon: <CheckCircleIcon />,
+      },
+      {
+        path: '/workflow',
+        label: 'Workflow',
+        icon: <WorkflowIcon />,
+      }
+    )
+  } else {
     navItems.push({
-      path: '/admin',
-      label: 'Admin',
-      icon: <AdminPanelSettingsIcon />,
+      path: '/pending-actions',
+      label: 'Pending Actions',
+      icon: <PendingActionsIcon />,
     })
   }
 
