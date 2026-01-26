@@ -57,6 +57,9 @@ const Admin = () => {
   const [openPasswordDialog, setOpenPasswordDialog] = useState(false)
   const [selectedSewadarForPassword, setSelectedSewadarForPassword] = useState(null)
   const [newPassword, setNewPassword] = useState('')
+  const [openRoleChangeDialog, setOpenRoleChangeDialog] = useState(false)
+  const [selectedSewadarForRoleChange, setSelectedSewadarForRoleChange] = useState(null)
+  const [roleChangePassword, setRoleChangePassword] = useState('')
   const [prioritizedApplications, setPrioritizedApplications] = useState([])
   const [dropRequests, setDropRequests] = useState([])
   const [loading, setLoading] = useState(false)
@@ -216,6 +219,68 @@ const Admin = () => {
     } catch (error) {
       console.error('Password change error:', error)
       const errorMessage = error.response?.data?.message || error.message || 'Failed to change password'
+      alert(`Error: ${errorMessage}`)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleRoleChangeClick = (sewadar) => {
+    // Only allow role changes for incharges
+    if (user?.role !== 'INCHARGE') {
+      return
+    }
+    
+    // Don't allow changing your own role
+    if (sewadar.zonalId === user.zonalId) {
+      alert('You cannot change your own role')
+      return
+    }
+    
+    setSelectedSewadarForRoleChange(sewadar)
+    setRoleChangePassword('')
+    setOpenRoleChangeDialog(true)
+  }
+
+  const handleRoleChange = async () => {
+    if (!roleChangePassword || roleChangePassword.trim().length === 0) {
+      alert('Please enter your password to confirm the role change')
+      return
+    }
+
+    if (!selectedSewadarForRoleChange) {
+      alert('No sewadar selected')
+      return
+    }
+
+    if (!user || !user.zonalId) {
+      alert('User information not available')
+      return
+    }
+
+    try {
+      setLoading(true)
+      const isCurrentlyIncharge = selectedSewadarForRoleChange.role === 'INCHARGE'
+      const endpoint = isCurrentlyIncharge 
+        ? `/sewadars/${selectedSewadarForRoleChange.zonalId}/demote`
+        : `/sewadars/${selectedSewadarForRoleChange.zonalId}/promote`
+      
+      await api.post(endpoint, {}, {
+        params: {
+          inchargeId: user.zonalId,
+          password: roleChangePassword
+        }
+      })
+
+      const action = isCurrentlyIncharge ? 'demoted' : 'promoted'
+      alert(`Sewadar ${action} successfully!`)
+      setOpenRoleChangeDialog(false)
+      setSelectedSewadarForRoleChange(null)
+      setRoleChangePassword('')
+      loadSewadars() // Refresh the list
+    } catch (error) {
+      console.error('Role change error:', error)
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to change role'
       alert(`Error: ${errorMessage}`)
     } finally {
       setLoading(false)
@@ -390,6 +455,17 @@ const Admin = () => {
                           label={sewadar.role || 'SEWADAR'}
                           size="small"
                           color={sewadar.role === 'INCHARGE' ? 'primary' : 'default'}
+                          onClick={() => handleRoleChangeClick(sewadar)}
+                          sx={{
+                            cursor: user?.role === 'INCHARGE' && sewadar.zonalId !== user.zonalId ? 'pointer' : 'default',
+                            '&:hover': user?.role === 'INCHARGE' && sewadar.zonalId !== user.zonalId ? {
+                              opacity: 0.8,
+                              transform: 'scale(1.05)'
+                            } : {}
+                          }}
+                          title={user?.role === 'INCHARGE' && sewadar.zonalId !== user.zonalId 
+                            ? `Click to ${sewadar.role === 'INCHARGE' ? 'demote' : 'promote'} this ${sewadar.role === 'INCHARGE' ? 'incharge' : 'sewadar'}`
+                            : ''}
                         />
                       </TableCell>
                       <TableCell>
@@ -703,6 +779,70 @@ const Admin = () => {
             Change Password
           </Button>
         </DialogActions>
+      </Dialog>
+
+      {/* Role Change Dialog */}
+      <Dialog 
+        open={openRoleChangeDialog && !!selectedSewadarForRoleChange} 
+        onClose={() => {
+          setOpenRoleChangeDialog(false)
+          setSelectedSewadarForRoleChange(null)
+          setRoleChangePassword('')
+        }} 
+        maxWidth="sm" 
+        fullWidth
+      >
+        {selectedSewadarForRoleChange && (
+          <>
+            <DialogTitle>
+              {selectedSewadarForRoleChange.role === 'INCHARGE' ? 'Demote Incharge' : 'Promote to Incharge'}
+            </DialogTitle>
+            <DialogContent>
+              <Typography variant="body2" sx={{ mb: 2 }}>
+                You are about to {selectedSewadarForRoleChange.role === 'INCHARGE' ? 'demote' : 'promote'}{' '}
+                <strong>{selectedSewadarForRoleChange.firstName} {selectedSewadarForRoleChange.lastName}</strong>{' '}
+                {selectedSewadarForRoleChange.role === 'INCHARGE' ? 'from INCHARGE to SEWADAR' : 'from SEWADAR to INCHARGE'}.
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                Please enter your password to confirm this action.
+              </Typography>
+              <TextField
+                fullWidth
+                type="password"
+                label="Your Password"
+                value={roleChangePassword || ''}
+                onChange={(e) => {
+                  try {
+                    setRoleChangePassword(e.target.value || '')
+                  } catch (error) {
+                    console.error('Error updating password field:', error)
+                    setRoleChangePassword('')
+                  }
+                }}
+                margin="normal"
+                required
+                autoFocus
+              />
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={() => {
+                setOpenRoleChangeDialog(false)
+                setSelectedSewadarForRoleChange(null)
+                setRoleChangePassword('')
+              }}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleRoleChange} 
+                variant="contained" 
+                color={selectedSewadarForRoleChange.role === 'INCHARGE' ? 'error' : 'primary'}
+                disabled={!roleChangePassword || roleChangePassword.trim().length === 0 || loading}
+              >
+                {loading ? 'Processing...' : selectedSewadarForRoleChange.role === 'INCHARGE' ? 'Demote' : 'Promote'}
+              </Button>
+            </DialogActions>
+          </>
+        )}
       </Dialog>
     </Box>
   )

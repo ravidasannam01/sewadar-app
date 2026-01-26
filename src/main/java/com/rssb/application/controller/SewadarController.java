@@ -95,17 +95,41 @@ public class SewadarController {
     /**
      * Promote a sewadar to incharge role.
      * Only existing incharge can perform this action.
+     * Requires incharge password verification.
      *
      * @param sewadarId The sewadar zonal ID to promote
      * @param inchargeId The incharge zonal ID performing the promotion
+     * @param password The incharge password for verification
      * @return The updated sewadar response
      */
     @PostMapping("/{sewadarId}/promote")
     public ResponseEntity<SewadarResponse> promoteToIncharge(
             @PathVariable Long sewadarId,
-            @RequestParam Long inchargeId) {
+            @RequestParam Long inchargeId,
+            @RequestParam String password) {
         log.info("POST /api/sewadars/{}/promote - Promoting to incharge", sewadarId);
-        SewadarResponse updated = sewadarService.promoteToIncharge(sewadarId, inchargeId);
+        SewadarResponse updated = sewadarService.promoteToIncharge(sewadarId, inchargeId, password);
+        return ResponseEntity.ok(updated);
+    }
+
+    /**
+     * Demote an incharge to sewadar role.
+     * Only existing incharge can perform this action.
+     * Requires incharge password verification.
+     * Cannot demote yourself.
+     *
+     * @param sewadarId The incharge zonal ID to demote
+     * @param inchargeId The incharge zonal ID performing the demotion
+     * @param password The incharge password for verification
+     * @return The updated sewadar response
+     */
+    @PostMapping("/{sewadarId}/demote")
+    public ResponseEntity<SewadarResponse> demoteToSewadar(
+            @PathVariable Long sewadarId,
+            @RequestParam Long inchargeId,
+            @RequestParam String password) {
+        log.info("POST /api/sewadars/{}/demote - Demoting to sewadar", sewadarId);
+        SewadarResponse updated = sewadarService.demoteToSewadar(sewadarId, inchargeId, password);
         return ResponseEntity.ok(updated);
     }
 }

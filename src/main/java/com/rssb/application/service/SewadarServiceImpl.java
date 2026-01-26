@@ -130,7 +130,7 @@ public class SewadarServiceImpl implements SewadarService {
     }
 
     @Override
-    public SewadarResponse promoteToIncharge(Long sewadarZonalId, Long inchargeZonalId) {
+    public SewadarResponse promoteToIncharge(Long sewadarZonalId, Long inchargeZonalId, String password) {
         log.info("Incharge {} promoting sewadar {} to incharge", inchargeZonalId, sewadarZonalId);
         
         Sewadar incharge = sewadarRepository.findByZonalId(inchargeZonalId)
@@ -140,12 +140,63 @@ public class SewadarServiceImpl implements SewadarService {
             throw new IllegalArgumentException("Only incharge can promote sewadars to incharge");
         }
         
+        // Verify incharge password
+        if (password == null || password.trim().isEmpty()) {
+            throw new IllegalArgumentException("Password is required to promote sewadar");
+        }
+        
+        if (!passwordEncoder.matches(password, incharge.getPassword())) {
+            throw new IllegalArgumentException("Invalid password");
+        }
+        
         Sewadar sewadar = sewadarRepository.findByZonalId(sewadarZonalId)
                 .orElseThrow(() -> new ResourceNotFoundException("Sewadar", "zonal_id", sewadarZonalId));
+        
+        if (sewadar.getRole() == com.rssb.application.entity.Role.INCHARGE) {
+            throw new IllegalArgumentException("Sewadar is already an incharge");
+        }
         
         sewadar.setRole(com.rssb.application.entity.Role.INCHARGE);
         Sewadar updated = sewadarRepository.save(sewadar);
         log.info("Sewadar {} promoted to incharge", sewadarZonalId);
+        return mapToResponse(updated);
+    }
+
+    @Override
+    public SewadarResponse demoteToSewadar(Long sewadarZonalId, Long inchargeZonalId, String password) {
+        log.info("Incharge {} demoting sewadar {} to sewadar", inchargeZonalId, sewadarZonalId);
+        
+        Sewadar incharge = sewadarRepository.findByZonalId(inchargeZonalId)
+                .orElseThrow(() -> new ResourceNotFoundException("Sewadar", "zonal_id", inchargeZonalId));
+        
+        if (incharge.getRole() != com.rssb.application.entity.Role.INCHARGE) {
+            throw new IllegalArgumentException("Only incharge can demote incharges to sewadar");
+        }
+        
+        // Verify incharge password
+        if (password == null || password.trim().isEmpty()) {
+            throw new IllegalArgumentException("Password is required to demote incharge");
+        }
+        
+        if (!passwordEncoder.matches(password, incharge.getPassword())) {
+            throw new IllegalArgumentException("Invalid password");
+        }
+        
+        Sewadar sewadar = sewadarRepository.findByZonalId(sewadarZonalId)
+                .orElseThrow(() -> new ResourceNotFoundException("Sewadar", "zonal_id", sewadarZonalId));
+        
+        if (sewadar.getRole() != com.rssb.application.entity.Role.INCHARGE) {
+            throw new IllegalArgumentException("Sewadar is not an incharge");
+        }
+        
+        // Prevent self-demotion
+        if (sewadarZonalId.equals(inchargeZonalId)) {
+            throw new IllegalArgumentException("Cannot demote yourself");
+        }
+        
+        sewadar.setRole(com.rssb.application.entity.Role.SEWADAR);
+        Sewadar updated = sewadarRepository.save(sewadar);
+        log.info("Sewadar {} demoted to sewadar", sewadarZonalId);
         return mapToResponse(updated);
     }
 

@@ -14,6 +14,7 @@ public interface SewadarService {
     SewadarResponse createSewadar(SewadarRequest request);
     SewadarResponse updateSewadar(Long id, SewadarRequest request);
     void deleteSewadar(Long id);
-    SewadarResponse promoteToIncharge(Long sewadarId, Long inchargeId); // Only incharge can promote
+    SewadarResponse promoteToIncharge(Long sewadarId, Long inchargeId, String password); // Only incharge can promote, requires password
+    SewadarResponse demoteToSewadar(Long sewadarId, Long inchargeId, String password); // Only incharge can demote, requires password
 }
 
