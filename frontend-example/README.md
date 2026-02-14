@@ -1,18 +1,44 @@
-# Simple Frontend Example
+# Frontend Example - Complete Feature Set
 
-This is a simple HTML/JavaScript frontend that you can use immediately.
+This is a complete HTML/JavaScript frontend with all features matching the React frontend.
 
-## Quick Start
+## Quick Start (Recommended - No Copying Required!)
 
-1. **Option A: Serve from Spring Boot** (Easiest)
-   - Copy all files from this folder to `src/main/resources/static/`
-   - Start Spring Boot: `./mvnw spring-boot:run`
-   - Open: `http://localhost:8080/index.html`
+### Option 1: Use Python HTTP Server (Easiest)
 
-2. **Option B: Serve separately**
-   - Use any web server (Python, Node.js, etc.)
-   - Update `API_BASE_URL` in `app.js` if needed
-   - Open `index.html` in browser
+1. **Start the backend** (if not already running):
+   ```bash
+   ./mvnw spring-boot:run
+   ```
+
+2. **In a new terminal, serve the frontend-example**:
+   ```bash
+   cd frontend-example
+   python3 -m http.server 8000
+   ```
+
+3. **Open in browser**:
+   ```
+   http://localhost:8000/index.html
+   ```
+
+The frontend will automatically connect to the backend API at `http://localhost:8080/api`.
+
+### Option 2: Use Node.js HTTP Server
+
+```bash
+cd frontend-example
+npx http-server -p 8000
+```
+
+Then open: `http://localhost:8000/index.html`
+
+### Option 3: Serve from Spring Boot (Optional)
+
+If you prefer to serve via Spring Boot:
+1. Copy files to `src/main/resources/static/`
+2. Start Spring Boot: `./mvnw spring-boot:run`
+3. Open: `http://localhost:8080/example.html`
 
 ## Files
 

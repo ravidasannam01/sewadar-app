@@ -47,8 +47,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/actions/**").authenticated()
                         .requestMatchers("/api/action-responses/**").authenticated()
                         .requestMatchers("/api/attendances/**").authenticated()
-                        // Static resources
-                        .requestMatchers("/", "/index.html", "/app.js", "/styles.css").permitAll()
+                        // Static resources - allow all HTML, JS, CSS, and other static files
+                        .requestMatchers("/", "/*.html", "/*.js", "/*.css", "/*.png", "/*.jpg", "/*.jpeg", "/*.gif", "/*.ico", "/assets/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
