@@ -28,7 +28,7 @@ public class DashboardController {
         log.info("GET /api/dashboard/sewadars");
         
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        Long currentUserId = (Long) auth.getPrincipal();
+        String currentUserId = (String) auth.getPrincipal();
         String currentUserRole = auth.getAuthorities().iterator().next().getAuthority();
         
         SewadarDashboardResponse response = dashboardService.getSewadars(request, currentUserId, currentUserRole);
@@ -40,11 +40,11 @@ public class DashboardController {
      */
     @GetMapping("/sewadar/{sewadarId}/attendance")
     public ResponseEntity<SewadarDetailedAttendanceResponse> getSewadarAttendance(
-            @PathVariable Long sewadarId) {
+            @PathVariable String sewadarId) {
         log.info("GET /api/dashboard/sewadar/{}/attendance", sewadarId);
         
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        Long currentUserId = (Long) auth.getPrincipal();
+        String currentUserId = (String) auth.getPrincipal();
         String currentUserRole = auth.getAuthorities().iterator().next().getAuthority();
         
         SewadarDetailedAttendanceResponse response = dashboardService.getSewadarDetailedAttendance(
@@ -73,7 +73,7 @@ public class DashboardController {
         log.info("POST /api/dashboard/applications");
         
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        Long currentUserId = (Long) auth.getPrincipal();
+        String currentUserId = (String) auth.getPrincipal();
         String currentUserRole = auth.getAuthorities().iterator().next().getAuthority();
         
         ApplicationDashboardResponse response = dashboardService.getApplications(request, currentUserId, currentUserRole);
@@ -90,7 +90,7 @@ public class DashboardController {
         log.info("POST /api/dashboard/sewadars/export/{}", format);
         
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        Long currentUserId = (Long) auth.getPrincipal();
+        String currentUserId = (String) auth.getPrincipal();
         String currentUserRole = auth.getAuthorities().iterator().next().getAuthority();
         
         byte[] data = dashboardService.exportSewadars(request, format.toUpperCase(), currentUserId, currentUserRole);
@@ -112,12 +112,12 @@ public class DashboardController {
      */
     @GetMapping("/sewadar/{sewadarId}/attendance/export/{format}")
     public ResponseEntity<byte[]> exportSewadarAttendance(
-            @PathVariable Long sewadarId,
+            @PathVariable String sewadarId,
             @PathVariable String format) {
         log.info("GET /api/dashboard/sewadar/{}/attendance/export/{}", sewadarId, format);
         
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        Long currentUserId = (Long) auth.getPrincipal();
+        String currentUserId = (String) auth.getPrincipal();
         String currentUserRole = auth.getAuthorities().iterator().next().getAuthority();
         
         byte[] data = dashboardService.exportSewadarAttendance(sewadarId, format.toUpperCase(), currentUserId, currentUserRole);
@@ -167,7 +167,7 @@ public class DashboardController {
         log.info("POST /api/dashboard/applications/export/{}", format);
         
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        Long currentUserId = (Long) auth.getPrincipal();
+        String currentUserId = (String) auth.getPrincipal();
         String currentUserRole = auth.getAuthorities().iterator().next().getAuthority();
         
         byte[] data = dashboardService.exportApplications(request, format.toUpperCase(), currentUserId, currentUserRole);

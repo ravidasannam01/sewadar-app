@@ -12,6 +12,7 @@ import api from '../services/api'
 
 const SewadarForm = ({ sewadar, onClose, onSuccess }) => {
   const [formData, setFormData] = useState({
+    zonalId: '',
     firstName: '',
     lastName: '',
     mobile: '',
@@ -35,6 +36,7 @@ const SewadarForm = ({ sewadar, onClose, onSuccess }) => {
   useEffect(() => {
     if (sewadar) {
       setFormData({
+        zonalId: sewadar.zonalId || '',
         firstName: sewadar.firstName || '',
         lastName: sewadar.lastName || '',
         mobile: sewadar.mobile || '',
@@ -89,6 +91,7 @@ const SewadarForm = ({ sewadar, onClose, onSuccess }) => {
 
     try {
       const payload = {
+        zonalId: formData.zonalId, // Include zonalId (required)
         firstName: formData.firstName,
         lastName: formData.lastName,
         mobile: formData.mobile,
@@ -128,6 +131,17 @@ const SewadarForm = ({ sewadar, onClose, onSuccess }) => {
   return (
     <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
       <Grid container spacing={2}>
+        <Grid item xs={12} sm={6}>
+          <TextField
+            fullWidth
+            label="Zonal ID"
+            required={!sewadar}
+            value={formData.zonalId}
+            onChange={(e) => handleChange('zonalId', e.target.value)}
+            disabled={!!sewadar} // Cannot change zonalId after creation
+            helperText={sewadar ? 'Zonal ID cannot be changed' : 'Unique organizational identity (required)'}
+          />
+        </Grid>
         <Grid item xs={12} sm={6}>
           <TextField
             fullWidth

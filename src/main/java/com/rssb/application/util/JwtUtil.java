@@ -22,12 +22,12 @@ public class JwtUtil {
         return Keys.hmacShaKeyFor(jwtConfig.getSecret().getBytes(StandardCharsets.UTF_8));
     }
 
-    public String generateToken(Long userId, String role) {
+    public String generateToken(String zonalId, String role) {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + jwtConfig.getExpiration());
 
         return Jwts.builder()
-                .subject(String.valueOf(userId))
+                .subject(zonalId) // Store zonalId (String) directly as subject
                 .claim("role", role)
                 .issuedAt(now)
                 .expiration(expiryDate)
@@ -35,8 +35,19 @@ public class JwtUtil {
                 .compact();
     }
 
+    public String getZonalIdFromToken(String token) {
+        return getClaimFromToken(token, Claims::getSubject); // zonalId is stored as subject (String)
+    }
+    
+    // Deprecated: Use getZonalIdFromToken instead
+    @Deprecated
     public Long getUserIdFromToken(String token) {
-        return Long.parseLong(getClaimFromToken(token, Claims::getSubject));
+        String zonalId = getZonalIdFromToken(token);
+        try {
+            return Long.parseLong(zonalId);
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("Zonal ID in token is not a number: " + zonalId);
+        }
     }
 
     public String getRoleFromToken(String token) {
@@ -65,9 +76,16 @@ public class JwtUtil {
         return expiration.before(new Date());
     }
 
+    public Boolean validateToken(String token, String zonalId) {
+        final String tokenZonalId = getZonalIdFromToken(token);
+        return (tokenZonalId.equals(zonalId) && !isTokenExpired(token));
+    }
+    
+    // Deprecated: Use validateToken(String, String) instead
+    @Deprecated
     public Boolean validateToken(String token, Long userId) {
-        final Long tokenUserId = getUserIdFromToken(token);
-        return (tokenUserId.equals(userId) && !isTokenExpired(token));
+        final String tokenZonalId = getZonalIdFromToken(token);
+        return (tokenZonalId.equals(String.valueOf(userId)) && !isTokenExpired(token));
     }
 }
 

@@ -26,15 +26,8 @@ public class AuthServiceImpl implements AuthService {
     public LoginResponse login(LoginRequest request) {
         log.info("Login attempt for zonal_id: {}", request.getZonalId());
 
-        // Parse zonal_id from string to Long
-        Long zonalId;
-        try {
-            zonalId = Long.parseLong(request.getZonalId());
-        } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("Invalid zonal ID format");
-        }
-
-        Sewadar sewadar = sewadarRepository.findByZonalId(zonalId)
+        // Use zonalId directly as String (no parsing needed)
+        Sewadar sewadar = sewadarRepository.findByZonalId(request.getZonalId())
                 .orElseThrow(() -> new IllegalArgumentException("Invalid zonal ID or password"));
 
         // Verify password
@@ -42,7 +35,7 @@ public class AuthServiceImpl implements AuthService {
             throw new IllegalArgumentException("Invalid zonal ID or password");
         }
 
-        // Generate JWT token
+        // Generate JWT token with String zonalId
         String role = sewadar.getRole() != null ? sewadar.getRole().name() : "SEWADAR";
         String token = jwtUtil.generateToken(sewadar.getZonalId(), role);
 

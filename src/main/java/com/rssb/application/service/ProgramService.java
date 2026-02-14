@@ -9,7 +9,7 @@ public interface ProgramService {
     ProgramResponse createProgram(ProgramRequest request);
     ProgramResponse getProgramById(Long id);
     List<ProgramResponse> getAllPrograms();
-    List<ProgramResponse> getProgramsByIncharge(Long inchargeId);
+    List<ProgramResponse> getProgramsByIncharge(String inchargeId);
     ProgramResponse updateProgram(Long id, ProgramRequest request);
     void deleteProgram(Long id);
 }

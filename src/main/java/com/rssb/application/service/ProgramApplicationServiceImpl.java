@@ -100,7 +100,7 @@ public class ProgramApplicationServiceImpl implements ProgramApplicationService 
 
     @Override
     @Transactional(readOnly = true)
-    public List<ProgramApplicationResponse> getApplicationsBySewadar(Long sewadarZonalId) {
+    public List<ProgramApplicationResponse> getApplicationsBySewadar(String sewadarZonalId) {
         log.info("Fetching applications for sewadar: {}", sewadarZonalId);
         return applicationRepository.findBySewadarZonalId(sewadarZonalId).stream()
                 .map(this::mapToResponse)
@@ -135,7 +135,7 @@ public class ProgramApplicationServiceImpl implements ProgramApplicationService 
     }
 
     @Override
-    public ProgramApplicationResponse requestDrop(Long applicationId, Long sewadarId) {
+    public ProgramApplicationResponse requestDrop(Long applicationId, String sewadarId) {
         log.info("Sewadar {} requesting to drop application {}", sewadarId, applicationId);
         
         ProgramApplication application = applicationRepository.findById(applicationId)
@@ -165,7 +165,7 @@ public class ProgramApplicationServiceImpl implements ProgramApplicationService 
     }
 
     @Override
-    public ProgramApplicationResponse approveDropRequest(Long applicationId, Long inchargeId, Boolean allowReapply) {
+    public ProgramApplicationResponse approveDropRequest(Long applicationId, String inchargeId, Boolean allowReapply) {
         log.info("Incharge {} approving drop request for application {}, allowReapply: {}", 
                 inchargeId, applicationId, allowReapply);
         

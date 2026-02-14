@@ -27,7 +27,7 @@ public class SewadarDashboardResponse {
     @AllArgsConstructor
     @Builder
     public static class SewadarDashboardItem {
-        private Long zonalId;
+        private String zonalId;
         private String firstName;
         private String lastName;
         private String mobile;

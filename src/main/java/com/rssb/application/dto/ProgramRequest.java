@@ -28,7 +28,7 @@ public class ProgramRequest {
 
     private String status; // scheduled, active, cancelled (default: scheduled)
     private Integer maxSewadars;
-    @NotNull(message = "Created by (Incharge zonal ID) is required")
-    private Long createdById; // Incharge zonal ID
+    @NotBlank(message = "Created by (Incharge zonal ID) is required")
+    private String createdById; // Incharge zonal ID (String type)
 }
 

@@ -47,7 +47,7 @@ public class ProgramController {
      * @return List of programs
      */
     @GetMapping("/incharge/{inchargeId}")
-    public ResponseEntity<List<ProgramResponse>> getProgramsByIncharge(@PathVariable Long inchargeId) {
+    public ResponseEntity<List<ProgramResponse>> getProgramsByIncharge(@PathVariable String inchargeId) {
         log.info("GET /api/programs/incharge/{} - Fetching programs for incharge", inchargeId);
         return ResponseEntity.ok(programService.getProgramsByIncharge(inchargeId));
     }

@@ -89,7 +89,7 @@ public class ProgramServiceImpl implements ProgramService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<ProgramResponse> getProgramsByIncharge(Long inchargeZonalId) {
+    public List<ProgramResponse> getProgramsByIncharge(String inchargeZonalId) {
         log.info("Fetching programs for incharge: {}", inchargeZonalId);
         return programRepository.findByCreatedByZonalId(inchargeZonalId).stream()
                 .map(this::mapToResponse)

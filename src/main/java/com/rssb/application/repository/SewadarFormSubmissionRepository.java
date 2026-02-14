@@ -14,7 +14,7 @@ public interface SewadarFormSubmissionRepository extends JpaRepository<SewadarFo
     List<SewadarFormSubmission> findByProgram(Program program);
     List<SewadarFormSubmission> findByProgramId(Long programId);
     Optional<SewadarFormSubmission> findByProgramAndSewadar(Program program, Sewadar sewadar);
-    Optional<SewadarFormSubmission> findByProgramIdAndSewadarZonalId(Long programId, Long sewadarZonalId);
-    boolean existsByProgramIdAndSewadarZonalId(Long programId, Long sewadarZonalId);
+    Optional<SewadarFormSubmission> findByProgramIdAndSewadarZonalId(Long programId, String sewadarZonalId);
+    boolean existsByProgramIdAndSewadarZonalId(Long programId, String sewadarZonalId);
 }
 

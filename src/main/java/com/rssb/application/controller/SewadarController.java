@@ -44,7 +44,7 @@ public class SewadarController {
      * @return The sewadar response
      */
     @GetMapping("/{id}")
-    public ResponseEntity<SewadarResponse> getSewadarById(@PathVariable Long id) {
+    public ResponseEntity<SewadarResponse> getSewadarById(@PathVariable String id) {
         log.info("GET /api/sewadars/{} - Fetching sewadar by zonal_id", id);
         SewadarResponse sewadar = sewadarService.getSewadarById(id);
         return ResponseEntity.ok(sewadar);
@@ -72,7 +72,7 @@ public class SewadarController {
      */
     @PutMapping("/{id}")
     public ResponseEntity<SewadarResponse> updateSewadar(
-            @PathVariable Long id,
+            @PathVariable String id,
             @Valid @RequestBody SewadarRequest request) {
         log.info("PUT /api/sewadars/{} - Updating sewadar", id);
         SewadarResponse updatedSewadar = sewadarService.updateSewadar(id, request);
@@ -86,7 +86,7 @@ public class SewadarController {
      * @return No content response
      */
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteSewadar(@PathVariable Long id) {
+    public ResponseEntity<Void> deleteSewadar(@PathVariable String id) {
         log.info("DELETE /api/sewadars/{} - Deleting sewadar", id);
         sewadarService.deleteSewadar(id);
         return ResponseEntity.noContent().build();
@@ -104,8 +104,8 @@ public class SewadarController {
      */
     @PostMapping("/{sewadarId}/promote")
     public ResponseEntity<SewadarResponse> promoteToIncharge(
-            @PathVariable Long sewadarId,
-            @RequestParam Long inchargeId,
+            @PathVariable String sewadarId,
+            @RequestParam String inchargeId,
             @RequestParam String password) {
         log.info("POST /api/sewadars/{}/promote - Promoting to incharge", sewadarId);
         SewadarResponse updated = sewadarService.promoteToIncharge(sewadarId, inchargeId, password);
@@ -125,8 +125,8 @@ public class SewadarController {
      */
     @PostMapping("/{sewadarId}/demote")
     public ResponseEntity<SewadarResponse> demoteToSewadar(
-            @PathVariable Long sewadarId,
-            @RequestParam Long inchargeId,
+            @PathVariable String sewadarId,
+            @RequestParam String inchargeId,
             @RequestParam String password) {
         log.info("POST /api/sewadars/{}/demote - Demoting to sewadar", sewadarId);
         SewadarResponse updated = sewadarService.demoteToSewadar(sewadarId, inchargeId, password);

@@ -27,7 +27,7 @@ public class SewadarFormSubmissionService {
     private final ProgramRepository programRepository;
     private final SewadarRepository sewadarRepository;
 
-    public SewadarFormSubmissionResponse submitForm(SewadarFormSubmissionRequest request, Long sewadarId) {
+    public SewadarFormSubmissionResponse submitForm(SewadarFormSubmissionRequest request, String sewadarId) {
         Program program = programRepository.findById(request.getProgramId())
             .orElseThrow(() -> new ResourceNotFoundException("Program", "id", request.getProgramId()));
 
@@ -83,7 +83,7 @@ public class SewadarFormSubmissionService {
     }
 
     @Transactional(readOnly = true)
-    public SewadarFormSubmissionResponse getSubmissionForSewadar(Long programId, Long sewadarId) {
+    public SewadarFormSubmissionResponse getSubmissionForSewadar(Long programId, String sewadarId) {
         SewadarFormSubmission submission = formSubmissionRepository
             .findByProgramIdAndSewadarZonalId(programId, sewadarId)
             .orElse(null);
@@ -96,7 +96,7 @@ public class SewadarFormSubmissionService {
     }
 
     @Transactional(readOnly = true)
-    public List<SewadarFormSubmissionResponse> getPendingFormsForSewadar(Long sewadarId) {
+    public List<SewadarFormSubmissionResponse> getPendingFormsForSewadar(String sewadarId) {
         // Get all programs where form is released but sewadar hasn't submitted
         // This will be handled in the controller by checking workflow status
         return List.of();

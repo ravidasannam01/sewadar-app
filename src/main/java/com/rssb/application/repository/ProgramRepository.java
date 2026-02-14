@@ -20,6 +20,6 @@ public interface ProgramRepository extends JpaRepository<Program, Long> {
     List<Program> findByProgramDateBetween(@Param("start") LocalDate start, @Param("end") LocalDate end);
     
     @Query("SELECT p FROM Program p WHERE p.createdBy.zonalId = :inchargeZonalId")
-    List<Program> findByCreatedByZonalId(@Param("inchargeZonalId") Long inchargeZonalId);
+    List<Program> findByCreatedByZonalId(@Param("inchargeZonalId") String inchargeZonalId);
 }
 

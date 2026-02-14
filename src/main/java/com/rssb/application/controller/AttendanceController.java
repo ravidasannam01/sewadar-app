@@ -35,7 +35,7 @@ public class AttendanceController {
             throw new IllegalStateException("User not authenticated");
         }
         
-        Long inchargeZonalId = (Long) authentication.getPrincipal();
+        String inchargeZonalId = (String) authentication.getPrincipal();
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(attendanceService.markAttendance(request, inchargeZonalId));
     }
@@ -71,7 +71,7 @@ public class AttendanceController {
      * @return List of attendance records
      */
     @GetMapping("/sewadar/{sewadarId}")
-    public ResponseEntity<List<AttendanceResponse>> getAttendanceBySewadar(@PathVariable Long sewadarId) {
+    public ResponseEntity<List<AttendanceResponse>> getAttendanceBySewadar(@PathVariable String sewadarId) {
         return ResponseEntity.ok(attendanceService.getAttendanceBySewadar(sewadarId));
     }
 
@@ -86,7 +86,7 @@ public class AttendanceController {
      */
     @GetMapping("/sewadar/{sewadarId}/summary")
     public ResponseEntity<com.rssb.application.dto.SewadarAttendanceSummaryResponse> getSewadarAttendanceSummary(
-            @PathVariable Long sewadarId) {
+            @PathVariable String sewadarId) {
         log.info("GET /api/attendances/sewadar/{}/summary", sewadarId);
         return ResponseEntity.ok(attendanceService.getSewadarAttendanceSummary(sewadarId));
     }

@@ -48,7 +48,7 @@ public class ProgramApplication {
     @Column(name = "drop_approved_at")
     private LocalDateTime dropApprovedAt; // When incharge approved drop
     
-    @Column(name = "drop_approved_by")
-    private Long dropApprovedBy; // Incharge zonal_id who approved drop
+    @Column(name = "drop_approved_by", length = 50)
+    private String dropApprovedBy; // Incharge zonal_id who approved drop (String type)
 }
 

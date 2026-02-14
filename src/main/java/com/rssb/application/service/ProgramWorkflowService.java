@@ -118,7 +118,7 @@ public class ProgramWorkflowService {
      * Automatically initializes workflows for programs that don't have one.
      */
     @Transactional(readOnly = true)
-    public List<ProgramWorkflowResponse> getWorkflowsForIncharge(Long inchargeId) {
+    public List<ProgramWorkflowResponse> getWorkflowsForIncharge(String inchargeId) {
         List<Program> programs = programRepository.findByCreatedByZonalId(inchargeId);
         return programs.stream()
             .map(program -> {
@@ -171,7 +171,7 @@ public class ProgramWorkflowService {
     /**
      * Move to next workflow node.
      */
-    public ProgramWorkflowResponse moveToNextNode(Long programId, Long inchargeId) {
+    public ProgramWorkflowResponse moveToNextNode(Long programId, String inchargeId) {
         Program program = programRepository.findById(programId)
             .orElseThrow(() -> new ResourceNotFoundException("Program", "id", programId));
 
@@ -190,7 +190,7 @@ public class ProgramWorkflowService {
     /**
      * Release form for sewadars.
      */
-    public ProgramWorkflowResponse releaseForm(Long programId, Long inchargeId) {
+    public ProgramWorkflowResponse releaseForm(Long programId, String inchargeId) {
         Program program = programRepository.findById(programId)
             .orElseThrow(() -> new ResourceNotFoundException("Program", "id", programId));
 
@@ -210,7 +210,7 @@ public class ProgramWorkflowService {
     /**
      * Mark details as collected.
      */
-    public ProgramWorkflowResponse markDetailsCollected(Long programId, Long inchargeId) {
+    public ProgramWorkflowResponse markDetailsCollected(Long programId, String inchargeId) {
         Program program = programRepository.findById(programId)
             .orElseThrow(() -> new ResourceNotFoundException("Program", "id", programId));
 

@@ -27,7 +27,7 @@ public class SewadarFormSubmissionController {
     public ResponseEntity<SewadarFormSubmissionResponse> submitForm(
             @Valid @RequestBody SewadarFormSubmissionRequest request) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        Long sewadarId = (Long) auth.getPrincipal();
+        String sewadarId = (String) auth.getPrincipal();
         
         return ResponseEntity.status(HttpStatus.CREATED)
             .body(formSubmissionService.submitForm(request, sewadarId));
@@ -42,7 +42,7 @@ public class SewadarFormSubmissionController {
     @GetMapping("/program/{programId}/sewadar/{sewadarId}")
     public ResponseEntity<SewadarFormSubmissionResponse> getSubmissionForSewadar(
             @PathVariable Long programId,
-            @PathVariable Long sewadarId) {
+            @PathVariable String sewadarId) {
         SewadarFormSubmissionResponse response = formSubmissionService
             .getSubmissionForSewadar(programId, sewadarId);
         

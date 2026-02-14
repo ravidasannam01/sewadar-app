@@ -24,8 +24,11 @@ public class Sewadar {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "zonal_id")
-    private Long zonalId; // Renamed from id to zonal_id
+    @Column(name = "id")
+    private Long id; // Internal primary key (auto-generated)
+
+    @Column(name = "zonal_id", unique = true, nullable = false, length = 50)
+    private String zonalId; // Organizational identity (provided by admin, String type)
 
     @Column(name = "first_name", nullable = false, length = 100)
     private String firstName;

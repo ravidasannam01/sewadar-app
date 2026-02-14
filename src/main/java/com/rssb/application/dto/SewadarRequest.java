@@ -22,6 +22,9 @@ public class SewadarRequest {
     @NotBlank(message = "Last name is required")
     private String lastName;
 
+    @NotBlank(message = "Zonal ID is required")
+    private String zonalId; // Organizational identity (provided by admin, must be unique)
+
     private String location; // Location/center (replaces dept)
 
     private String mobile;

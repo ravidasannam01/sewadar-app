@@ -34,7 +34,7 @@ public class AttendanceServiceImpl implements AttendanceService {
     private final SewadarRepository sewadarRepository;
 
     @Override
-    public List<AttendanceResponse> markAttendance(AttendanceRequest request, Long inchargeZonalId) {
+    public List<AttendanceResponse> markAttendance(AttendanceRequest request, String inchargeZonalId) {
         log.info("Incharge {} marking attendance for program {} on date {}", inchargeZonalId, request.getProgramId(), request.getProgramDate());
 
         Program program = programRepository.findById(request.getProgramId())
@@ -143,7 +143,7 @@ public class AttendanceServiceImpl implements AttendanceService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<AttendanceResponse> getAttendanceBySewadar(Long sewadarZonalId) {
+    public List<AttendanceResponse> getAttendanceBySewadar(String sewadarZonalId) {
         log.info("Fetching attendance for sewadar: {}", sewadarZonalId);
         return attendanceRepository.findBySewadarZonalId(sewadarZonalId).stream()
                 .map(this::mapToResponse)
@@ -162,7 +162,7 @@ public class AttendanceServiceImpl implements AttendanceService {
 
     @Override
     @Transactional(readOnly = true)
-    public SewadarAttendanceSummaryResponse getSewadarAttendanceSummary(Long sewadarZonalId) {
+    public SewadarAttendanceSummaryResponse getSewadarAttendanceSummary(String sewadarZonalId) {
         log.info("Fetching attendance summary for sewadar: {}", sewadarZonalId);
         
         Sewadar sewadar = sewadarRepository.findByZonalId(sewadarZonalId)

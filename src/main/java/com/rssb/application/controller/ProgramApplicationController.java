@@ -39,7 +39,7 @@ public class ProgramApplicationController {
      * @return List of applications
      */
     @GetMapping("/sewadar/{sewadarId}")
-    public ResponseEntity<List<ProgramApplicationResponse>> getApplicationsBySewadar(@PathVariable Long sewadarId) {
+    public ResponseEntity<List<ProgramApplicationResponse>> getApplicationsBySewadar(@PathVariable String sewadarId) {
         return ResponseEntity.ok(applicationService.getApplicationsBySewadar(sewadarId));
     }
 
@@ -73,7 +73,7 @@ public class ProgramApplicationController {
     @PutMapping("/{id}/request-drop")
     public ResponseEntity<ProgramApplicationResponse> requestDrop(
             @PathVariable Long id,
-            @RequestParam Long sewadarId) {
+            @RequestParam String sewadarId) {
         log.info("PUT /api/program-applications/{}/request-drop", id);
         return ResponseEntity.ok(applicationService.requestDrop(id, sewadarId));
     }
@@ -88,7 +88,7 @@ public class ProgramApplicationController {
     @PutMapping("/{id}/approve-drop")
     public ResponseEntity<ProgramApplicationResponse> approveDropRequest(
             @PathVariable Long id,
-            @RequestParam Long inchargeId,
+            @RequestParam String inchargeId,
             @RequestParam(required = false, defaultValue = "true") Boolean allowReapply) {
         log.info("PUT /api/program-applications/{}/approve-drop - incharge: {}", id, inchargeId);
         return ResponseEntity.ok(applicationService.approveDropRequest(id, inchargeId, allowReapply));

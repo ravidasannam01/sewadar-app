@@ -15,7 +15,7 @@ public class SewadarFormSubmissionResponse {
     private Long id;
     private Long programId;
     private String programTitle;
-    private Long sewadarId;
+    private String sewadarId;
     private String sewadarName;
     private String name;
     private LocalDateTime startingDateTimeFromHome;

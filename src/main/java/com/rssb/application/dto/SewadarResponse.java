@@ -16,7 +16,7 @@ import java.util.List;
 @AllArgsConstructor
 @Builder
 public class SewadarResponse {
-    private Long zonalId; // Renamed from id
+    private String zonalId; // Organizational identity (String type)
     private String firstName;
     private String lastName;
     private String location; // Replaces dept

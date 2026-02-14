@@ -15,7 +15,7 @@ import java.util.List;
 @AllArgsConstructor
 @Builder
 public class SewadarAttendanceSummaryResponse {
-    private Long sewadarId;
+    private String sewadarId;
     private String sewadarName;
     private String mobile;
     

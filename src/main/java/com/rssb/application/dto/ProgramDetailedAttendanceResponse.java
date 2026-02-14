@@ -28,7 +28,7 @@ public class ProgramDetailedAttendanceResponse {
     @AllArgsConstructor
     @Builder
     public static class SewadarAttendanceRow {
-        private Long zonalId;
+        private String zonalId;
         private String sewadarName;
         private String mobile;
         private Map<LocalDate, String> dateStatusMap; // Date -> "Present" or "Absent"

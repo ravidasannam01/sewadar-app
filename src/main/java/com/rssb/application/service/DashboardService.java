@@ -7,12 +7,12 @@ public interface DashboardService {
     /**
      * Get sewadars with filters, sorting, and pagination
      */
-    SewadarDashboardResponse getSewadars(DashboardQueryRequest request, Long currentUserId, String currentUserRole);
+    SewadarDashboardResponse getSewadars(DashboardQueryRequest request, String currentUserId, String currentUserRole);
     
     /**
      * Get detailed attendance for a sewadar (one row per program-date)
      */
-    SewadarDetailedAttendanceResponse getSewadarDetailedAttendance(Long sewadarId, Long currentUserId, String currentUserRole);
+    SewadarDetailedAttendanceResponse getSewadarDetailedAttendance(String sewadarId, String currentUserId, String currentUserRole);
     
     /**
      * Get detailed attendance for a program (one row per sewadar with date columns)
@@ -22,17 +22,17 @@ public interface DashboardService {
     /**
      * Get applications with filters and pagination
      */
-    ApplicationDashboardResponse getApplications(DashboardQueryRequest request, Long currentUserId, String currentUserRole);
+    ApplicationDashboardResponse getApplications(DashboardQueryRequest request, String currentUserId, String currentUserRole);
     
     /**
      * Export sewadars to CSV/XLSX/PDF
      */
-    byte[] exportSewadars(DashboardQueryRequest request, String format, Long currentUserId, String currentUserRole);
+    byte[] exportSewadars(DashboardQueryRequest request, String format, String currentUserId, String currentUserRole);
     
     /**
      * Export sewadar detailed attendance to CSV/XLSX/PDF
      */
-    byte[] exportSewadarAttendance(Long sewadarId, String format, Long currentUserId, String currentUserRole);
+    byte[] exportSewadarAttendance(String sewadarId, String format, String currentUserId, String currentUserRole);
     
     /**
      * Export program detailed attendance to CSV/XLSX/PDF
@@ -42,6 +42,6 @@ public interface DashboardService {
     /**
      * Export applications to CSV/XLSX/PDF
      */
-    byte[] exportApplications(DashboardQueryRequest request, String format, Long currentUserId, String currentUserRole);
+    byte[] exportApplications(DashboardQueryRequest request, String format, String currentUserId, String currentUserRole);
 }
 

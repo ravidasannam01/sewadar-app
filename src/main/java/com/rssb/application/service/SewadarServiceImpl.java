@@ -41,7 +41,7 @@ public class SewadarServiceImpl implements SewadarService {
 
     @Override
     @Transactional(readOnly = true)
-    public SewadarResponse getSewadarById(Long zonalId) {
+    public SewadarResponse getSewadarById(String zonalId) {
         log.info("Fetching sewadar with zonal_id: {}", zonalId);
         Sewadar sewadar = sewadarRepository.findByZonalId(zonalId)
                 .orElseThrow(() -> new ResourceNotFoundException("Sewadar", "zonal_id", zonalId));
@@ -62,10 +62,12 @@ public class SewadarServiceImpl implements SewadarService {
     }
 
     @Override
-    public SewadarResponse updateSewadar(Long zonalId, SewadarRequest request) {
+    public SewadarResponse updateSewadar(String zonalId, SewadarRequest request) {
         log.info("Updating sewadar with zonal_id: {}", zonalId);
         Sewadar sewadar = sewadarRepository.findByZonalId(zonalId)
                 .orElseThrow(() -> new ResourceNotFoundException("Sewadar", "zonal_id", zonalId));
+        
+        // zonalId cannot be changed - it's the organizational identity
 
         sewadar.setFirstName(request.getFirstName());
         sewadar.setLastName(request.getLastName());
@@ -121,7 +123,7 @@ public class SewadarServiceImpl implements SewadarService {
     }
 
     @Override
-    public void deleteSewadar(Long zonalId) {
+    public void deleteSewadar(String zonalId) {
         log.info("Deleting sewadar with zonal_id: {}", zonalId);
         Sewadar sewadar = sewadarRepository.findByZonalId(zonalId)
                 .orElseThrow(() -> new ResourceNotFoundException("Sewadar", "zonal_id", zonalId));
@@ -130,7 +132,7 @@ public class SewadarServiceImpl implements SewadarService {
     }
 
     @Override
-    public SewadarResponse promoteToIncharge(Long sewadarZonalId, Long inchargeZonalId, String password) {
+    public SewadarResponse promoteToIncharge(String sewadarZonalId, String inchargeZonalId, String password) {
         log.info("Incharge {} promoting sewadar {} to incharge", inchargeZonalId, sewadarZonalId);
         
         Sewadar incharge = sewadarRepository.findByZonalId(inchargeZonalId)
@@ -163,7 +165,7 @@ public class SewadarServiceImpl implements SewadarService {
     }
 
     @Override
-    public SewadarResponse demoteToSewadar(Long sewadarZonalId, Long inchargeZonalId, String password) {
+    public SewadarResponse demoteToSewadar(String sewadarZonalId, String inchargeZonalId, String password) {
         log.info("Incharge {} demoting sewadar {} to sewadar", inchargeZonalId, sewadarZonalId);
         
         Sewadar incharge = sewadarRepository.findByZonalId(inchargeZonalId)
@@ -207,7 +209,16 @@ public class SewadarServiceImpl implements SewadarService {
     }
 
     private Sewadar mapToEntity(SewadarRequest request, boolean allowInchargeCreation) {
+        // Check if zonalId already exists
+        if (request.getZonalId() != null && !request.getZonalId().trim().isEmpty()) {
+            sewadarRepository.findByZonalId(request.getZonalId())
+                    .ifPresent(existing -> {
+                        throw new IllegalArgumentException("Sewadar with zonal ID '" + request.getZonalId() + "' already exists");
+                    });
+        }
+        
         Sewadar.SewadarBuilder builder = Sewadar.builder()
+                .zonalId(request.getZonalId()) // Set zonalId from request (required)
                 .firstName(request.getFirstName())
                 .lastName(request.getLastName())
                 .location(request.getLocation())

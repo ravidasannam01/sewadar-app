@@ -22,7 +22,7 @@ public class AllSewadarsAttendanceSummaryResponse {
     @AllArgsConstructor
     @Builder
     public static class SewadarSummary {
-        private Long sewadarId;
+        private String sewadarId;
         private String sewadarName;
         private String mobile;
         private Long beasProgramsCount;

@@ -13,7 +13,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Builder
 public class ProgramAttendeeResponse {
-    private Long zonalId;
+    private String zonalId;
     private String firstName;
     private String lastName;
     private String mobile;

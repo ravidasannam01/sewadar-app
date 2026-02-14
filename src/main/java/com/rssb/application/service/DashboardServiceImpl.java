@@ -32,7 +32,7 @@ public class DashboardServiceImpl implements DashboardService {
     private final ProgramDateRepository programDateRepository;
 
     @Override
-    public SewadarDashboardResponse getSewadars(DashboardQueryRequest request, Long currentUserId, String currentUserRole) {
+    public SewadarDashboardResponse getSewadars(DashboardQueryRequest request, String currentUserId, String currentUserRole) {
         log.info("Dashboard: Getting sewadars with filters - page: {}, size: {}", request.getPage(), request.getSize());
         log.info("Dashboard filters - location: {}, languages: {}, languageMatchType: {}, joiningDateFrom: {}, joiningDateTo: {}", 
                 request.getLocation(), request.getLanguages(), request.getLanguageMatchType(), 
@@ -123,7 +123,7 @@ public class DashboardServiceImpl implements DashboardService {
     }
 
     @Override
-    public SewadarDetailedAttendanceResponse getSewadarDetailedAttendance(Long sewadarId, Long currentUserId, String currentUserRole) {
+    public SewadarDetailedAttendanceResponse getSewadarDetailedAttendance(String sewadarId, String currentUserId, String currentUserRole) {
         log.info("Dashboard: Getting detailed attendance for sewadar: {}", sewadarId);
         
         // Check access: SEWADAR can only see their own data
@@ -184,9 +184,9 @@ public class DashboardServiceImpl implements DashboardService {
         List<Attendance> attendances = attendanceRepository.findByProgramId(programId);
         
         // Create a map: sewadarId -> date -> status
-        Map<Long, Map<LocalDate, String>> sewadarDateStatusMap = new HashMap<>();
+        Map<String, Map<LocalDate, String>> sewadarDateStatusMap = new HashMap<>();
         for (Attendance att : attendances) {
-            Long sewadarId = att.getSewadar().getZonalId();
+            String sewadarId = att.getSewadar().getZonalId();
             LocalDate attDate = att.getProgramDate().getProgramDate();
             sewadarDateStatusMap.computeIfAbsent(sewadarId, k -> new HashMap<>())
                     .put(attDate, "Present");
@@ -223,7 +223,7 @@ public class DashboardServiceImpl implements DashboardService {
     }
 
     @Override
-    public ApplicationDashboardResponse getApplications(DashboardQueryRequest request, Long currentUserId, String currentUserRole) {
+    public ApplicationDashboardResponse getApplications(DashboardQueryRequest request, String currentUserId, String currentUserRole) {
         log.info("Dashboard: Getting applications with filters - page: {}, size: {}", request.getPage(), request.getSize());
         
         // Build specification for filtering
@@ -257,7 +257,7 @@ public class DashboardServiceImpl implements DashboardService {
     }
 
     // Helper methods
-    private Specification<Sewadar> buildSewadarSpecification(DashboardQueryRequest request, Long currentUserId, String currentUserRole) {
+    private Specification<Sewadar> buildSewadarSpecification(DashboardQueryRequest request, String currentUserId, String currentUserRole) {
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
             
@@ -346,7 +346,7 @@ public class DashboardServiceImpl implements DashboardService {
     }
 
     private SewadarDashboardResponse.SewadarDashboardItem mapToSewadarDashboardItem(Sewadar sewadar) {
-        Long zonalId = sewadar.getZonalId();
+        String zonalId = sewadar.getZonalId();
         
         // Get attendance statistics
         Long totalPrograms = attendanceRepository.countAttendedProgramsBySewadarId(zonalId);
@@ -379,7 +379,7 @@ public class DashboardServiceImpl implements DashboardService {
                 .build();
     }
 
-    private Specification<ProgramApplication> buildApplicationSpecification(DashboardQueryRequest request, Long currentUserId, String currentUserRole) {
+    private Specification<ProgramApplication> buildApplicationSpecification(DashboardQueryRequest request, String currentUserId, String currentUserRole) {
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
             
@@ -419,7 +419,7 @@ public class DashboardServiceImpl implements DashboardService {
 
     // Export methods
     @Override
-    public byte[] exportSewadars(DashboardQueryRequest request, String format, Long currentUserId, String currentUserRole) {
+    public byte[] exportSewadars(DashboardQueryRequest request, String format, String currentUserId, String currentUserRole) {
         log.info("Exporting sewadars in format: {}", format);
         
         // Get data (without pagination for export)
@@ -451,7 +451,7 @@ public class DashboardServiceImpl implements DashboardService {
     }
 
     @Override
-    public byte[] exportSewadarAttendance(Long sewadarId, String format, Long currentUserId, String currentUserRole) {
+    public byte[] exportSewadarAttendance(String sewadarId, String format, String currentUserId, String currentUserRole) {
         log.info("Exporting sewadar attendance in format: {}", format);
         
         SewadarDetailedAttendanceResponse response = getSewadarDetailedAttendance(sewadarId, currentUserId, currentUserRole);
@@ -496,7 +496,7 @@ public class DashboardServiceImpl implements DashboardService {
     }
 
     @Override
-    public byte[] exportApplications(DashboardQueryRequest request, String format, Long currentUserId, String currentUserRole) {
+    public byte[] exportApplications(DashboardQueryRequest request, String format, String currentUserId, String currentUserRole) {
         log.info("Exporting applications in format: {}", format);
         
         // Get data (without pagination for export)

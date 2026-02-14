@@ -33,7 +33,7 @@ public class ProgramWorkflowController {
 
     @GetMapping("/incharge/{inchargeId}")
     public ResponseEntity<List<ProgramWorkflowResponse>> getWorkflowsForIncharge(
-            @PathVariable Long inchargeId) {
+            @PathVariable String inchargeId) {
         return ResponseEntity.ok(workflowService.getWorkflowsForIncharge(inchargeId));
     }
 
@@ -41,7 +41,7 @@ public class ProgramWorkflowController {
     public ResponseEntity<ProgramWorkflowResponse> moveToNextNode(
             @PathVariable Long programId) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        Long inchargeId = (Long) auth.getPrincipal();
+        String inchargeId = (String) auth.getPrincipal();
         
         return ResponseEntity.ok(workflowService.moveToNextNode(programId, inchargeId));
     }
@@ -50,7 +50,7 @@ public class ProgramWorkflowController {
     public ResponseEntity<ProgramWorkflowResponse> releaseForm(
             @PathVariable Long programId) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        Long inchargeId = (Long) auth.getPrincipal();
+        String inchargeId = (String) auth.getPrincipal();
         
         return ResponseEntity.ok(workflowService.releaseForm(programId, inchargeId));
     }
@@ -59,7 +59,7 @@ public class ProgramWorkflowController {
     public ResponseEntity<ProgramWorkflowResponse> markDetailsCollected(
             @PathVariable Long programId) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        Long inchargeId = (Long) auth.getPrincipal();
+        String inchargeId = (String) auth.getPrincipal();
         
         return ResponseEntity.ok(workflowService.markDetailsCollected(programId, inchargeId));
     }

@@ -21,7 +21,7 @@ public class AttendanceRequest {
     private LocalDate programDate; // The specific date for which attendance is being marked
 
     @NotNull(message = "Sewadar zonal IDs are required")
-    private List<Long> sewadarIds; // List of sewadar zonal IDs to mark attendance for
+    private List<String> sewadarIds; // List of sewadar zonal IDs to mark attendance for (String type)
 
     private String notes; // Optional notes for this attendance marking (applied to all records)
 }

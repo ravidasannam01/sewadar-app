@@ -10,11 +10,11 @@ import java.util.List;
  */
 public interface SewadarService {
     List<SewadarResponse> getAllSewadars();
-    SewadarResponse getSewadarById(Long id);
+    SewadarResponse getSewadarById(String zonalId); // Changed to String
     SewadarResponse createSewadar(SewadarRequest request);
-    SewadarResponse updateSewadar(Long id, SewadarRequest request);
-    void deleteSewadar(Long id);
-    SewadarResponse promoteToIncharge(Long sewadarId, Long inchargeId, String password); // Only incharge can promote, requires password
-    SewadarResponse demoteToSewadar(Long sewadarId, Long inchargeId, String password); // Only incharge can demote, requires password
+    SewadarResponse updateSewadar(String zonalId, SewadarRequest request); // Changed to String
+    void deleteSewadar(String zonalId); // Changed to String
+    SewadarResponse promoteToIncharge(String sewadarZonalId, String inchargeZonalId, String password); // Changed to String
+    SewadarResponse demoteToSewadar(String sewadarZonalId, String inchargeZonalId, String password); // Changed to String
 }
 

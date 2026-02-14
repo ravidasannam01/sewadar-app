@@ -27,7 +27,7 @@ public class ApplicationDashboardResponse {
     @Builder
     public static class ApplicationDashboardItem {
         private Long applicationId;
-        private Long sewadarZonalId;
+        private String sewadarZonalId;
         private String sewadarName;
         private String mobile;
         private String status;
