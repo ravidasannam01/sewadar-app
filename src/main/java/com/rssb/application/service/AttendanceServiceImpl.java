@@ -40,17 +40,17 @@ public class AttendanceServiceImpl implements AttendanceService {
         Program program = programRepository.findById(request.getProgramId())
                 .orElseThrow(() -> new ResourceNotFoundException("Program", "id", request.getProgramId()));
 
-        // Validate incharge is the program creator
-        if (!program.getCreatedBy().getZonalId().equals(inchargeZonalId)) {
-            throw new IllegalArgumentException("Only the program creator can mark attendance");
-        }
-
-        // Validate incharge role
+        // Validate user role and permission
         Sewadar incharge = sewadarRepository.findByZonalId(inchargeZonalId)
                 .orElseThrow(() -> new ResourceNotFoundException("Sewadar", "zonal_id", inchargeZonalId));
         
-        if (incharge.getRole() != com.rssb.application.entity.Role.INCHARGE) {
-            throw new IllegalArgumentException("Only incharge can mark attendance");
+        // ADMIN can mark attendance for any program, INCHARGE only for their own programs
+        if (!com.rssb.application.util.PermissionUtil.canManageProgram(incharge, program)) {
+            throw new IllegalArgumentException("Only the program creator (or ADMIN) can mark attendance");
+        }
+        
+        if (!com.rssb.application.util.PermissionUtil.hasInchargePermission(incharge)) {
+            throw new IllegalArgumentException("Only incharge or admin can mark attendance");
         }
 
         // Find the ProgramDate entity for the given date (ensures referential integrity)

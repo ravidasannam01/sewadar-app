@@ -178,7 +178,7 @@ const Programs = () => {
         <Typography variant="h4" component="h1" sx={{ fontWeight: 600 }}>
           Programs
         </Typography>
-        {user?.role === 'INCHARGE' && (
+        {(user?.role === 'ADMIN' || user?.role === 'INCHARGE') && (
           <Button
             variant="contained"
             startIcon={<AddIcon />}
@@ -240,7 +240,7 @@ const Programs = () => {
                         <Typography variant="h6" component="h3" sx={{ fontWeight: 600 }}>
                           {program.title}
                         </Typography>
-                        {user?.role === 'INCHARGE' && (
+                        {(user?.role === 'ADMIN' || user?.role === 'INCHARGE') && (
                           <IconButton
                             size="small"
                             onClick={() => handleEdit(program)}

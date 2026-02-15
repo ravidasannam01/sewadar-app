@@ -26,6 +26,7 @@ import {
 } from '@mui/icons-material'
 import api from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
+import { isAdminOrIncharge } from '../utils/roleUtils'
 
 const Workflow = () => {
   const { user } = useAuth()
@@ -39,7 +40,7 @@ const Workflow = () => {
   const [error, setError] = useState(null)
 
   useEffect(() => {
-    if (user?.role === 'INCHARGE') {
+    if (isAdminOrIncharge(user)) {
       loadData()
     }
   }, [user])

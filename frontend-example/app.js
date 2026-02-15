@@ -71,7 +71,7 @@ function setupNavigation() {
         { id: 'applications', label: 'My Applications', icon: '📋' }
     ];
     
-    if (currentUser?.role === 'INCHARGE') {
+    if (currentUser?.role === 'ADMIN' || currentUser?.role === 'INCHARGE') {
         navItems.push(
             { id: 'admin', label: 'Admin', icon: '⚙️' },
             { id: 'attendance', label: 'Attendance', icon: '✅' },
@@ -104,7 +104,7 @@ function setupNavigation() {
     // Show/hide create program button
     const createProgramBtn = document.getElementById('create-program-btn');
     if (createProgramBtn) {
-        createProgramBtn.style.display = currentUser?.role === 'INCHARGE' ? 'block' : 'none';
+        createProgramBtn.style.display = (currentUser?.role === 'ADMIN' || currentUser?.role === 'INCHARGE') ? 'block' : 'none';
     }
 }
 
@@ -371,7 +371,7 @@ async function loadPrograms() {
                 <div class="card">
                     <div class="card-header">
                         <h3>${program.title}</h3>
-                        ${currentUser?.role === 'INCHARGE' ? `
+                        ${(currentUser?.role === 'ADMIN' || currentUser?.role === 'INCHARGE') ? `
                             <button class="btn btn-sm btn-primary" onclick="showProgramForm(${program.id})">Edit</button>
                         ` : ''}
                     </div>
@@ -668,8 +668,8 @@ async function loadAdminSewadars() {
                             <td>${sewadar.location || ''}</td>
                             <td>
                                 <span class="role-badge ${sewadar.role?.toLowerCase()}" 
-                                      onclick="${currentUser?.role === 'INCHARGE' && sewadar.zonalId !== currentUser.zonalId ? `changeRole('${sewadar.zonalId}', '${sewadar.role}')` : ''}"
-                                      style="${currentUser?.role === 'INCHARGE' && sewadar.zonalId !== currentUser.zonalId ? 'cursor: pointer;' : ''}">
+                                      onclick="${(currentUser?.role === 'ADMIN' || currentUser?.role === 'INCHARGE') && sewadar.zonalId !== currentUser.zonalId ? `changeRole('${sewadar.zonalId}', '${sewadar.role}')` : ''}"
+                                      style="${(currentUser?.role === 'ADMIN' || currentUser?.role === 'INCHARGE') && sewadar.zonalId !== currentUser.zonalId ? 'cursor: pointer;' : ''}">
                                     ${sewadar.role || 'SEWADAR'}
                                 </span>
                             </td>

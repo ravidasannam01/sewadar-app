@@ -34,7 +34,7 @@ const Layout = () => {
     { path: '/dashboard', label: 'Dashboard', icon: <DashboardIcon /> },
   ]
 
-  if (user?.role === 'INCHARGE') {
+  if (user?.role === 'ADMIN' || user?.role === 'INCHARGE') {
     navItems.push(
       {
         path: '/admin',
@@ -77,7 +77,7 @@ const Layout = () => {
               }}
             />
             <Typography variant="h6" component="div">
-              {user?.role === 'INCHARGE' ? 'Incharge Management System' : 'Sewadar Management System'}
+              {(user?.role === 'ADMIN' || user?.role === 'INCHARGE') ? 'Incharge Management System' : 'Sewadar Management System'}
             </Typography>
           </Box>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -88,7 +88,7 @@ const Layout = () => {
               label={user?.role}
               size="small"
               sx={{
-                bgcolor: user?.role === 'INCHARGE' ? '#d4af37' : '#4a90a4',
+                bgcolor: (user?.role === 'ADMIN' || user?.role === 'INCHARGE') ? '#d4af37' : '#4a90a4',
                 color: 'white',
                 fontWeight: 600,
               }}

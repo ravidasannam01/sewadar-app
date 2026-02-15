@@ -138,8 +138,8 @@ public class SewadarServiceImpl implements SewadarService {
         Sewadar incharge = sewadarRepository.findByZonalId(inchargeZonalId)
                 .orElseThrow(() -> new ResourceNotFoundException("Sewadar", "zonal_id", inchargeZonalId));
         
-        if (incharge.getRole() != com.rssb.application.entity.Role.INCHARGE) {
-            throw new IllegalArgumentException("Only incharge can promote sewadars to incharge");
+        if (!com.rssb.application.util.PermissionUtil.hasInchargePermission(incharge)) {
+            throw new IllegalArgumentException("Only incharge or admin can promote sewadars to incharge");
         }
         
         // Verify incharge password
@@ -171,8 +171,8 @@ public class SewadarServiceImpl implements SewadarService {
         Sewadar incharge = sewadarRepository.findByZonalId(inchargeZonalId)
                 .orElseThrow(() -> new ResourceNotFoundException("Sewadar", "zonal_id", inchargeZonalId));
         
-        if (incharge.getRole() != com.rssb.application.entity.Role.INCHARGE) {
-            throw new IllegalArgumentException("Only incharge can demote incharges to sewadar");
+        if (!com.rssb.application.util.PermissionUtil.hasInchargePermission(incharge)) {
+            throw new IllegalArgumentException("Only incharge or admin can demote incharges to sewadar");
         }
         
         // Verify incharge password

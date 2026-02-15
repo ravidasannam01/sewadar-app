@@ -36,6 +36,7 @@ import {
 import { format } from 'date-fns'
 import api from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
+import { isAdminOrIncharge } from '../utils/roleUtils'
 
 const Attendance = () => {
   const { user } = useAuth()
@@ -51,7 +52,7 @@ const Attendance = () => {
   const [attendanceNotes, setAttendanceNotes] = useState('')
 
   useEffect(() => {
-    if (user?.role === 'INCHARGE') {
+    if (isAdminOrIncharge(user)) {
       loadPrograms()
     }
   }, [user])
@@ -178,7 +179,7 @@ const Attendance = () => {
   }
 
   // Guard: Only show for INCHARGE role
-  if (!user || user.role !== 'INCHARGE') {
+  if (!isAdminOrIncharge(user)) {
     return (
       <Box p={3}>
         <Alert severity="error">Access denied. This page is only available for INCHARGE users.</Alert>

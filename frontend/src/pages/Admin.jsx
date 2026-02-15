@@ -42,6 +42,7 @@ import api from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
 import ProgramForm from '../components/ProgramForm'
 import SewadarForm from '../components/SewadarForm'
+import { isAdminOrIncharge } from '../utils/roleUtils'
 
 const Admin = () => {
   const { user, loading: authLoading } = useAuth()
@@ -68,7 +69,7 @@ const Admin = () => {
   const [sortOrder, setSortOrder] = useState('desc')
 
   useEffect(() => {
-    if (user?.role === 'INCHARGE') {
+    if (isAdminOrIncharge(user)) {
       loadPrograms()
       loadSewadars()
     }
@@ -239,8 +240,8 @@ const Admin = () => {
   }
 
   const handleRoleChangeClick = (sewadar) => {
-    // Only allow role changes for incharges
-    if (user?.role !== 'INCHARGE') {
+    // Only allow role changes for admin/incharge
+    if (!isAdminOrIncharge(user)) {
       return
     }
     
@@ -321,11 +322,11 @@ const Admin = () => {
     )
   }
 
-  // Guard: Only show for INCHARGE role
-  if (!user || user.role !== 'INCHARGE') {
+  // Guard: Only show for ADMIN or INCHARGE role
+  if (!isAdminOrIncharge(user)) {
     return (
       <Box p={3}>
-        <Alert severity="error">Access denied. This page is only available for INCHARGE users.</Alert>
+        <Alert severity="error">Access denied. This page is only available for ADMIN or INCHARGE users.</Alert>
       </Box>
     )
   }

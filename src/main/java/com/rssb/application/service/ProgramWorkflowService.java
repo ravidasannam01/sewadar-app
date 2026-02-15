@@ -114,12 +114,20 @@ public class ProgramWorkflowService {
     }
 
     /**
-     * Get all workflows for programs created by an incharge.
+     * Get all workflows for programs.
+     * ADMIN sees all programs, INCHARGE sees only programs they created.
      * Automatically initializes workflows for programs that don't have one.
      */
     @Transactional(readOnly = true)
     public List<ProgramWorkflowResponse> getWorkflowsForIncharge(String inchargeId) {
-        List<Program> programs = programRepository.findByCreatedByZonalId(inchargeId);
+        // Check if user is ADMIN - if so, return all programs
+        Sewadar user = sewadarRepository.findByZonalId(inchargeId).orElse(null);
+        List<Program> programs;
+        if (user != null && user.getRole() == com.rssb.application.entity.Role.ADMIN) {
+            programs = programRepository.findAll();
+        } else {
+            programs = programRepository.findByCreatedByZonalId(inchargeId);
+        }
         return programs.stream()
             .map(program -> {
                 try {

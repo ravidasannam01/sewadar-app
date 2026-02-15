@@ -14,7 +14,8 @@ import org.springframework.web.bind.annotation.*;
 
 /**
  * Bootstrap controller for initial setup.
- * Allows creating the first incharge when no incharge exists in the system.
+ * Allows creating the first admin or incharge when no admin/incharge exists in the system.
+ * Both admin and incharge can coexist.
  */
 @RestController
 @RequestMapping("/api/bootstrap")
@@ -27,18 +28,58 @@ public class BootstrapController {
     private final SewadarService sewadarService;
 
     /**
-     * Check if system needs bootstrap (no incharge exists)
+     * Check if system needs bootstrap (no admin or incharge exists)
      */
     @GetMapping("/status")
     public ResponseEntity<BootstrapStatus> getBootstrapStatus() {
+        boolean hasAdmin = !sewadarRepository.findByRole(Role.ADMIN).isEmpty();
         boolean hasIncharge = !sewadarRepository.findByRole(Role.INCHARGE).isEmpty();
+        boolean needsBootstrap = !hasAdmin && !hasIncharge;
+        
+        String message;
+        if (hasAdmin && hasIncharge) {
+            message = "System is already bootstrapped with both admin and incharge.";
+        } else if (hasAdmin) {
+            message = "System has an admin. You can create an incharge if needed.";
+        } else if (hasIncharge) {
+            message = "System has an incharge. You can create an admin if needed.";
+        } else {
+            message = "No admin or incharge found. Please create the first admin or incharge.";
+        }
+        
         return ResponseEntity.ok(BootstrapStatus.builder()
-                .needsBootstrap(!hasIncharge)
+                .needsBootstrap(needsBootstrap)
+                .hasAdmin(hasAdmin)
                 .hasIncharge(hasIncharge)
-                .message(hasIncharge 
-                        ? "System is already bootstrapped" 
-                        : "No incharge found. Please create the first incharge.")
+                .message(message)
                 .build());
+    }
+
+    /**
+     * Create the first admin (only works if no admin exists)
+     */
+    @PostMapping("/create-admin")
+    public ResponseEntity<SewadarResponse> createFirstAdmin(@Valid @RequestBody SewadarRequest request) {
+        log.info("Bootstrap: Creating first admin");
+
+        // Check if admin already exists
+        if (!sewadarRepository.findByRole(Role.ADMIN).isEmpty()) {
+            throw new IllegalArgumentException("System already has an admin. Use promote endpoint instead.");
+        }
+
+        // Ensure password is provided for admin
+        if (request.getPassword() == null || request.getPassword().isEmpty()) {
+            throw new IllegalArgumentException("Password is required for admin creation");
+        }
+
+        // Force role to ADMIN
+        request.setRole("ADMIN");
+
+        // Create as admin
+        SewadarResponse response = sewadarService.createSewadar(request);
+        log.info("First admin created with zonal_id: {}", response.getZonalId());
+        
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     /**
@@ -74,6 +115,7 @@ public class BootstrapController {
     @lombok.AllArgsConstructor
     public static class BootstrapStatus {
         private boolean needsBootstrap;
+        private boolean hasAdmin;
         private boolean hasIncharge;
         private String message;
     }

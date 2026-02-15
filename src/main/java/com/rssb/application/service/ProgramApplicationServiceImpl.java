@@ -172,9 +172,12 @@ public class ProgramApplicationServiceImpl implements ProgramApplicationService 
         ProgramApplication application = applicationRepository.findById(applicationId)
                 .orElseThrow(() -> new ResourceNotFoundException("ProgramApplication", "id", applicationId));
         
-        // Verify incharge created the program
-        if (!application.getProgram().getCreatedBy().getZonalId().equals(inchargeId)) {
-            throw new IllegalArgumentException("Only program creator can approve drop requests");
+        // Verify user has permission (ADMIN can approve any drop request, INCHARGE only for their programs)
+        Sewadar incharge = sewadarRepository.findByZonalId(inchargeId)
+                .orElseThrow(() -> new ResourceNotFoundException("Sewadar", "zonal_id", inchargeId));
+        
+        if (!com.rssb.application.util.PermissionUtil.canManageProgram(incharge, application.getProgram())) {
+            throw new IllegalArgumentException("Only program creator (or ADMIN) can approve drop requests");
         }
         
         // Verify status is DROP_REQUESTED
@@ -210,9 +213,12 @@ public class ProgramApplicationServiceImpl implements ProgramApplicationService 
         ProgramApplication application = applicationRepository.findById(applicationId)
                 .orElseThrow(() -> new ResourceNotFoundException("ProgramApplication", "id", applicationId));
         
-        // Verify incharge created the program
-        if (!application.getProgram().getCreatedBy().getZonalId().equals(inchargeId)) {
-            throw new IllegalArgumentException("Only program creator can rollback applications");
+        // Verify user has permission (ADMIN can rollback any application, INCHARGE only for their programs)
+        Sewadar incharge = sewadarRepository.findByZonalId(inchargeId)
+                .orElseThrow(() -> new ResourceNotFoundException("Sewadar", "zonal_id", inchargeId));
+        
+        if (!com.rssb.application.util.PermissionUtil.canManageProgram(incharge, application.getProgram())) {
+            throw new IllegalArgumentException("Only program creator (or ADMIN) can rollback applications");
         }
         
         // Only allow rollback from APPROVED or REJECTED status
