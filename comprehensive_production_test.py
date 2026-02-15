@@ -2,6 +2,13 @@
 """
 Comprehensive Production Testing Suite
 Tests all flows with 80-90 sewadars and 10+ programs
+
+Bootstrap Handling:
+- If no incharge exists: Creates bootstrap incharge with zonalId "INCH001" and password "admin123"
+- If incharge exists: Attempts to find existing incharge by trying common zonalIds
+  (INCH001, INCH002, INCH003, 1, 2, 3) with password "admin123"
+- To use a specific incharge: Set INCHARGE_ZONAL_ID and INCHARGE_PASSWORD at top of file
+- After bootstrap (created or found), proceeds to create sewadars using incharge authentication
 """
 
 import requests
@@ -17,7 +24,7 @@ BASE_URL = "http://localhost:8080"
 
 # Configuration - Update these if your setup is different
 INCHARGE_PASSWORD = "admin123"  # Change if your incharge has different password
-INCHARGE_ZONAL_ID = None  # Set to specific ID if known, or None to auto-detect
+INCHARGE_ZONAL_ID = None  # Set to specific zonal ID (String) if known, or None to auto-detect
 SEWADAR_PASSWORD = "sewadar123"  # Default password for test sewadars
 
 # Test Results Tracking
@@ -31,7 +38,7 @@ class TestResult:
 class TestSuite:
     def __init__(self):
         self.results: List[TestResult] = []
-        self.incharge_id: Optional[int] = None
+        self.incharge_id: Optional[str] = None  # Changed to String (zonalId)
         self.incharge_token: Optional[str] = None
         self.sewadars: List[Dict] = []
         self.programs: List[Dict] = None
@@ -92,6 +99,9 @@ class TestDataGenerator:
         profession = random.choice(TestDataGenerator.PROFESSIONS)
         languages = random.choice(TestDataGenerator.LANGUAGES_COMBOS)
         
+        # Generate zonalId as String (e.g., "SEW001", "SEW002", etc.)
+        zonal_id = f"SEW{index + 1:03d}"
+        
         # Generate date of birth (between 1970 and 2000)
         year = random.randint(1970, 2000)
         month = random.randint(1, 12)
@@ -101,6 +111,7 @@ class TestDataGenerator:
         return {
             "firstName": first_name,
             "lastName": last_name,
+            "zonalId": zonal_id,  # Required: String zonalId
             "mobile": mobile,
             "password": "sewadar123",
             "location": location,
@@ -213,6 +224,7 @@ class ProductionTestRunner:
                     json={
                         "firstName": "Admin",
                         "lastName": "Incharge",
+                        "zonalId": "INCH001",  # Required: String zonalId
                         "mobile": "9999999999",
                         "password": "admin123",
                         "location": "BEAS",
@@ -222,48 +234,66 @@ class ProductionTestRunner:
                     })
                 if response.status_code == 201:
                     data = response.json()
-                    self.suite.incharge_id = data['zonalId']
+                    self.suite.incharge_id = data['zonalId']  # String zonalId
                     self.suite.log_result("Create Incharge", True, 
                                         f"Created new incharge with Zonal ID: {self.suite.incharge_id}", 
                                         time.time() - start)
                 else:
                     self.suite.log_result("Create Incharge", False, response.text[:100], time.time() - start)
-                    return
+                    raise Exception(f"Failed to create bootstrap incharge: {response.text[:200]}")
             else:
                 # Incharge exists - find it by trying to login with common credentials
-                # Or get all sewadars and find INCHARGE role
+                # Note: We need to find the incharge to authenticate, but we can't query sewadars without auth
+                # So we try common zonalIds. If your incharge has a different zonalId, set INCHARGE_ZONAL_ID
                 start = time.time()
                 try:
-                    # Try to login with default credentials first
-                    login_resp = requests.post(f"{BASE_URL}/api/auth/login",
-                        json={"zonalId": "1", "password": "admin123"})
-                    
-                    # Try to find incharge - use configured ID or try common IDs
-                    incharge_ids_to_try = [INCHARGE_ZONAL_ID] if INCHARGE_ZONAL_ID else [1, 2, 3]
-                    
-                    for zonal_id in incharge_ids_to_try:
-                        if zonal_id is None:
-                            continue
+                    # First, try configured zonalId if provided
+                    if INCHARGE_ZONAL_ID:
                         login_resp = requests.post(f"{BASE_URL}/api/auth/login",
-                            json={"zonalId": str(zonal_id), "password": INCHARGE_PASSWORD})
+                            json={"zonalId": str(INCHARGE_ZONAL_ID), "password": INCHARGE_PASSWORD})
                         if login_resp.status_code == 200:
                             user_data = login_resp.json().get('sewadar', {})
                             if user_data.get('role') == 'INCHARGE':
-                                self.suite.incharge_id = zonal_id
+                                self.suite.incharge_id = str(INCHARGE_ZONAL_ID)
                                 self.suite.log_result("Find Existing Incharge", True, 
-                                                    f"Found existing incharge with Zonal ID: {self.suite.incharge_id}", 
+                                                    f"Found existing incharge with configured Zonal ID: {self.suite.incharge_id}", 
                                                     time.time() - start)
-                                break
+                            else:
+                                # User exists but not INCHARGE role
+                                self.suite.log_result("Find Existing Incharge", False, 
+                                                    f"User with zonalId '{INCHARGE_ZONAL_ID}' exists but is not INCHARGE", 
+                                                    time.time() - start)
+                                return
+                        else:
+                            # Try common IDs as fallback
+                            incharge_ids_to_try = ["INCH001", "INCH002", "INCH003", "1", "2", "3"]
+                    else:
+                        # No configured ID - try common String IDs
+                        incharge_ids_to_try = ["INCH001", "INCH002", "INCH003", "1", "2", "3"]
+                    
+                    # If not found yet, try common IDs
+                    if not self.suite.incharge_id:
+                        for zonal_id in incharge_ids_to_try:
+                            login_resp = requests.post(f"{BASE_URL}/api/auth/login",
+                                json={"zonalId": str(zonal_id), "password": INCHARGE_PASSWORD})
+                            if login_resp.status_code == 200:
+                                user_data = login_resp.json().get('sewadar', {})
+                                if user_data.get('role') == 'INCHARGE':
+                                    self.suite.incharge_id = str(zonal_id)  # Ensure String type
+                                    self.suite.log_result("Find Existing Incharge", True, 
+                                                        f"Found existing incharge with Zonal ID: {self.suite.incharge_id}", 
+                                                        time.time() - start)
+                                    break
                     
                     if not self.suite.incharge_id:
                         self.suite.log_result("Find Existing Incharge", False, 
                                             f"Could not find existing incharge. Tried IDs: {incharge_ids_to_try}. "
-                                            f"Please set INCHARGE_ZONAL_ID in script or ensure incharge exists.", 
+                                            f"Please set INCHARGE_ZONAL_ID in script or ensure incharge exists with password '{INCHARGE_PASSWORD}'.", 
                                             time.time() - start)
-                        return
+                        raise Exception("Cannot proceed without incharge authentication. Please set INCHARGE_ZONAL_ID or create bootstrap incharge.")
                 except Exception as e:
                     self.suite.log_result("Find Existing Incharge", False, str(e), time.time() - start)
-                    return
+                    raise  # Re-raise to stop test execution
             
             # Login as incharge (with found or created incharge)
             start = time.time()
@@ -278,7 +308,7 @@ class ProductionTestRunner:
                                     f"Login failed with password '{INCHARGE_PASSWORD}'. "
                                     f"Please update INCHARGE_PASSWORD in script or reset incharge password.", 
                                     time.time() - start)
-                return
+                raise Exception(f"Cannot authenticate as incharge. Login failed. Please check INCHARGE_PASSWORD or incharge credentials.")
                 
         except Exception as e:
             self.suite.log_result("Bootstrap Phase", False, str(e), time.time() - start)
@@ -326,7 +356,7 @@ class ProductionTestRunner:
             start = time.time()
             try:
                 data = self.generator.generate_program_data(i, base_date)
-                data['createdById'] = self.suite.incharge_id
+                data['createdById'] = str(self.suite.incharge_id)  # String zonalId
                 
                 response = requests.post(f"{BASE_URL}/api/programs", 
                                       headers=headers, json=data)
@@ -379,7 +409,7 @@ class ProductionTestRunner:
                 try:
                     response = requests.post(f"{BASE_URL}/api/program-applications",
                         headers=headers,
-                        json={"programId": program['id'], "sewadarId": sewadar_id})
+                        json={"programId": program['id'], "sewadarId": str(sewadar_id)})  # String zonalId
                     
                     if response.status_code == 201:
                         app = response.json()
@@ -451,7 +481,7 @@ class ProductionTestRunner:
                 
                 # Request drop
                 response = requests.put(
-                    f"{BASE_URL}/api/program-applications/{app['id']}/request-drop?sewadarId={sewadar_id}",
+                    f"{BASE_URL}/api/program-applications/{app['id']}/request-drop?sewadarId={str(sewadar_id)}",  # String zonalId
                     headers=headers)
                 
                 if response.status_code == 200:
@@ -474,7 +504,7 @@ class ProductionTestRunner:
                     for req in drop_reqs[:min(2, len(drop_reqs))]:
                         try:
                             resp = requests.put(
-                                f"{BASE_URL}/api/program-applications/{req['id']}/approve-drop?inchargeId={self.suite.incharge_id}",
+                                f"{BASE_URL}/api/program-applications/{req['id']}/approve-drop?inchargeId={str(self.suite.incharge_id)}",  # String zonalId
                                 headers=headers)
                             if resp.status_code == 200:
                                 drop_approved += 1
@@ -518,7 +548,7 @@ class ProductionTestRunner:
                             
                             reapply_resp = requests.post(f"{BASE_URL}/api/program-applications",
                                 headers=app_headers,
-                                json={"programId": program['id'], "sewadarId": sewadar_id})
+                                json={"programId": program['id'], "sewadarId": str(sewadar_id)})  # String zonalId
                             
                             if reapply_resp.status_code == 201:
                                 reapplied += 1
@@ -563,14 +593,14 @@ class ProductionTestRunner:
                         continue
                     
                     # Mark attendance for first valid date
-                    attendee_ids = [a['zonalId'] for a in attendees[:min(10, len(attendees))]]
+                    attendee_ids = [str(a['zonalId']) for a in attendees[:min(10, len(attendees))]]  # String zonalIds
                     
                     attendance_resp = requests.post(f"{BASE_URL}/api/attendances",
                         headers=headers,
                         json={
                             "programId": program['id'],
                             "programDate": valid_dates[0],
-                            "sewadarIds": attendee_ids
+                            "sewadarIds": attendee_ids  # List of String zonalIds
                         })
                     
                     if attendance_resp.status_code == 200:
@@ -605,6 +635,7 @@ class ProductionTestRunner:
                     json={
                         "firstName": "Test",
                         "lastName": "Duplicate",
+                        "zonalId": f"TEST{random.randint(1000, 9999)}",  # Unique zonalId required
                         "mobile": "1111111111",
                         "password": "test123",
                         "aadharNumber": existing_aadhar
@@ -638,7 +669,7 @@ class ProductionTestRunner:
                                  "Content-Type": "application/json"}
                     response = requests.post(f"{BASE_URL}/api/program-applications",
                         headers=app_headers,
-                        json={"programId": scheduled_programs[0]['id'], "sewadarId": sewadar_id})
+                        json={"programId": scheduled_programs[0]['id'], "sewadarId": str(sewadar_id)})  # String zonalId
                     if response.status_code != 201 and "active" in response.text.lower():
                         passed = True
                         edge_cases_passed += 1
@@ -678,7 +709,7 @@ class ProductionTestRunner:
                             json={
                                 "programId": program['id'],
                                 "programDate": future_date,
-                                "sewadarIds": [attendees[0]['zonalId']]
+                                "sewadarIds": [str(attendees[0]['zonalId'])]  # String zonalId
                             })
                         # Accept rejection for either "future" OR "not a valid program date" 
                         # (both are correct - future dates not in program are rejected)
@@ -734,7 +765,7 @@ class ProductionTestRunner:
         # Verify programs count
         verification_total += 1
         try:
-            response = requests.get(f"{BASE_URL}/api/programs/incharge/{self.suite.incharge_id}", 
+            response = requests.get(f"{BASE_URL}/api/programs/incharge/{str(self.suite.incharge_id)}",  # String zonalId
                                   headers=headers)
             if response.status_code == 200:
                 programs = response.json()

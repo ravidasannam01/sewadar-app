@@ -577,6 +577,18 @@ header h1 {
     background: #218838;
 }
 
+/* Clickable Links */
+.clickable-link {
+    cursor: pointer;
+    color: #667eea;
+    text-decoration: underline;
+    transition: color 0.2s;
+}
+
+.clickable-link:hover {
+    color: #5568d3;
+}
+
 .btn-sm {
     padding: 5px 10px;
     font-size: 12px;

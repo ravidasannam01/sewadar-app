@@ -45,6 +45,10 @@ const Programs = () => {
   const [openForm, setOpenForm] = useState(false)
   const [selectedProgram, setSelectedProgram] = useState(null)
   const [myApplications, setMyApplications] = useState([])
+  const [openApplicantsDialog, setOpenApplicantsDialog] = useState(false)
+  const [selectedProgramForApplicants, setSelectedProgramForApplicants] = useState(null)
+  const [applicants, setApplicants] = useState([])
+  const [loadingApplicants, setLoadingApplicants] = useState(false)
   const itemsPerPage = 12
 
   useEffect(() => {
@@ -137,6 +141,27 @@ const Programs = () => {
     setOpenForm(false)
     setSelectedProgram(null)
     loadPrograms()
+  }
+
+  const handleShowApplicants = async (program) => {
+    setSelectedProgramForApplicants(program)
+    setOpenApplicantsDialog(true)
+    setLoadingApplicants(true)
+    try {
+      const response = await api.get(`/program-applications/program/${program.id}`)
+      setApplicants(response.data)
+    } catch (error) {
+      console.error('Error loading applicants:', error)
+      setApplicants([])
+    } finally {
+      setLoadingApplicants(false)
+    }
+  }
+
+  const handleCloseApplicantsDialog = () => {
+    setOpenApplicantsDialog(false)
+    setSelectedProgramForApplicants(null)
+    setApplicants([])
   }
 
   if (loading) {
@@ -253,8 +278,22 @@ const Programs = () => {
                             : 'N/A'}
                         </Typography>
                         <Typography variant="body2" color="text.secondary">
-                          <strong>Applications:</strong> {program.applicationCount || 0}
-                          {program.maxSewadars && ` / ${program.maxSewadars}`}
+                          <strong>Applications:</strong>{' '}
+                          <Box
+                            component="span"
+                            onClick={() => handleShowApplicants(program)}
+                            sx={{
+                              cursor: 'pointer',
+                              color: 'primary.main',
+                              textDecoration: 'underline',
+                              '&:hover': {
+                                color: 'primary.dark',
+                              },
+                            }}
+                          >
+                            {program.applicationCount || 0}
+                            {program.maxSewadars && ` / ${program.maxSewadars}`}
+                          </Box>
                         </Typography>
                       </Box>
 
@@ -322,6 +361,74 @@ const Programs = () => {
             onSuccess={handleCloseForm}
           />
         </DialogContent>
+      </Dialog>
+
+      {/* Applicants Dialog */}
+      <Dialog 
+        open={openApplicantsDialog} 
+        onClose={handleCloseApplicantsDialog} 
+        maxWidth="sm" 
+        fullWidth
+      >
+        <DialogTitle>
+          Applicants - {selectedProgramForApplicants?.title}
+        </DialogTitle>
+        <DialogContent>
+          {loadingApplicants ? (
+            <Box display="flex" justifyContent="center" p={4}>
+              <CircularProgress />
+            </Box>
+          ) : applicants.length === 0 ? (
+            <Alert severity="info">No applicants found for this program.</Alert>
+          ) : (
+            <Box>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                Total: {applicants.length} applicant(s)
+              </Typography>
+              <Stack spacing={1}>
+                {applicants.map((app) => (
+                  <Box
+                    key={app.id}
+                    sx={{
+                      p: 1.5,
+                      border: '1px solid',
+                      borderColor: 'divider',
+                      borderRadius: 1,
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                    }}
+                  >
+                    <Box>
+                      <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                        {app.sewadar?.firstName} {app.sewadar?.lastName}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {app.sewadar?.zonalId} {app.sewadar?.mobile && `• ${app.sewadar.mobile}`}
+                      </Typography>
+                    </Box>
+                    <Chip
+                      label={app.status}
+                      size="small"
+                      color={
+                        app.status === 'APPROVED'
+                          ? 'success'
+                          : app.status === 'PENDING'
+                          ? 'warning'
+                          : app.status === 'REJECTED'
+                          ? 'error'
+                          : 'default'
+                      }
+                    />
+                  </Box>
+                ))}
+              </Stack>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseApplicantsDialog}>Close</Button>
+        </DialogActions>
       </Dialog>
     </Box>
   )

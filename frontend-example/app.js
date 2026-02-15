@@ -261,6 +261,55 @@ function formatDateTime(dateString) {
     return date.toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 
+// ==================== APPLICANTS MODAL ====================
+
+let currentProgramForApplicants = null;
+
+async function showApplicants(programId, programTitle) {
+    currentProgramForApplicants = { id: programId, title: programTitle };
+    const content = document.getElementById('applicants-modal-content');
+    const title = document.getElementById('applicants-modal-title');
+    
+    title.textContent = `Applicants - ${programTitle}`;
+    content.innerHTML = '<p>Loading...</p>';
+    document.getElementById('applicants-modal').style.display = 'block';
+    
+    try {
+        const applications = await apiCall(`/program-applications/program/${programId}`);
+        
+        if (applications.length === 0) {
+            content.innerHTML = '<p class="info-message">No applicants found for this program.</p>';
+            return;
+        }
+        
+        content.innerHTML = `
+            <p style="margin-bottom: 15px; color: #666;"><strong>Total:</strong> ${applications.length} applicant(s)</p>
+            <div style="max-height: 400px; overflow-y: auto;">
+                ${applications.map(app => `
+                    <div style="padding: 12px; border: 1px solid #ddd; border-radius: 5px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <div style="font-weight: 600; margin-bottom: 4px;">
+                                ${app.sewadar?.firstName || ''} ${app.sewadar?.lastName || ''}
+                            </div>
+                            <div style="font-size: 12px; color: #666;">
+                                ${app.sewadar?.zonalId || ''} ${app.sewadar?.mobile ? `• ${app.sewadar.mobile}` : ''}
+                            </div>
+                        </div>
+                        <span class="status-badge ${app.status}">${app.status}</span>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    } catch (error) {
+        content.innerHTML = `<p class="error-message">Error loading applicants: ${error.message}</p>`;
+    }
+}
+
+function closeApplicantsModal() {
+    document.getElementById('applicants-modal').style.display = 'none';
+    currentProgramForApplicants = null;
+}
+
 // ==================== PROGRAMS ====================
 
 async function loadPrograms() {
@@ -330,7 +379,7 @@ async function loadPrograms() {
                         <p><strong>Status:</strong> <span class="status-badge ${program.status}">${program.status}</span></p>
                         <p><strong>Location:</strong> ${program.location || 'N/A'} ${program.locationType ? `(${program.locationType})` : ''}</p>
                         <p><strong>Dates:</strong> ${program.programDates?.map(d => formatDate(d)).join(', ') || 'N/A'}</p>
-                        <p><strong>Applications:</strong> ${program.applicationCount || 0}${program.maxSewadars ? ` / ${program.maxSewadars}` : ''}</p>
+                        <p><strong>Applications:</strong> <span class="clickable-link" onclick="showApplicants(${program.id}, ${JSON.stringify(program.title || '')})" style="cursor: pointer; color: #667eea; text-decoration: underline;">${program.applicationCount || 0}${program.maxSewadars ? ` / ${program.maxSewadars}` : ''}</span></p>
                         ${currentUser?.role === 'SEWADAR' && program.status === 'active' ? `
                             <div class="card-actions">
                                 ${appStatus === 'DROPPED' ? `
@@ -475,12 +524,12 @@ async function loadApplications() {
             listEl.innerHTML = '<p class="info-message">You haven\'t applied to any programs yet.</p>';
             return;
         }
-        
+
         listEl.innerHTML = filtered.map(app => {
             const program = app.program || {};
             return `
-                <div class="card">
-                    <div class="card-header">
+            <div class="card">
+                <div class="card-header">
                         <h3>${program.title || `Program ${app.programId}`}</h3>
                         <span class="status-badge ${app.status}">${app.status}</span>
                     </div>
@@ -488,7 +537,7 @@ async function loadApplications() {
                         <p><strong>Applied:</strong> ${formatDate(app.appliedAt)}</p>
                         ${app.dropRequestedAt ? `<p><strong>Drop Requested:</strong> ${formatDate(app.dropRequestedAt)}</p>` : ''}
                         ${app.dropApprovedAt ? `<p><strong>Drop Approved:</strong> ${formatDate(app.dropApprovedAt)}</p>` : ''}
-                        <div class="card-actions">
+                    <div class="card-actions">
                             ${(app.status === 'PENDING' || app.status === 'APPROVED') ? `
                                 <button class="btn btn-danger btn-sm" onclick="requestDrop(${app.id})">Request Drop</button>
                             ` : ''}
@@ -498,8 +547,8 @@ async function loadApplications() {
                             ${app.status === 'DROPPED' ? `
                                 <button class="btn btn-primary btn-sm" onclick="reapplyToProgram(${app.programId})">Reapply</button>
                             ` : ''}
-                        </div>
                     </div>
+                </div>
                 </div>
             `;
         }).join('');
@@ -563,9 +612,9 @@ async function loadAdminPrograms() {
                         <h3>${program.title}</h3>
                         <span class="status-badge ${program.status}">${program.status}</span>
                     </div>
-                    <div class="card-body">
+                <div class="card-body">
                         <p><strong>Location:</strong> ${program.location || 'N/A'} ${program.locationType ? `(${program.locationType})` : ''}</p>
-                        <p><strong>Applications:</strong> ${program.applicationCount || 0}${program.maxSewadars ? ` / ${program.maxSewadars}` : ''}</p>
+                        <p><strong>Applications:</strong> <span class="clickable-link" onclick="showApplicants(${program.id}, ${JSON.stringify(program.title || '')})" style="cursor: pointer; color: #667eea; text-decoration: underline;">${program.applicationCount || 0}${program.maxSewadars ? ` / ${program.maxSewadars}` : ''}</span></p>
                         ${dropRequestsCount > 0 ? `<p class="error-text"><strong>Drop Requests:</strong> ${dropRequestsCount} pending</p>` : ''}
                         <div class="card-actions">
                             <button class="btn btn-primary btn-sm" onclick="viewApplications(${program.id})">View Applications</button>
@@ -573,8 +622,8 @@ async function loadAdminPrograms() {
                                 Review Drop Requests${dropRequestsCount > 0 ? ` (${dropRequestsCount})` : ''}
                             </button>
                             <button class="btn btn-secondary btn-sm" onclick="showProgramForm(${program.id})">Edit</button>
-                        </div>
-                    </div>
+                </div>
+            </div>
                 </div>
             `;
         }).join('');
@@ -708,7 +757,7 @@ async function saveSewadar(event) {
     if (password) {
         data.password = password;
     }
-    
+
     try {
         if (zonalId) {
             await apiCall(`/sewadars/${zonalId}`, {
@@ -929,7 +978,7 @@ async function savePassword(event) {
         showMessage('Password must be at least 6 characters long', 'error');
         return;
     }
-    
+
     try {
         // Get current sewadar data
         const sewadar = await apiCall(`/sewadars/${currentSewadarForPassword}`);
@@ -1038,7 +1087,7 @@ async function loadAttendancePrograms() {
             listEl.innerHTML = '<p class="info-message">No active programs available for attendance marking.</p>';
             return;
         }
-        
+
         listEl.innerHTML = activePrograms.map(program => `
             <div class="card">
                 <div class="card-header">
@@ -1048,7 +1097,7 @@ async function loadAttendancePrograms() {
                 <div class="card-body">
                     <p><strong>Location:</strong> ${program.location || 'N/A'} ${program.locationType ? `(${program.locationType})` : ''}</p>
                     <p><strong>Dates:</strong> ${program.programDates?.map(d => formatDate(d)).join(', ') || 'N/A'}</p>
-                    <p><strong>Applications:</strong> ${program.applicationCount || 0}${program.maxSewadars ? ` / ${program.maxSewadars}` : ''}</p>
+                    <p><strong>Applications:</strong> <span class="clickable-link" onclick="showApplicants(${program.id}, '${program.title}')" style="cursor: pointer; color: #667eea; text-decoration: underline;">${program.applicationCount || 0}${program.maxSewadars ? ` / ${program.maxSewadars}` : ''}</span></p>
                     <div class="card-actions">
                         <button class="btn btn-primary btn-sm" onclick="showMarkAttendanceWithSave(${program.id})">Mark Attendance</button>
                         <button class="btn btn-secondary btn-sm" onclick="showViewAttendance(${program.id})">View Attendance</button>
@@ -1390,9 +1439,9 @@ async function loadWorkflowPrograms() {
         
         if (programs.length === 0) {
             listEl.innerHTML = '<p class="info-message">No programs found. Create a program to see its workflow.</p>';
-            return;
-        }
-        
+        return;
+    }
+
         // Load workflows for all programs
         const workflows = {};
         for (const program of programs) {
@@ -1565,7 +1614,7 @@ function closeFormSubmissionModal() {
 window.onclick = function(event) {
     const modals = ['program-modal', 'sewadar-modal', 'attendance-modal', 'view-attendance-modal',
                     'applications-dialog-modal', 'drop-requests-dialog-modal', 'password-modal',
-                    'role-change-modal', 'form-submission-modal'];
+                    'role-change-modal', 'form-submission-modal', 'applicants-modal'];
     
     modals.forEach(modalId => {
         const modal = document.getElementById(modalId);
