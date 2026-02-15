@@ -103,6 +103,20 @@ public class ProgramApplicationController {
         return ResponseEntity.ok(applicationService.getDropRequestsByProgram(programId));
     }
 
+    /**
+     * Rollback an application from APPROVED or REJECTED to PENDING
+     * Only the program creator (incharge) can rollback applications
+     * @param id Application ID
+     * @param inchargeId Incharge zonal ID (must be program creator)
+     */
+    @PutMapping("/{id}/rollback")
+    public ResponseEntity<ProgramApplicationResponse> rollbackApplication(
+            @PathVariable Long id,
+            @RequestParam String inchargeId) {
+        log.info("PUT /api/program-applications/{}/rollback - incharge: {}", id, inchargeId);
+        return ResponseEntity.ok(applicationService.rollbackApplication(id, inchargeId));
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteApplication(@PathVariable Long id) {
         applicationService.deleteApplication(id);

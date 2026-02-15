@@ -204,6 +204,36 @@ public class ProgramApplicationServiceImpl implements ProgramApplicationService 
     }
 
     @Override
+    public ProgramApplicationResponse rollbackApplication(Long applicationId, String inchargeId) {
+        log.info("Incharge {} rolling back application {} to PENDING", inchargeId, applicationId);
+        
+        ProgramApplication application = applicationRepository.findById(applicationId)
+                .orElseThrow(() -> new ResourceNotFoundException("ProgramApplication", "id", applicationId));
+        
+        // Verify incharge created the program
+        if (!application.getProgram().getCreatedBy().getZonalId().equals(inchargeId)) {
+            throw new IllegalArgumentException("Only program creator can rollback applications");
+        }
+        
+        // Only allow rollback from APPROVED or REJECTED status
+        String currentStatus = application.getStatus();
+        if (!"APPROVED".equals(currentStatus) && !"REJECTED".equals(currentStatus)) {
+            throw new IllegalArgumentException(
+                String.format("Cannot rollback application from status '%s'. Only APPROVED or REJECTED applications can be rolled back to PENDING.", 
+                    currentStatus));
+        }
+        
+        // Rollback to PENDING
+        application.setStatus("PENDING");
+        ProgramApplication saved = applicationRepository.save(application);
+        
+        log.info("Application {} rolled back from {} to PENDING by incharge {}", 
+                applicationId, currentStatus, inchargeId);
+        
+        return mapToResponse(saved);
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public List<PrioritizedApplicationResponse> getPrioritizedApplications(
             Long programId, String sortBy, String order) {

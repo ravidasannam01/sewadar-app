@@ -16,5 +16,6 @@ public interface ProgramApplicationService {
     ProgramApplicationResponse requestDrop(Long applicationId, String sewadarId);
     ProgramApplicationResponse approveDropRequest(Long applicationId, String inchargeId, Boolean allowReapply);
     List<ProgramApplicationResponse> getDropRequestsByProgram(Long programId);
+    ProgramApplicationResponse rollbackApplication(Long applicationId, String inchargeId);
 }
 

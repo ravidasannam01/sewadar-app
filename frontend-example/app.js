@@ -835,6 +835,9 @@ async function viewApplications(programId) {
                                     <button class="btn btn-sm btn-success" onclick="approveApplication(${app.id})">Approve</button>
                                     <button class="btn btn-sm btn-danger" onclick="rejectApplication(${app.id})">Reject</button>
                                 ` : ''}
+                                ${(app.status === 'APPROVED' || app.status === 'REJECTED') ? `
+                                    <button class="btn btn-sm btn-warning" onclick="rollbackApplication(${app.id})" title="Rollback to PENDING">Rollback</button>
+                                ` : ''}
                             </td>
                         </tr>
                     `).join('')}
@@ -885,6 +888,23 @@ async function rejectApplication(applicationId) {
         if (currentProgramForApplications) {
             viewApplications(currentProgramForApplications);
         }
+    } catch (error) {
+        showMessage('Error: ' + error.message, 'error');
+    }
+}
+
+async function rollbackApplication(applicationId) {
+    if (!confirm('Rollback this application to PENDING? This will undo the approval/rejection.')) return;
+    
+    try {
+        await apiCall(`/program-applications/${applicationId}/rollback?inchargeId=${currentUser.zonalId}`, {
+            method: 'PUT'
+        });
+        showMessage('Application rolled back to PENDING.');
+        if (currentProgramForApplications) {
+            viewApplications(currentProgramForApplications);
+        }
+        loadAdminPrograms();
     } catch (error) {
         showMessage('Error: ' + error.message, 'error');
     }

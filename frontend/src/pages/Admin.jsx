@@ -35,6 +35,7 @@ import {
   CheckCircle as CheckCircleIcon,
   Cancel as CancelIcon,
   PersonAdd as PersonAddIcon,
+  Undo as UndoIcon,
 } from '@mui/icons-material'
 import { format } from 'date-fns'
 import api from '../services/api'
@@ -150,6 +151,20 @@ const Admin = () => {
       }
     } catch (error) {
       alert(error.response?.data?.message || 'Failed to reject')
+    }
+  }
+
+  const handleRollbackApplication = async (applicationId) => {
+    if (!window.confirm('Rollback this application to PENDING? This will undo the approval/rejection.')) return
+
+    try {
+      await api.put(`/program-applications/${applicationId}/rollback?inchargeId=${user.zonalId}`)
+      alert('Application rolled back to PENDING.')
+      if (selectedProgram) {
+        loadPrioritizedApplications(selectedProgram.id)
+      }
+    } catch (error) {
+      alert(error.response?.data?.message || 'Failed to rollback')
     }
   }
 
@@ -594,6 +609,7 @@ const Admin = () => {
                               size="small"
                               color="success"
                               onClick={() => handleApproveApplication(app.id)}
+                              title="Approve"
                             >
                               <CheckCircleIcon />
                             </IconButton>
@@ -601,10 +617,21 @@ const Admin = () => {
                               size="small"
                               color="error"
                               onClick={() => handleRejectApplication(app.id)}
+                              title="Reject"
                             >
                               <CancelIcon />
                             </IconButton>
                           </Box>
+                        )}
+                        {(app.status === 'APPROVED' || app.status === 'REJECTED') && (
+                          <IconButton
+                            size="small"
+                            color="warning"
+                            onClick={() => handleRollbackApplication(app.id)}
+                            title="Rollback to PENDING"
+                          >
+                            <UndoIcon />
+                          </IconButton>
                         )}
                       </TableCell>
                     </TableRow>
