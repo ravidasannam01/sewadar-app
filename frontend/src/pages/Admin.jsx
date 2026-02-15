@@ -76,11 +76,9 @@ const Admin = () => {
 
   const loadPrograms = async () => {
     try {
-      if (!user?.zonalId) {
-        console.error('User zonalId not available')
-        return
-      }
-      const response = await api.get(`/programs/incharge/${user.zonalId}`)
+      // For INCHARGE role, show ALL programs (not just ones they created)
+      // This allows promoted incharges to see all programs in the system
+      const response = await api.get('/programs')
       setPrograms(response.data || [])
     } catch (error) {
       console.error('Error loading programs:', error)

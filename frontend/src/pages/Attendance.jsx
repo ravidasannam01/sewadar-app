@@ -58,7 +58,10 @@ const Attendance = () => {
 
   const loadPrograms = async () => {
     try {
-      const response = await api.get(`/programs/incharge/${user.zonalId}`)
+      // For INCHARGE role, show ALL programs (not just ones they created)
+      // This allows promoted incharges to see all programs in the system
+      // Note: Only program creators can mark attendance (enforced by backend)
+      const response = await api.get('/programs')
       // Only show active programs
       const activePrograms = response.data.filter(p => p.status === 'active')
       setPrograms(activePrograms)

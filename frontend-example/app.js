@@ -595,7 +595,9 @@ async function reapplyToProgram(programId) {
 
 async function loadAdminPrograms() {
     try {
-        const programs = await apiCall(`/programs/incharge/${currentUser.zonalId}`);
+        // For INCHARGE role, show ALL programs (not just ones they created)
+        // This allows promoted incharges to see all programs in the system
+        const programs = await apiCall(`/programs`);
         const listEl = document.getElementById('admin-programs-list');
         if (!listEl) return;
         
@@ -1098,7 +1100,10 @@ function closeRoleChangeModal() {
 
 async function loadAttendancePrograms() {
     try {
-        const programs = await apiCall(`/programs/incharge/${currentUser.zonalId}`);
+        // For INCHARGE role, show ALL programs (not just ones they created)
+        // This allows promoted incharges to see all programs in the system
+        // Note: Only program creators can mark attendance (enforced by backend)
+        const programs = await apiCall(`/programs`);
         const activePrograms = programs.filter(p => p.status === 'active');
         const listEl = document.getElementById('attendance-programs-list');
         if (!listEl) return;
@@ -1453,7 +1458,10 @@ function showAdminTab(tab) {
 
 async function loadWorkflowPrograms() {
     try {
-        const programs = await apiCall(`/programs/incharge/${currentUser.zonalId}`);
+        // For INCHARGE role, show ALL programs (not just ones they created)
+        // This allows promoted incharges to see all programs in the system
+        // Note: Only program creators can manage workflows (enforced by backend)
+        const programs = await apiCall(`/programs`);
         const listEl = document.getElementById('workflow-programs-list');
         if (!listEl) return;
         

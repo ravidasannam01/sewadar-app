@@ -50,8 +50,11 @@ const Workflow = () => {
       setError(null)
       
       // Load programs and global preferences
+      // For INCHARGE role, show ALL programs (not just ones they created)
+      // This allows promoted incharges to see all programs in the system
+      // Note: Only program creators can manage workflows (enforced by backend)
       const [programsRes, preferencesRes] = await Promise.all([
-        api.get(`/programs/incharge/${user.zonalId}`).catch(err => {
+        api.get('/programs').catch(err => {
           console.error('Error loading programs:', err)
           return { data: [] }
         }),
