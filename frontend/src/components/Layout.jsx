@@ -12,7 +12,6 @@ import { useAuth } from '../contexts/AuthContext'
 import LogoutIcon from '@mui/icons-material/Logout'
 import DashboardIcon from '@mui/icons-material/Dashboard'
 import EventIcon from '@mui/icons-material/Event'
-import AssignmentIcon from '@mui/icons-material/Assignment'
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings'
 import WorkflowIcon from '@mui/icons-material/AccountTree'
 import PendingActionsIcon from '@mui/icons-material/PendingActions'
@@ -30,7 +29,6 @@ const Layout = () => {
 
   const navItems = [
     { path: '/programs', label: 'Programs', icon: <EventIcon /> },
-    { path: '/applications', label: 'My Applications', icon: <AssignmentIcon /> },
     { path: '/dashboard', label: 'Dashboard', icon: <DashboardIcon /> },
   ]
 

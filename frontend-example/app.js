@@ -68,7 +68,6 @@ function setupNavigation() {
     // Common navigation items
     const navItems = [
         { id: 'programs', label: 'Programs', icon: '📅' },
-        { id: 'applications', label: 'My Applications', icon: '📋' }
     ];
     
     if (currentUser?.role === 'ADMIN' || currentUser?.role === 'INCHARGE') {
@@ -125,9 +124,6 @@ function showSection(sectionId) {
     switch(sectionId) {
         case 'programs':
             loadPrograms();
-            break;
-        case 'applications':
-            loadApplications();
             break;
         case 'admin':
             loadAdminPrograms();
@@ -382,12 +378,19 @@ async function loadPrograms() {
                         <p><strong>Location:</strong> ${program.location || 'N/A'} ${program.locationType ? `(${program.locationType})` : ''}</p>
                         <p><strong>Dates:</strong> ${program.programDates?.map(d => formatDate(d)).join(', ') || 'N/A'}</p>
                         <p><strong>Applications:</strong> <span class="clickable-link" onclick="showApplicants(${program.id}, ${JSON.stringify(program.title || '')})" style="cursor: pointer; color: #667eea; text-decoration: underline;">${program.applicationCount || 0}${program.maxSewadars ? ` / ${program.maxSewadars}` : ''}</span></p>
+                        ${app ? `<p><strong>Applied:</strong> ${formatDate(app.appliedAt)}</p>` : ''}
                         ${(currentUser?.role === 'SEWADAR' || currentUser?.role === 'INCHARGE' || currentUser?.role === 'ADMIN') && program.status === 'active' ? `
                             <div class="card-actions">
                                 ${appStatus === 'DROPPED' ? `
                                     <button class="btn btn-primary" onclick="applyToProgram(${program.id})">Reapply</button>
+                                ` : appStatus === 'DROP_REQUESTED' ? `
+                                    <span class="status-badge DROP_REQUESTED">Drop Request Pending</span>
+                                    <span class="status-badge ${appStatus}">${appStatus}</span>
                                 ` : appStatus ? `
                                     <span class="status-badge ${appStatus}">${appStatus}</span>
+                                    ${(appStatus === 'PENDING' || appStatus === 'APPROVED') ? `
+                                        <button class="btn btn-outline-error" onclick="requestDrop(${app.id})">Request Drop</button>
+                                    ` : ''}
                                 ` : `
                                     <button class="btn btn-primary" onclick="applyToProgram(${program.id})">Apply</button>
                                 `}
@@ -416,7 +419,6 @@ async function applyToProgram(programId) {
         });
         showMessage('Application submitted successfully!');
         loadPrograms();
-        loadApplications();
     } catch (error) {
         showMessage('Error: ' + error.message, 'error');
     }
@@ -568,7 +570,7 @@ async function requestDrop(applicationId) {
             method: 'PUT'
         });
         showMessage('Drop request submitted. Waiting for incharge approval.');
-        loadApplications();
+        loadPrograms();
     } catch (error) {
         showMessage('Error: ' + error.message, 'error');
     }
@@ -586,7 +588,6 @@ async function reapplyToProgram(programId) {
             })
         });
         showMessage('Application submitted successfully!');
-        loadApplications();
         loadPrograms();
     } catch (error) {
         showMessage('Error: ' + error.message, 'error');

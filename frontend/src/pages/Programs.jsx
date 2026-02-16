@@ -102,6 +102,24 @@ const Programs = () => {
     }
   }
 
+  const handleRequestDrop = async (applicationId) => {
+    if (!window.confirm('Request to drop from this program? This requires incharge approval.')) {
+      return
+    }
+
+    try {
+      await api.put(`/program-applications/${applicationId}/request-drop?sewadarId=${user.zonalId}`)
+      alert('Drop request submitted. Waiting for incharge approval.')
+      await loadMyApplications()
+    } catch (error) {
+      alert(error.response?.data?.message || 'Failed to request drop')
+    }
+  }
+
+  const getApplication = (programId) => {
+    return myApplications.find((a) => a.programId === programId)
+  }
+
   const filteredPrograms = programs.filter((program) => {
     // For INCHARGE and ADMIN: Show all programs (no status/date filtering for management)
     // For SEWADAR: Only show active programs where last date >= today (for applying)
@@ -137,10 +155,6 @@ const Programs = () => {
     page * itemsPerPage
   )
 
-  const getApplicationStatus = (programId) => {
-    const app = myApplications.find((a) => a.programId === programId)
-    return app?.status
-  }
 
   const handleEdit = (program) => {
     setSelectedProgram(program)
@@ -241,7 +255,8 @@ const Programs = () => {
         <>
           <Grid container spacing={3}>
             {paginatedPrograms.map((program) => {
-              const appStatus = getApplicationStatus(program.id)
+              const application = getApplication(program.id)
+              const appStatus = application?.status
               const applyDeadline = parseBackendLocalDateTime(program.lastDateToApply)
               const applyCountdown = formatCountdownHm(applyDeadline, nowMs)
               const applyClosed = isPastDeadline(applyDeadline, nowMs)
@@ -323,6 +338,11 @@ const Programs = () => {
                                 : `Time left to apply: ${applyCountdown}`}
                             </Typography>
                           )}
+                          {application && (
+                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+                              <strong>Applied:</strong> {format(new Date(application.appliedAt), 'MMM dd, yyyy')}
+                            </Typography>
+                          )}
                           {appStatus === 'DROPPED' ? (
                             <Button
                               variant="contained"
@@ -333,12 +353,40 @@ const Programs = () => {
                             >
                               Reapply
                             </Button>
+                          ) : appStatus === 'DROP_REQUESTED' ? (
+                            <Box>
+                              <Chip
+                                label="Drop Request Pending"
+                                color="error"
+                                size="small"
+                                sx={{ mb: 1 }}
+                              />
+                              <Chip
+                                label={appStatus}
+                                color="default"
+                                size="small"
+                              />
+                            </Box>
                           ) : appStatus ? (
-                            <Chip
-                              label={appStatus}
-                              color={appStatus === 'APPROVED' ? 'success' : 'default'}
-                              size="small"
-                            />
+                            <Box>
+                              <Chip
+                                label={appStatus}
+                                color={appStatus === 'APPROVED' ? 'success' : appStatus === 'REJECTED' ? 'error' : 'warning'}
+                                size="small"
+                                sx={{ mb: 1 }}
+                              />
+                              {(appStatus === 'PENDING' || appStatus === 'APPROVED') && (
+                                <Button
+                                  variant="outlined"
+                                  color="error"
+                                  fullWidth
+                                  size="small"
+                                  onClick={() => handleRequestDrop(application.id)}
+                                >
+                                  Request Drop
+                                </Button>
+                              )}
+                            </Box>
                           ) : (
                             <Button
                               variant="contained"
