@@ -2,7 +2,6 @@ package com.rssb.application.service;
 
 import com.rssb.application.dto.ProgramNotificationPreferenceResponse;
 import com.rssb.application.entity.Program;
-import com.rssb.application.entity.NotificationPreference;
 import com.rssb.application.entity.ProgramNotificationPreference;
 import com.rssb.application.exception.ResourceNotFoundException;
 import com.rssb.application.repository.ProgramNotificationPreferenceRepository;
@@ -24,50 +23,56 @@ public class ProgramNotificationPreferenceService {
 
     private final ProgramNotificationPreferenceRepository programPreferenceRepository;
     private final ProgramRepository programRepository;
-    private final NotificationPreferenceRepository globalPreferenceRepository;
+
+    // Local copy of node names to keep logic close to workflow definition
+    private static final String[] NODE_NAMES = {
+            "Make Program Active",
+            "Post Application Message",
+            "Release Form",
+            "Collect Details",
+            "Post Mail to Area Secretary",
+            "Post General Instructions"
+    };
 
     /**
      * Get notification preferences for a program.
-     * Returns program-level settings with effective enabled status.
+     * Returns program-level settings only (no global preferences).
      */
     @Transactional(readOnly = true)
     public List<ProgramNotificationPreferenceResponse> getPreferencesForProgram(Long programId) {
         Program program = programRepository.findById(programId)
             .orElseThrow(() -> new ResourceNotFoundException("Program", "id", programId));
 
-        // Get all global preferences
-        List<NotificationPreference> globalPrefs = globalPreferenceRepository.findAllByOrderByNodeNumberAsc();
-        
         // Get program-level preferences
         List<ProgramNotificationPreference> programPrefs = programPreferenceRepository.findByProgram(program);
 
-        return globalPrefs.stream().map(global -> {
-            // Find program-level override if exists
-            ProgramNotificationPreference programPref = programPrefs.stream()
-                .filter(p -> p.getNodeNumber().equals(global.getNodeNumber()))
-                .findFirst()
-                .orElse(null);
+        // Ensure we always return 6 nodes in order
+        return java.util.stream.IntStream.rangeClosed(1, 6)
+                .mapToObj(nodeNumber -> {
+                    ProgramNotificationPreference programPref = programPrefs.stream()
+                            .filter(p -> p.getNodeNumber().equals(nodeNumber))
+                            .findFirst()
+                            .orElse(null);
 
-            Boolean effectiveEnabled = programPref != null && programPref.getEnabled() != null
-                ? programPref.getEnabled()
-                : global.getEnabled();
+                    boolean enabled = programPref != null && Boolean.TRUE.equals(programPref.getEnabled());
 
-            return ProgramNotificationPreferenceResponse.builder()
-                .id(programPref != null ? programPref.getId() : null)
-                .programId(programId)
-                .nodeNumber(global.getNodeNumber())
-                .nodeName(global.getNodeName())
-                .enabled(programPref != null ? programPref.getEnabled() : null)
-                .effectiveEnabled(effectiveEnabled)
-                .build();
-        }).collect(Collectors.toList());
+                    return ProgramNotificationPreferenceResponse.builder()
+                            .id(programPref != null ? programPref.getId() : null)
+                            .programId(programId)
+                            .nodeNumber(nodeNumber)
+                            .nodeName(nodeNumber <= NODE_NAMES.length ? NODE_NAMES[nodeNumber - 1] : ("Node " + nodeNumber))
+                            .enabled(enabled)
+                            .effectiveEnabled(enabled)
+                            .build();
+                })
+                .collect(Collectors.toList());
     }
 
     /**
      * Update program-level notification preference.
      * @param programId Program ID
      * @param nodeNumber Node number (1-6)
-     * @param enabled null = use global, true/false = override
+     * @param enabled true/false to turn notifications on/off for this node
      */
     public ProgramNotificationPreferenceResponse updatePreference(
             Long programId, Integer nodeNumber, Boolean enabled) {
@@ -82,29 +87,21 @@ public class ProgramNotificationPreferenceService {
             preference = ProgramNotificationPreference.builder()
                 .program(program)
                 .nodeNumber(nodeNumber)
-                .enabled(enabled)
+                .enabled(Boolean.TRUE.equals(enabled))
                 .build();
         } else {
-            preference.setEnabled(enabled);
+            preference.setEnabled(Boolean.TRUE.equals(enabled));
         }
 
         preference = programPreferenceRepository.save(preference);
-
-        // Get global preference for response
-        NotificationPreference globalPref = globalPreferenceRepository
-            .findByNodeNumber(nodeNumber)
-            .orElse(null);
-
-        Boolean effectiveEnabled = enabled != null ? enabled : 
-            (globalPref != null ? globalPref.getEnabled() : false);
 
         return ProgramNotificationPreferenceResponse.builder()
             .id(preference.getId())
             .programId(programId)
             .nodeNumber(nodeNumber)
-            .nodeName(globalPref != null ? globalPref.getNodeName() : "Node " + nodeNumber)
-            .enabled(enabled)
-            .effectiveEnabled(effectiveEnabled)
+            .nodeName(nodeNumber <= NODE_NAMES.length ? NODE_NAMES[nodeNumber - 1] : ("Node " + nodeNumber))
+            .enabled(preference.getEnabled())
+            .effectiveEnabled(preference.getEnabled())
             .build();
     }
 }

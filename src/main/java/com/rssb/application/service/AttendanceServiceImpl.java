@@ -320,5 +320,30 @@ public class AttendanceServiceImpl implements AttendanceService {
                 })
                 .collect(Collectors.toList());
     }
+
+    @Override
+    public void deleteAttendance(Long id, String inchargeZonalId) {
+        log.info("Incharge {} deleting attendance record {}", inchargeZonalId, id);
+
+        Attendance attendance = attendanceRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Attendance", "id", id));
+
+        Program program = attendance.getProgram();
+
+        // Validate user role and permission (same rules as markAttendance)
+        Sewadar incharge = sewadarRepository.findByZonalId(inchargeZonalId)
+                .orElseThrow(() -> new ResourceNotFoundException("Sewadar", "zonal_id", inchargeZonalId));
+
+        if (!com.rssb.application.util.PermissionUtil.canManageProgram(incharge, program)) {
+            throw new IllegalArgumentException("Only the program creator (or ADMIN) can unmark attendance");
+        }
+
+        if (!com.rssb.application.util.PermissionUtil.hasInchargePermission(incharge)) {
+            throw new IllegalArgumentException("Only incharge or admin can unmark attendance");
+        }
+
+        attendanceRepository.delete(attendance);
+        log.info("Attendance record {} deleted successfully", id);
+    }
 }
 

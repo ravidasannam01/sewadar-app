@@ -19,6 +19,8 @@ const ProgramForm = ({ program, onClose, onSuccess }) => {
     location: '',
     status: 'scheduled',
     maxSewadars: '',
+    lastDateToApply: '',
+    lastDateToSubmitForm: '',
     programDates: [{ date: '' }],
   })
   const [loading, setLoading] = useState(false)
@@ -31,6 +33,8 @@ const ProgramForm = ({ program, onClose, onSuccess }) => {
         location: program.location || '',
         status: program.status || 'scheduled',
         maxSewadars: program.maxSewadars || '',
+        lastDateToApply: program.lastDateToApply ? String(program.lastDateToApply).slice(0, 16) : '',
+        lastDateToSubmitForm: program.lastDateToSubmitForm ? String(program.lastDateToSubmitForm).slice(0, 16) : '',
         programDates: program.programDates?.length > 0
           ? program.programDates.map((d) => ({ date: d }))
           : [{ date: '' }],
@@ -75,6 +79,12 @@ const ProgramForm = ({ program, onClose, onSuccess }) => {
     }
 
     try {
+      const toIsoWithSeconds = (dtLocal) => {
+        if (!dtLocal) return null
+        // datetime-local gives "YYYY-MM-DDTHH:mm" -> backend LocalDateTime prefers seconds
+        return dtLocal.length === 16 ? `${dtLocal}:00` : dtLocal
+      }
+
       const payload = {
         title: formData.title,
         description: formData.description,
@@ -82,6 +92,8 @@ const ProgramForm = ({ program, onClose, onSuccess }) => {
         status: formData.status,
         programDates: dates,
         maxSewadars: formData.maxSewadars ? parseInt(formData.maxSewadars) : null,
+        lastDateToApply: toIsoWithSeconds(formData.lastDateToApply),
+        lastDateToSubmitForm: toIsoWithSeconds(formData.lastDateToSubmitForm),
         createdById: user.zonalId,
       }
 
@@ -148,6 +160,28 @@ const ProgramForm = ({ program, onClose, onSuccess }) => {
         value={formData.maxSewadars}
         onChange={(e) => handleChange('maxSewadars', e.target.value)}
         margin="normal"
+      />
+
+      <TextField
+        fullWidth
+        type="datetime-local"
+        label="Last Date/Time to Apply"
+        value={formData.lastDateToApply}
+        onChange={(e) => handleChange('lastDateToApply', e.target.value)}
+        margin="normal"
+        InputLabelProps={{ shrink: true }}
+        helperText="Optional. If set, applications will be blocked after this date/time."
+      />
+
+      <TextField
+        fullWidth
+        type="datetime-local"
+        label="Last Date/Time to Submit Form"
+        value={formData.lastDateToSubmitForm}
+        onChange={(e) => handleChange('lastDateToSubmitForm', e.target.value)}
+        margin="normal"
+        InputLabelProps={{ shrink: true }}
+        helperText="Optional. If set, form submissions will be blocked after this date/time."
       />
 
       <Box mt={2}>

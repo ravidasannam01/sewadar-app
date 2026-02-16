@@ -96,6 +96,28 @@ public class AttendanceController {
         return ResponseEntity.ok(response);
     }
 
+    /**
+     * Delete (unmark) a single attendance record.
+     * This is used when incharge/admin marked someone present by mistake.
+     */
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteAttendance(@PathVariable Long id) {
+        String userId = UserContextUtil.getCurrentUserId();
+        String userRole = UserContextUtil.getCurrentUserRole();
+
+        long startTime = System.currentTimeMillis();
+        attendanceService.deleteAttendance(id, userId);
+        long duration = System.currentTimeMillis() - startTime;
+
+        Map<String, Object> details = new HashMap<>();
+        details.put("attendanceId", id);
+        details.put("durationMs", duration);
+        actionLogger.logAction("DELETE_ATTENDANCE", userId, userRole, details);
+        actionLogger.logPerformance("DELETE_ATTENDANCE", duration);
+
+        return ResponseEntity.noContent().build();
+    }
+
     @GetMapping("/program/{programId}")
     public ResponseEntity<List<AttendanceResponse>> getAttendanceByProgram(@PathVariable Long programId) {
         return ResponseEntity.ok(attendanceService.getAttendanceByProgram(programId));

@@ -15,5 +15,14 @@ public interface AttendanceService {
     com.rssb.application.dto.SewadarAttendanceSummaryResponse getSewadarAttendanceSummary(String sewadarId);
     com.rssb.application.dto.AllSewadarsAttendanceSummaryResponse getAllSewadarsAttendanceSummary();
     List<ProgramAttendeeResponse> getApprovedAttendeesForProgram(Long programId);
+
+    /**
+     * Delete (unmark) a single attendance record.
+     * Used when incharge/admin accidentally marked attendance and wants to revert.
+     *
+     * @param id Attendance record ID
+     * @param inchargeZonalId Incharge/admin zonal ID performing the operation
+     */
+    void deleteAttendance(Long id, String inchargeZonalId);
 }
 

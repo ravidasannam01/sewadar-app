@@ -1,6 +1,7 @@
 package com.rssb.application.controller;
 
 import com.rssb.application.dto.ProgramWorkflowResponse;
+import com.rssb.application.dto.SewadarResponse;
 import com.rssb.application.service.ProgramWorkflowService;
 import com.rssb.application.util.ActionLogger;
 import com.rssb.application.util.UserContextUtil;
@@ -111,5 +112,24 @@ public class ProgramWorkflowController {
     public ResponseEntity<String> initializeAllMissingWorkflows() {
         int count = workflowService.initializeAllMissingWorkflows();
         return ResponseEntity.ok("Initialized " + count + " missing workflows");
+    }
+
+    /**
+     * Get approved sewadars who have NOT yet submitted forms for this program.
+     */
+    @GetMapping("/program/{programId}/missing-forms")
+    public ResponseEntity<List<SewadarResponse>> getMissingFormSubmissions(
+            @PathVariable Long programId) {
+        return ResponseEntity.ok(workflowService.getMissingFormSubmitters(programId));
+    }
+
+    /**
+     * Notify all approved sewadars who have not submitted forms yet via WhatsApp.
+     */
+    @PostMapping("/program/{programId}/notify-missing-forms")
+    public ResponseEntity<Void> notifyMissingFormSubmissions(
+            @PathVariable Long programId) {
+        workflowService.notifyMissingFormSubmitters(programId);
+        return ResponseEntity.ok().build();
     }
 }

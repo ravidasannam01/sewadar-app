@@ -19,6 +19,7 @@ import { Assignment as AssignmentIcon } from '@mui/icons-material'
 // Can upgrade to MUI DatePicker later if needed
 import api from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
+import { formatCountdownHm, isPastDeadline, parseBackendLocalDateTime } from '../utils/countdown'
 
 const PendingActions = () => {
   const { user } = useAuth()
@@ -38,6 +39,7 @@ const PendingActions = () => {
     stayInPandal: '',
   })
   const [submitting, setSubmitting] = useState(false)
+  const [nowMs, setNowMs] = useState(Date.now())
 
   useEffect(() => {
     // INCHARGE and ADMIN can also view pending actions (they can apply to programs too)
@@ -45,6 +47,12 @@ const PendingActions = () => {
       loadPendingPrograms()
     }
   }, [user])
+
+  // Live timer tick for countdowns
+  useEffect(() => {
+    const t = setInterval(() => setNowMs(Date.now()), 1000)
+    return () => clearInterval(t)
+  }, [])
 
   const loadPendingPrograms = async () => {
     try {
@@ -59,11 +67,28 @@ const PendingActions = () => {
       )
       const workflows = await Promise.all(workflowPromises)
 
-      // Filter programs where form is released and sewadar hasn't submitted
+      // Load this sewadar's applications to check APPROVED status
+      const applicationsRes = await api.get(
+        `/program-applications/sewadar/${user.zonalId}`,
+      )
+      const myApps = applicationsRes.data || []
+
+      // Filter programs where:
+      // - form is released and workflow at node >= 4
+      // - sewadar has an APPROVED application
+      // - sewadar hasn't submitted the form yet
       const pending = []
       for (let i = 0; i < allPrograms.length; i++) {
         const workflow = workflows[i]?.data
         if (workflow && workflow.formReleased && workflow.currentNode >= 4) {
+          const programId = allPrograms[i].id
+          const hasApprovedApp = myApps.some(
+            (app) => app.programId === programId && app.status === 'APPROVED',
+          )
+          if (!hasApprovedApp) {
+            continue
+          }
+
           // Check if sewadar already submitted
           try {
             const submission = await api.get(
@@ -143,10 +168,15 @@ const PendingActions = () => {
         <Alert severity="info">No pending actions at this time.</Alert>
       ) : (
         <Grid container spacing={3}>
-          {pendingPrograms.map((program) => (
-            <Grid item xs={12} md={6} key={program.id}>
-              <Card>
-                <CardContent>
+          {pendingPrograms.map((program) => {
+            const submitDeadline = parseBackendLocalDateTime(program.lastDateToSubmitForm)
+            const submitCountdown = formatCountdownHm(submitDeadline, nowMs)
+            const submitClosed = isPastDeadline(submitDeadline, nowMs)
+
+            return (
+              <Grid item xs={12} md={6} key={program.id}>
+                <Card>
+                  <CardContent>
                   <Box display="flex" alignItems="center" gap={2} mb={2}>
                     <AssignmentIcon color="primary" />
                     <Typography variant="h6" sx={{ fontWeight: 600 }}>
@@ -156,18 +186,31 @@ const PendingActions = () => {
                   <Typography variant="body2" color="text.secondary" gutterBottom>
                     Please fill the travel details form for this program.
                   </Typography>
+                  {submitDeadline && (
+                    <Typography
+                      variant="caption"
+                      color={submitClosed ? 'error.main' : 'text.secondary'}
+                      sx={{ display: 'block', mt: 1, fontWeight: 600 }}
+                    >
+                      {submitClosed
+                        ? 'Form submission deadline passed'
+                        : `Time left to submit form: ${submitCountdown}`}
+                    </Typography>
+                  )}
                   <Button
                     variant="contained"
                     fullWidth
                     sx={{ mt: 2 }}
                     onClick={() => handleOpenForm(program)}
+                    disabled={submitClosed}
                   >
                     Fill Form
                   </Button>
-                </CardContent>
-              </Card>
-            </Grid>
-          ))}
+                  </CardContent>
+                </Card>
+              </Grid>
+            )
+          })}
         </Grid>
       )}
 

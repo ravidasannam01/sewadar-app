@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -39,6 +40,20 @@ public class Program {
 
     @Column(name = "max_sewadars")
     private Integer maxSewadars;
+
+    /**
+     * Deadline until which applications are allowed (inclusive by UI convention; enforced as "now must be <= deadline").
+     * Nullable = no deadline.
+     */
+    @Column(name = "last_date_to_apply")
+    private LocalDateTime lastDateToApply;
+
+    /**
+     * Deadline until which the travel-details form can be submitted.
+     * Nullable = no deadline.
+     */
+    @Column(name = "last_date_to_submit_form")
+    private LocalDateTime lastDateToSubmitForm;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by", referencedColumnName = "zonal_id", nullable = false)

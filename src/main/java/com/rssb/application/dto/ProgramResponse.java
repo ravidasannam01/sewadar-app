@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Data
@@ -21,6 +22,8 @@ public class ProgramResponse {
     private List<LocalDate> programDates; // Multiple dates
     private String status;
     private Integer maxSewadars;
+    private LocalDateTime lastDateToApply;
+    private LocalDateTime lastDateToSubmitForm;
     private SewadarResponse createdBy;
     private Long applicationCount;
     private Long dropRequestsCount; // Count of pending drop requests

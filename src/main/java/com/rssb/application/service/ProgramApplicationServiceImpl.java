@@ -45,6 +45,15 @@ public class ProgramApplicationServiceImpl implements ProgramApplicationService 
             throw new IllegalArgumentException("Applications can only be submitted to active programs. Current program status: " + program.getStatus());
         }
 
+        // Check application deadline (if configured)
+        if (program.getLastDateToApply() != null) {
+            java.time.LocalDateTime now = java.time.LocalDateTime.now();
+            if (now.isAfter(program.getLastDateToApply())) {
+                throw new IllegalArgumentException(
+                        "Application deadline has passed for this program. Last date/time to apply was: " + program.getLastDateToApply());
+            }
+        }
+
         Sewadar sewadar = sewadarRepository.findByZonalId(request.getSewadarId())
                 .orElseThrow(() -> new ResourceNotFoundException("Sewadar", "zonal_id", request.getSewadarId()));
 
@@ -112,6 +121,26 @@ public class ProgramApplicationServiceImpl implements ProgramApplicationService 
         log.info("Updating application {} status to {}", id, status);
         ProgramApplication application = applicationRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("ProgramApplication", "id", id));
+
+        Program program = application.getProgram();
+        
+        // Validate maxSewadars limit when approving
+        if ("APPROVED".equals(status) && !"APPROVED".equals(application.getStatus())) {
+            // Only check limit if changing TO APPROVED (not already APPROVED)
+            if (program.getMaxSewadars() != null) {
+                // Count current approved applications for this program
+                long currentApprovedCount = applicationRepository.countByProgramIdAndStatus(
+                        program.getId(), "APPROVED");
+                
+                // If already at or above limit, reject approval
+                if (currentApprovedCount >= program.getMaxSewadars()) {
+                    throw new IllegalArgumentException(
+                            String.format("Cannot approve application: Program has reached maximum capacity. " +
+                                    "Current approved: %d, Maximum allowed: %d",
+                                    currentApprovedCount, program.getMaxSewadars()));
+                }
+            }
+        }
 
         application.setStatus(status);
         ProgramApplication updated = applicationRepository.save(application);

@@ -33,6 +33,7 @@ import { format } from 'date-fns'
 import api from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
 import ProgramForm from '../components/ProgramForm'
+import { formatCountdownHm, isPastDeadline, parseBackendLocalDateTime } from '../utils/countdown'
 
 const Programs = () => {
   const { user } = useAuth()
@@ -49,6 +50,7 @@ const Programs = () => {
   const [selectedProgramForApplicants, setSelectedProgramForApplicants] = useState(null)
   const [applicants, setApplicants] = useState([])
   const [loadingApplicants, setLoadingApplicants] = useState(false)
+  const [nowMs, setNowMs] = useState(Date.now())
   const itemsPerPage = 12
 
   useEffect(() => {
@@ -58,6 +60,12 @@ const Programs = () => {
       loadMyApplications()
     }
   }, [user])
+
+  // Live timer tick for countdowns
+  useEffect(() => {
+    const t = setInterval(() => setNowMs(Date.now()), 1000)
+    return () => clearInterval(t)
+  }, [])
 
   const loadPrograms = async () => {
     try {
@@ -234,6 +242,9 @@ const Programs = () => {
           <Grid container spacing={3}>
             {paginatedPrograms.map((program) => {
               const appStatus = getApplicationStatus(program.id)
+              const applyDeadline = parseBackendLocalDateTime(program.lastDateToApply)
+              const applyCountdown = formatCountdownHm(applyDeadline, nowMs)
+              const applyClosed = isPastDeadline(applyDeadline, nowMs)
               return (
                 <Grid item xs={12} sm={6} md={4} key={program.id}>
                   <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -301,12 +312,24 @@ const Programs = () => {
 
                       {(user?.role === 'SEWADAR' || user?.role === 'INCHARGE' || user?.role === 'ADMIN') && program.status === 'active' && (
                         <Box mt="auto">
+                          {applyDeadline && (
+                            <Typography
+                              variant="caption"
+                              color={applyClosed ? 'error.main' : 'text.secondary'}
+                              sx={{ display: 'block', mb: 1, fontWeight: 600 }}
+                            >
+                              {applyClosed
+                                ? 'Application deadline passed'
+                                : `Time left to apply: ${applyCountdown}`}
+                            </Typography>
+                          )}
                           {appStatus === 'DROPPED' ? (
                             <Button
                               variant="contained"
                               fullWidth
                               size="small"
                               onClick={() => handleApply(program.id)}
+                              disabled={applyClosed}
                             >
                               Reapply
                             </Button>
@@ -322,6 +345,7 @@ const Programs = () => {
                               fullWidth
                               size="small"
                               onClick={() => handleApply(program.id)}
+                              disabled={applyClosed}
                             >
                               Apply
                             </Button>

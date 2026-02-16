@@ -28,16 +28,26 @@ import api from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
 import { isAdminOrIncharge } from '../utils/roleUtils'
 
+const STEP_NAMES = [
+  'Make Program Active',
+  'Post Application Message',
+  'Release Form',
+  'Collect Details',
+  'Post Mail to Area Secretary',
+  'Post General Instructions',
+]
+
 const Workflow = () => {
   const { user } = useAuth()
   const [programs, setPrograms] = useState([])
   const [workflows, setWorkflows] = useState({})
-  const [globalPreferences, setGlobalPreferences] = useState([])
   const [programPreferences, setProgramPreferences] = useState({}) // { programId: [preferences] }
   const [loading, setLoading] = useState(true)
   const [selectedProgram, setSelectedProgram] = useState(null)
   const [openWorkflowDialog, setOpenWorkflowDialog] = useState(false)
   const [error, setError] = useState(null)
+  const [missingForms, setMissingForms] = useState([])
+  const [openMissingDialog, setOpenMissingDialog] = useState(false)
 
   useEffect(() => {
     if (isAdminOrIncharge(user)) {
@@ -49,33 +59,27 @@ const Workflow = () => {
     try {
       setLoading(true)
       setError(null)
-      
-      // Load programs and global preferences
+
+      // Load programs
       // For INCHARGE role, show ALL programs (not just ones they created)
       // This allows promoted incharges to see all programs in the system
       // Note: Only program creators can manage workflows (enforced by backend)
-      const [programsRes, preferencesRes] = await Promise.all([
-        api.get('/programs').catch(err => {
-          console.error('Error loading programs:', err)
-          return { data: [] }
-        }),
-        api.get('/notification-preferences').catch(err => {
-          console.error('Error loading global preferences:', err)
-          return { data: [] }
-        }),
-      ])
-      
+      const programsRes = await api.get('/programs').catch((err) => {
+        console.error('Error loading programs:', err)
+        return { data: [] }
+      })
+
       setPrograms(programsRes.data || [])
-      setGlobalPreferences(preferencesRes.data || [])
 
       // Load workflows for all programs
       const workflowPromises = (programsRes.data || []).map((p) =>
-        api.get(`/workflow/program/${p.id}`)
+        api
+          .get(`/workflow/program/${p.id}`)
           .then((r) => r.data)
-          .catch(err => {
+          .catch((err) => {
             console.error(`Error loading workflow for program ${p.id}:`, err)
             return null
-          })
+          }),
       )
       const workflowData = await Promise.all(workflowPromises)
       const workflowMap = {}
@@ -88,12 +92,13 @@ const Workflow = () => {
 
       // Load program-level preferences for each program
       const programPrefPromises = (programsRes.data || []).map((p) =>
-        api.get(`/program-notification-preferences/program/${p.id}`)
+        api
+          .get(`/program-notification-preferences/program/${p.id}`)
           .then((r) => ({ programId: p.id, preferences: r.data }))
-          .catch(err => {
+          .catch((err) => {
             console.error(`Error loading preferences for program ${p.id}:`, err)
             return { programId: p.id, preferences: [] }
-          })
+          }),
       )
       const programPrefData = await Promise.all(programPrefPromises)
       const programPrefMap = {}
@@ -109,40 +114,24 @@ const Workflow = () => {
     }
   }
 
-  const handleToggleGlobalPreference = async (preferenceId, enabled) => {
-    try {
-      await api.put(`/notification-preferences/${preferenceId}/toggle?enabled=${!enabled}`)
-      setGlobalPreferences((prev) =>
-        prev.map((p) => (p.id === preferenceId ? { ...p, enabled: !enabled } : p))
-      )
-      // Reload program preferences to update effective values
-      await loadData()
-    } catch (error) {
-      alert('Failed to update global preference')
-    }
-  }
-
   const handleToggleProgramPreference = async (programId, nodeNumber, currentEnabled) => {
     try {
-      // Toggle: null -> true -> false -> null (cycle)
-      let newValue = null
-      if (currentEnabled === null) {
-        newValue = true
-      } else if (currentEnabled === true) {
-        newValue = false
-      } else {
-        newValue = null // Use global
-      }
+      // Simple toggle: true <-> false
+      const newValue = !currentEnabled
 
-      await api.put(`/program-notification-preferences/program/${programId}/node/${nodeNumber}`, null, {
-        params: { enabled: newValue }
-      })
-      
+      await api.put(
+        `/program-notification-preferences/program/${programId}/node/${nodeNumber}`,
+        null,
+        {
+          params: { enabled: newValue },
+        },
+      )
+
       // Reload program preferences
       const res = await api.get(`/program-notification-preferences/program/${programId}`)
       setProgramPreferences((prev) => ({
         ...prev,
-        [programId]: res.data
+        [programId]: res.data,
       }))
     } catch (error) {
       console.error('Error updating program preference:', error)
@@ -172,41 +161,36 @@ const Workflow = () => {
 
   const handleMarkDetailsCollected = async (programId) => {
     try {
+      // First check if there are missing form submissions
+      const res = await api.get(`/workflow/program/${programId}/missing-forms`)
+      const missing = res.data || []
+
+      if (missing.length > 0) {
+        setMissingForms(missing)
+        setSelectedProgram(programs.find((p) => p.id === programId) || null)
+        setOpenMissingDialog(true)
+        return
+      }
+
       await api.post(`/workflow/program/${programId}/mark-details-collected`)
       await loadData()
       alert('Details marked as collected!')
     } catch (error) {
-      alert('Failed to mark details collected')
+      const message = error.response?.data?.message || 'Failed to mark details collected'
+      alert(message)
     }
   }
 
-  // Step names matching the backend
-  const STEP_NAMES = [
-    'Make Program Active',
-    'Post Application Message',
-    'Release Form',
-    'Collect Details',
-    'Post Mail to Area Secretary',
-    'Post General Instructions'
-  ]
-
   const getStepName = (nodeNumber) => {
-    // First try to get from global preferences (if loaded)
-    const prefName = globalPreferences.find((p) => p.nodeNumber === nodeNumber)?.nodeName
-    if (prefName) {
-      return prefName
-    }
-    // Fallback to hardcoded names matching backend
     if (nodeNumber >= 1 && nodeNumber <= STEP_NAMES.length) {
       return STEP_NAMES[nodeNumber - 1]
     }
-    // Last resort fallback
     return `Step ${nodeNumber}`
   }
 
   const getProgramPreference = (programId, nodeNumber) => {
     const prefs = programPreferences[programId] || []
-    return prefs.find(p => p.nodeNumber === nodeNumber)
+    return prefs.find((p) => p.nodeNumber === nodeNumber)
   }
 
   const getNodeActions = (workflow) => {
@@ -266,42 +250,6 @@ const Workflow = () => {
         </Alert>
       )}
 
-      {/* Global Notification Preferences */}
-      <Card sx={{ mb: 4 }}>
-        <CardContent>
-          <Typography variant="h6" gutterBottom>
-            Notification Preferences (Global)
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            These settings apply to all programs unless overridden at the program level.
-          </Typography>
-          <Grid container spacing={2}>
-            {globalPreferences.map((pref) => (
-              <Grid item xs={12} sm={6} md={4} key={pref.id}>
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={pref.enabled || false}
-                      onChange={() => handleToggleGlobalPreference(pref.id, pref.enabled)}
-                    />
-                  }
-                  label={
-                    <Box>
-                      <Typography variant="body1" fontWeight={600}>
-                        {pref.nodeName}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        Step {pref.nodeNumber}
-                      </Typography>
-                    </Box>
-                  }
-                />
-              </Grid>
-            ))}
-          </Grid>
-        </CardContent>
-      </Card>
-
       {/* Program Workflows */}
       <Typography variant="h6" gutterBottom sx={{ mb: 2 }}>
         Program Workflows
@@ -313,7 +261,6 @@ const Workflow = () => {
         <Grid container spacing={3}>
           {programs.map((program) => {
             const workflow = workflows[program.id]
-            const programPrefs = programPreferences[program.id] || []
 
             return (
               <Grid item xs={12} key={program.id}>
@@ -341,11 +288,15 @@ const Workflow = () => {
                       </Alert>
                     ) : (
                       <>
-                        <Stepper activeStep={workflow.currentNode - 1} orientation="vertical" sx={{ mb: 3 }}>
+                        <Stepper
+                          activeStep={workflow.currentNode - 1}
+                          orientation="vertical"
+                          sx={{ mb: 3 }}
+                        >
                           {[1, 2, 3, 4, 5, 6].map((nodeNum) => {
                             const nodePref = getProgramPreference(program.id, nodeNum)
-                            const effectiveEnabled = nodePref?.effectiveEnabled ?? false
-                            
+                            const enabled = nodePref?.enabled ?? false
+
                             return (
                               <Step key={nodeNum}>
                                 <StepLabel
@@ -359,29 +310,39 @@ const Workflow = () => {
                                     )
                                   }
                                 >
-                                  <Box display="flex" alignItems="center" justifyContent="space-between">
+                                  <Box
+                                    display="flex"
+                                    alignItems="center"
+                                    justifyContent="space-between"
+                                  >
                                     <Box>
                                       {getStepName(nodeNum)}
                                       {nodeNum === workflow.currentNode && (
-                                        <Chip label="Current" size="small" color="primary" sx={{ ml: 1 }} />
+                                        <Chip
+                                          label="Current"
+                                          size="small"
+                                          color="primary"
+                                          sx={{ ml: 1 }}
+                                        />
                                       )}
                                     </Box>
                                     <FormControlLabel
                                       control={
                                         <Switch
                                           size="small"
-                                          checked={effectiveEnabled}
-                                          onChange={() => handleToggleProgramPreference(
-                                            program.id,
-                                            nodeNum,
-                                            nodePref?.enabled ?? null
-                                          )}
+                                          checked={!!enabled}
+                                          onChange={() =>
+                                            handleToggleProgramPreference(
+                                              program.id,
+                                              nodeNum,
+                                              !!enabled,
+                                            )
+                                          }
                                         />
                                       }
                                       label={
                                         <Typography variant="caption">
-                                          {nodePref?.enabled === null ? 'Global' : 
-                                           nodePref?.enabled ? 'On' : 'Off'}
+                                          {enabled ? 'On' : 'Off'}
                                         </Typography>
                                       }
                                       sx={{ ml: 2 }}
@@ -405,6 +366,68 @@ const Workflow = () => {
           })}
         </Grid>
       )}
+
+      {/* Missing form submissions dialog */}
+      <Dialog
+        open={openMissingDialog}
+        onClose={() => setOpenMissingDialog(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          Missing Form Submissions{selectedProgram ? ` - ${selectedProgram.title}` : ''}
+        </DialogTitle>
+        <DialogContent>
+          {missingForms.length === 0 ? (
+            <Alert severity="info">All approved sewadars have submitted their forms.</Alert>
+          ) : (
+            <>
+              <Alert severity="warning" sx={{ mb: 2 }}>
+                The following approved sewadars have not submitted their forms. You cannot move to
+                the next step until all have submitted.
+              </Alert>
+              {missingForms.map((s) => (
+                <Box
+                  key={s.zonalId}
+                  sx={{
+                    p: 1.5,
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    borderRadius: 1,
+                    mb: 1,
+                  }}
+                >
+                  <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                    {s.firstName} {s.lastName} ({s.zonalId})
+                  </Typography>
+                  {s.mobile && (
+                    <Typography variant="caption" color="text.secondary">
+                      Mobile: {s.mobile}
+                    </Typography>
+                  )}
+                </Box>
+              ))}
+            </>
+          )}
+        </DialogContent>
+        <DialogActions>
+          {missingForms.length > 0 && selectedProgram && (
+            <Button
+              onClick={async () => {
+                try {
+                  await api.post(`/workflow/program/${selectedProgram.id}/notify-missing-forms`)
+                  alert('Notification sent to all pending sewadars.')
+                } catch (error) {
+                  alert('Failed to send notifications')
+                }
+              }}
+            >
+              Notify All via WhatsApp
+            </Button>
+          )}
+          <Button onClick={() => setOpenMissingDialog(false)}>Close</Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   )
 }

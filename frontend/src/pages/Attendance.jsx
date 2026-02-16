@@ -44,6 +44,7 @@ const Attendance = () => {
   const [selectedProgram, setSelectedProgram] = useState(null)
   const [attendees, setAttendees] = useState([])
   const [attendanceRecords, setAttendanceRecords] = useState([])
+  const [existingForSelectedDate, setExistingForSelectedDate] = useState([])
   const [openMarkAttendanceDialog, setOpenMarkAttendanceDialog] = useState(false)
   const [openViewAttendanceDialog, setOpenViewAttendanceDialog] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -118,6 +119,8 @@ const Attendance = () => {
     if (!selectedProgram) return
     setOpenMarkAttendanceDialog(true)
     loadAttendees(selectedProgram.id)
+    // Also load existing attendance records so we can filter already-marked sewadars
+    loadAttendanceRecords(selectedProgram.id)
   }
 
   const handleViewAttendance = (program) => {
@@ -135,10 +138,10 @@ const Attendance = () => {
     try {
       setLoading(true)
       
-      // Get selected sewadar IDs
+      // Get selected sewadar IDs (zonalId is already a String)
       const selectedSewadarIds = Object.entries(attendanceData)
         .filter(([sewadarId, selected]) => selected)
-        .map(([sewadarId]) => parseInt(sewadarId))
+        .map(([sewadarId]) => sewadarId)
 
       if (selectedSewadarIds.length === 0) {
         alert('Please select at least one sewadar')
@@ -161,6 +164,7 @@ const Attendance = () => {
       setAttendanceData({})
       setSelectedDate('')
       setAttendanceNotes('')
+      setExistingForSelectedDate([])
       loadPrograms()
     } catch (error) {
       console.error('Error marking attendance:', error)
@@ -176,6 +180,53 @@ const Attendance = () => {
       ...prev,
       [sewadarId]: selected
     }))
+  }
+
+  // When date or records change, compute which sewadars are already marked for that date
+  useEffect(() => {
+    if (!selectedProgram || !selectedDate) {
+      setExistingForSelectedDate([])
+      return
+    }
+
+    const recordsForDate = attendanceRecords.filter(
+      (rec) =>
+        rec.programId === selectedProgram.id &&
+        rec.attendanceDate === selectedDate
+    )
+    setExistingForSelectedDate(recordsForDate)
+  }, [attendanceRecords, selectedProgram, selectedDate])
+
+  const alreadyMarkedZonalIds = new Set(
+    (existingForSelectedDate || []).map((rec) => rec.sewadar?.zonalId)
+  )
+
+  const filteredAttendees = attendees.filter(
+    (att) => !alreadyMarkedZonalIds.has(att.zonalId)
+  )
+
+  const handleUnmarkAttendance = async (attendanceId) => {
+    if (!window.confirm('Are you sure you want to unmark this attendance?')) {
+      return
+    }
+    try {
+      setLoading(true)
+      await api.delete(`/attendances/${attendanceId}`)
+      // Refresh attendance records and programs
+      if (selectedProgram) {
+        await loadAttendanceRecords(selectedProgram.id)
+      }
+      await loadPrograms()
+      alert('Attendance unmarked successfully.')
+    } catch (error) {
+      console.error('Error unmarking attendance:', error)
+      alert(
+        'Error unmarking attendance: ' +
+          (error.response?.data?.message || error.message)
+      )
+    } finally {
+      setLoading(false)
+    }
   }
 
   // Guard: Only show for INCHARGE role
@@ -315,7 +366,7 @@ const Attendance = () => {
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {attendees.map((attendee) => (
+                    {filteredAttendees.map((attendee) => (
                       <TableRow key={attendee.zonalId}>
                         <TableCell>
                           <Checkbox
@@ -335,6 +386,47 @@ const Attendance = () => {
                   </TableBody>
                 </Table>
               </TableContainer>
+              {existingForSelectedDate.length > 0 && (
+                <Box mt={3}>
+                  <Typography variant="subtitle1" sx={{ mb: 1 }}>
+                    Already marked for this date
+                  </Typography>
+                  <TableContainer>
+                    <Table>
+                      <TableHead>
+                        <TableRow>
+                          <TableCell>Name</TableCell>
+                          <TableCell>Zonal ID</TableCell>
+                          <TableCell>Mobile</TableCell>
+                          <TableCell>Actions</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {existingForSelectedDate.map((rec) => (
+                          <TableRow key={rec.id}>
+                            <TableCell>
+                              {rec.sewadar?.firstName || ''}{' '}
+                              {rec.sewadar?.lastName || ''}
+                            </TableCell>
+                            <TableCell>{rec.sewadar?.zonalId || ''}</TableCell>
+                            <TableCell>{rec.sewadar?.mobile || '-'}</TableCell>
+                            <TableCell>
+                              <Button
+                                variant="outlined"
+                                color="error"
+                                size="small"
+                                onClick={() => handleUnmarkAttendance(rec.id)}
+                              >
+                                Unmark
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                </Box>
+              )}
             </Box>
           )}
         </DialogContent>

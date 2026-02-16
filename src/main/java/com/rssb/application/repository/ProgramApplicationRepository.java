@@ -29,6 +29,9 @@ public interface ProgramApplicationRepository extends JpaRepository<ProgramAppli
     // Get drop requests for a program
     List<ProgramApplication> findByProgramIdAndStatus(Long programId, String status);
     
+    // Count applications by program and status
+    long countByProgramIdAndStatus(Long programId, String status);
+    
     // Legacy methods for backward compatibility (deprecated)
     @Deprecated
     @Query("SELECT pa FROM ProgramApplication pa WHERE pa.sewadar.zonalId = :sewadarId")

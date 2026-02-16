@@ -3,11 +3,14 @@ package com.rssb.application.service;
 import com.rssb.application.dto.SewadarFormSubmissionRequest;
 import com.rssb.application.dto.SewadarFormSubmissionResponse;
 import com.rssb.application.entity.Program;
+import com.rssb.application.entity.ProgramWorkflow;
 import com.rssb.application.entity.Sewadar;
 import com.rssb.application.entity.SewadarFormSubmission;
 import com.rssb.application.exception.ResourceNotFoundException;
 import com.rssb.application.repository.ProgramRepository;
+import com.rssb.application.repository.ProgramWorkflowRepository;
 import com.rssb.application.repository.SewadarFormSubmissionRepository;
+import com.rssb.application.repository.ProgramApplicationRepository;
 import com.rssb.application.repository.SewadarRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,10 +29,37 @@ public class SewadarFormSubmissionService {
     private final SewadarFormSubmissionRepository formSubmissionRepository;
     private final ProgramRepository programRepository;
     private final SewadarRepository sewadarRepository;
+    private final ProgramApplicationRepository applicationRepository;
+    private final ProgramWorkflowRepository workflowRepository;
 
     public SewadarFormSubmissionResponse submitForm(SewadarFormSubmissionRequest request, String sewadarId) {
         Program program = programRepository.findById(request.getProgramId())
             .orElseThrow(() -> new ResourceNotFoundException("Program", "id", request.getProgramId()));
+
+        // Enforce: form can be submitted only after form is released in workflow
+        ProgramWorkflow workflow = workflowRepository.findByProgramId(program.getId()).orElse(null);
+        if (workflow == null || workflow.getFormReleased() == null || !workflow.getFormReleased() || workflow.getCurrentNode() == null || workflow.getCurrentNode() < 4) {
+            throw new IllegalArgumentException("Form submission is not allowed yet. Form has not been released for this program.");
+        }
+
+        // Enforce: form submission deadline (if configured)
+        if (program.getLastDateToSubmitForm() != null) {
+            java.time.LocalDateTime now = java.time.LocalDateTime.now();
+            if (now.isAfter(program.getLastDateToSubmitForm())) {
+                throw new IllegalArgumentException(
+                        "Form submission deadline has passed for this program. Last date/time to submit form was: " + program.getLastDateToSubmitForm());
+            }
+        }
+
+        // Enforce: only sewadars with APPROVED application can submit the form
+        boolean hasApprovedApplication = applicationRepository
+                .findByProgramIdAndSewadarZonalId(request.getProgramId(), sewadarId)
+                .map(app -> "APPROVED".equals(app.getStatus()))
+                .orElse(false);
+
+        if (!hasApprovedApplication) {
+            throw new IllegalArgumentException("Only approved sewadars can submit the form for this program.");
+        }
 
         Sewadar sewadar = sewadarRepository.findByZonalId(sewadarId)
             .orElseThrow(() -> new ResourceNotFoundException("Sewadar", "zonal_id", sewadarId));

@@ -45,6 +45,8 @@ public class ProgramServiceImpl implements ProgramService {
                 .location(request.getLocation())
                 .status(request.getStatus() != null ? request.getStatus() : "scheduled")
                 .maxSewadars(request.getMaxSewadars())
+                .lastDateToApply(request.getLastDateToApply())
+                .lastDateToSubmitForm(request.getLastDateToSubmitForm())
                 .createdBy(incharge)
                 .build();
 
@@ -109,6 +111,8 @@ public class ProgramServiceImpl implements ProgramService {
             program.setStatus(request.getStatus());
         }
         program.setMaxSewadars(request.getMaxSewadars());
+        program.setLastDateToApply(request.getLastDateToApply());
+        program.setLastDateToSubmitForm(request.getLastDateToSubmitForm());
 
         // Update program dates intelligently to preserve referential integrity
         if (request.getProgramDates() != null) {
@@ -222,6 +226,8 @@ public class ProgramServiceImpl implements ProgramService {
                 .programDates(dates)
                 .status(program.getStatus())
                 .maxSewadars(program.getMaxSewadars())
+                .lastDateToApply(program.getLastDateToApply())
+                .lastDateToSubmitForm(program.getLastDateToSubmitForm())
                 .createdBy(createdBy)
                 .applicationCount(applicationCount)
                 .dropRequestsCount(dropRequestsCount)
