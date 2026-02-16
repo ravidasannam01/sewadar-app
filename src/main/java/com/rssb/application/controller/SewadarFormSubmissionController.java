@@ -3,6 +3,8 @@ package com.rssb.application.controller;
 import com.rssb.application.dto.SewadarFormSubmissionRequest;
 import com.rssb.application.dto.SewadarFormSubmissionResponse;
 import com.rssb.application.service.SewadarFormSubmissionService;
+import com.rssb.application.util.ActionLogger;
+import com.rssb.application.util.UserContextUtil;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -12,7 +14,9 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/form-submissions")
@@ -22,15 +26,29 @@ import java.util.List;
 public class SewadarFormSubmissionController {
 
     private final SewadarFormSubmissionService formSubmissionService;
+    private final ActionLogger actionLogger;
 
     @PostMapping
     public ResponseEntity<SewadarFormSubmissionResponse> submitForm(
             @Valid @RequestBody SewadarFormSubmissionRequest request) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String sewadarId = (String) auth.getPrincipal();
+        String userRole = UserContextUtil.getCurrentUserRole();
         
-        return ResponseEntity.status(HttpStatus.CREATED)
-            .body(formSubmissionService.submitForm(request, sewadarId));
+        long startTime = System.currentTimeMillis();
+        SewadarFormSubmissionResponse response = formSubmissionService.submitForm(request, sewadarId);
+        long duration = System.currentTimeMillis() - startTime;
+        
+        Map<String, Object> details = new HashMap<>();
+        details.put("submissionId", response.getId());
+        details.put("programId", request.getProgramId());
+        details.put("sewadarId", sewadarId);
+        details.put("hasTravelDetails", request.getOnwardTrainFlightNo() != null || request.getReturnTrainFlightNo() != null);
+        details.put("durationMs", duration);
+        actionLogger.logAction("SUBMIT_FORM", sewadarId, userRole, details);
+        actionLogger.logPerformance("SUBMIT_FORM", duration);
+        
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @GetMapping("/program/{programId}")

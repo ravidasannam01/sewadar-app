@@ -4,6 +4,8 @@ import com.rssb.application.dto.AttendanceRequest;
 import com.rssb.application.dto.AttendanceResponse;
 import com.rssb.application.dto.ProgramAttendeeResponse;
 import com.rssb.application.service.AttendanceService;
+import com.rssb.application.util.ActionLogger;
+import com.rssb.application.util.UserContextUtil;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -13,7 +15,9 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/attendances")
@@ -24,6 +28,7 @@ import java.util.List;
 public class AttendanceController {
 
     private final AttendanceService attendanceService;
+    private final ActionLogger actionLogger;
 
     @PostMapping
     public ResponseEntity<List<AttendanceResponse>> markAttendance(@Valid @RequestBody AttendanceRequest request) {
@@ -36,8 +41,23 @@ public class AttendanceController {
         }
         
         String inchargeZonalId = (String) authentication.getPrincipal();
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(attendanceService.markAttendance(request, inchargeZonalId));
+        String userRole = UserContextUtil.getCurrentUserRole();
+        
+        long startTime = System.currentTimeMillis();
+        List<AttendanceResponse> responses = attendanceService.markAttendance(request, inchargeZonalId);
+        long duration = System.currentTimeMillis() - startTime;
+        
+        Map<String, Object> details = new HashMap<>();
+        details.put("programId", request.getProgramId());
+        details.put("programDate", request.getProgramDate());
+        details.put("sewadarCount", request.getSewadarIds() != null ? request.getSewadarIds().size() : 0);
+        details.put("sewadarIds", request.getSewadarIds());
+        details.put("attendanceRecordsCreated", responses.size());
+        details.put("durationMs", duration);
+        actionLogger.logAction("MARK_ATTENDANCE", inchargeZonalId, userRole, details);
+        actionLogger.logPerformance("MARK_ATTENDANCE", duration);
+        
+        return ResponseEntity.status(HttpStatus.CREATED).body(responses);
     }
 
     /**
@@ -57,7 +77,23 @@ public class AttendanceController {
             @RequestParam(required = false) Boolean attended,
             @RequestParam(required = false) Integer daysParticipated,
             @RequestParam(required = false) String notes) {
-        return ResponseEntity.ok(attendanceService.updateAttendance(id, attended, daysParticipated, notes));
+        String userId = UserContextUtil.getCurrentUserId();
+        String userRole = UserContextUtil.getCurrentUserRole();
+        
+        long startTime = System.currentTimeMillis();
+        AttendanceResponse response = attendanceService.updateAttendance(id, attended, daysParticipated, notes);
+        long duration = System.currentTimeMillis() - startTime;
+        
+        Map<String, Object> details = new HashMap<>();
+        details.put("attendanceId", id);
+        details.put("attended", attended);
+        details.put("daysParticipated", daysParticipated);
+        details.put("hasNotes", notes != null && !notes.isEmpty());
+        details.put("durationMs", duration);
+        actionLogger.logAction("UPDATE_ATTENDANCE", userId, userRole, details);
+        actionLogger.logPerformance("UPDATE_ATTENDANCE", duration);
+        
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/program/{programId}")

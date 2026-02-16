@@ -127,6 +127,7 @@ public class DashboardServiceImpl implements DashboardService {
         log.info("Dashboard: Getting detailed attendance for sewadar: {}", sewadarId);
         
         // Check access: SEWADAR can only see their own data
+        // INCHARGE and ADMIN can see any sewadar's data
         if ("SEWADAR".equals(currentUserRole) && !sewadarId.equals(currentUserId)) {
             throw new IllegalArgumentException("Sewadars can only view their own attendance");
         }
@@ -262,10 +263,11 @@ public class DashboardServiceImpl implements DashboardService {
             List<Predicate> predicates = new ArrayList<>();
             
             // Role-based access: SEWADAR can only see themselves
+            // INCHARGE and ADMIN can see all sewadars (no filter needed)
             if ("SEWADAR".equals(currentUserRole)) {
                 predicates.add(cb.equal(root.get("zonalId"), currentUserId));
             }
-            // INCHARGE can see all (no filter needed)
+            // INCHARGE and ADMIN can see all (no filter needed)
             
             // Location filter - case insensitive
             if (request.getLocation() != null && !request.getLocation().trim().isEmpty()) {
@@ -384,9 +386,11 @@ public class DashboardServiceImpl implements DashboardService {
             List<Predicate> predicates = new ArrayList<>();
             
             // Role-based access: SEWADAR can only see their own applications
+            // INCHARGE and ADMIN can see all applications (no filter needed)
             if ("SEWADAR".equals(currentUserRole)) {
                 predicates.add(cb.equal(root.get("sewadar").get("zonalId"), currentUserId));
             }
+            // INCHARGE and ADMIN can see all applications (no filter needed)
             
             // Program filter
             if (request.getProgramId() != null) {

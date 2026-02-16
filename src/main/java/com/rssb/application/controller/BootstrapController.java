@@ -5,12 +5,16 @@ import com.rssb.application.dto.SewadarResponse;
 import com.rssb.application.entity.Role;
 import com.rssb.application.repository.SewadarRepository;
 import com.rssb.application.service.SewadarService;
+import com.rssb.application.util.ActionLogger;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Bootstrap controller for initial setup.
@@ -26,6 +30,7 @@ public class BootstrapController {
 
     private final SewadarRepository sewadarRepository;
     private final SewadarService sewadarService;
+    private final ActionLogger actionLogger;
 
     /**
      * Check if system needs bootstrap (no admin or incharge exists)
@@ -75,9 +80,21 @@ public class BootstrapController {
         // Force role to ADMIN
         request.setRole("ADMIN");
 
+        long startTime = System.currentTimeMillis();
         // Create as admin
         SewadarResponse response = sewadarService.createSewadar(request);
+        long duration = System.currentTimeMillis() - startTime;
+        
         log.info("First admin created with zonal_id: {}", response.getZonalId());
+        
+        Map<String, Object> details = new HashMap<>();
+        details.put("zonalId", response.getZonalId());
+        details.put("name", response.getFirstName() + " " + response.getLastName());
+        details.put("mobile", response.getMobile());
+        details.put("location", response.getLocation());
+        details.put("durationMs", duration);
+        actionLogger.logAction("BOOTSTRAP_CREATE_ADMIN", "SYSTEM", "SYSTEM", details);
+        actionLogger.logPerformance("BOOTSTRAP_CREATE_ADMIN", duration);
         
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
@@ -102,9 +119,21 @@ public class BootstrapController {
         // Force role to INCHARGE
         request.setRole("INCHARGE");
 
+        long startTime = System.currentTimeMillis();
         // Create as incharge
         SewadarResponse response = sewadarService.createSewadar(request);
+        long duration = System.currentTimeMillis() - startTime;
+        
         log.info("First incharge created with zonal_id: {}", response.getZonalId());
+        
+        Map<String, Object> details = new HashMap<>();
+        details.put("zonalId", response.getZonalId());
+        details.put("name", response.getFirstName() + " " + response.getLastName());
+        details.put("mobile", response.getMobile());
+        details.put("location", response.getLocation());
+        details.put("durationMs", duration);
+        actionLogger.logAction("BOOTSTRAP_CREATE_INCHARGE", "SYSTEM", "SYSTEM", details);
+        actionLogger.logPerformance("BOOTSTRAP_CREATE_INCHARGE", duration);
         
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }

@@ -40,7 +40,8 @@ const PendingActions = () => {
   const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
-    if (user?.role === 'SEWADAR') {
+    // INCHARGE and ADMIN can also view pending actions (they can apply to programs too)
+    if (user?.role === 'SEWADAR' || user?.role === 'INCHARGE' || user?.role === 'ADMIN') {
       loadPendingPrograms()
     }
   }, [user])

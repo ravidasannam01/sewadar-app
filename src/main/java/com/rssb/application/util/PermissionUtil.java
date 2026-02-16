@@ -6,9 +6,28 @@ import com.rssb.application.entity.Program;
 
 /**
  * Utility class for permission checks.
- * ADMIN role bypasses all permission checks.
+ * Role hierarchy: ADMIN > INCHARGE > SEWADAR
+ * - ADMIN: All permissions (can do everything)
+ * - INCHARGE: SEWADAR permissions + incharge permissions (can do everything sewadars can do, plus manage programs)
+ * - SEWADAR: Basic permissions (apply to programs, view own data, etc.)
  */
 public class PermissionUtil {
+
+    /**
+     * Check if a user has permission to perform sewadar-level actions.
+     * ADMIN, INCHARGE, and SEWADAR all have sewadar permissions.
+     * 
+     * @param user The user performing the action
+     * @return true if user has sewadar permissions (ADMIN, INCHARGE, or SEWADAR)
+     */
+    public static boolean hasSewadarPermission(Sewadar user) {
+        if (user == null) {
+            return false;
+        }
+        return user.getRole() == Role.ADMIN || 
+               user.getRole() == Role.INCHARGE || 
+               user.getRole() == Role.SEWADAR;
+    }
 
     /**
      * Check if a user has permission to perform an action.

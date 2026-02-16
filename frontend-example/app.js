@@ -321,7 +321,8 @@ async function loadPrograms() {
         let filtered = programs;
         
         // Filter for SEWADAR: only active programs
-        if (currentUser?.role === 'SEWADAR') {
+        // INCHARGE and ADMIN can also load their applications (they can apply to programs too)
+        if (currentUser?.role === 'SEWADAR' || currentUser?.role === 'INCHARGE' || currentUser?.role === 'ADMIN') {
             filtered = filtered.filter(p => {
                 if (p.status !== 'active') return false;
                 // Check if last date is in the future
@@ -353,9 +354,10 @@ async function loadPrograms() {
             return;
         }
         
-        // Load my applications if sewadar
+        // Load my applications - SEWADAR, INCHARGE, and ADMIN can all apply to programs
+        // INCHARGE = SEWADAR + additional permissions, so they can do everything sewadars can do
         let myApplications = [];
-        if (currentUser?.role === 'SEWADAR') {
+        if (currentUser?.role === 'SEWADAR' || currentUser?.role === 'INCHARGE' || currentUser?.role === 'ADMIN') {
             try {
                 myApplications = await apiCall(`/program-applications/sewadar/${currentUser.zonalId}`);
             } catch (e) {
@@ -380,7 +382,7 @@ async function loadPrograms() {
                         <p><strong>Location:</strong> ${program.location || 'N/A'} ${program.locationType ? `(${program.locationType})` : ''}</p>
                         <p><strong>Dates:</strong> ${program.programDates?.map(d => formatDate(d)).join(', ') || 'N/A'}</p>
                         <p><strong>Applications:</strong> <span class="clickable-link" onclick="showApplicants(${program.id}, ${JSON.stringify(program.title || '')})" style="cursor: pointer; color: #667eea; text-decoration: underline;">${program.applicationCount || 0}${program.maxSewadars ? ` / ${program.maxSewadars}` : ''}</span></p>
-                        ${currentUser?.role === 'SEWADAR' && program.status === 'active' ? `
+                        ${(currentUser?.role === 'SEWADAR' || currentUser?.role === 'INCHARGE' || currentUser?.role === 'ADMIN') && program.status === 'active' ? `
                             <div class="card-actions">
                                 ${appStatus === 'DROPPED' ? `
                                     <button class="btn btn-primary" onclick="applyToProgram(${program.id})">Reapply</button>

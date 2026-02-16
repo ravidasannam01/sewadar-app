@@ -3,6 +3,8 @@ package com.rssb.application.controller;
 import com.rssb.application.dto.ProgramApplicationRequest;
 import com.rssb.application.dto.ProgramApplicationResponse;
 import com.rssb.application.service.ProgramApplicationService;
+import com.rssb.application.util.ActionLogger;
+import com.rssb.application.util.UserContextUtil;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -10,7 +12,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/program-applications")
@@ -21,11 +25,28 @@ import java.util.List;
 public class ProgramApplicationController {
 
     private final ProgramApplicationService applicationService;
+    private final ActionLogger actionLogger;
 
     @PostMapping
     public ResponseEntity<ProgramApplicationResponse> applyToProgram(@Valid @RequestBody ProgramApplicationRequest request) {
         log.info("POST /api/program-applications - Applying to program");
-        return ResponseEntity.status(HttpStatus.CREATED).body(applicationService.applyToProgram(request));
+        String userId = UserContextUtil.getCurrentUserId();
+        String userRole = UserContextUtil.getCurrentUserRole();
+        
+        long startTime = System.currentTimeMillis();
+        ProgramApplicationResponse response = applicationService.applyToProgram(request);
+        long duration = System.currentTimeMillis() - startTime;
+        
+        Map<String, Object> details = new HashMap<>();
+        details.put("applicationId", response.getId());
+        details.put("programId", request.getProgramId());
+        details.put("sewadarId", request.getSewadarId());
+        details.put("status", response.getStatus());
+        details.put("durationMs", duration);
+        actionLogger.logAction("APPLY_TO_PROGRAM", userId != null ? userId : request.getSewadarId(), userRole, details);
+        actionLogger.logPerformance("APPLY_TO_PROGRAM", duration);
+        
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @GetMapping("/program/{programId}")
@@ -62,7 +83,27 @@ public class ProgramApplicationController {
     public ResponseEntity<ProgramApplicationResponse> updateStatus(
             @PathVariable Long id,
             @RequestParam String status) {
-        return ResponseEntity.ok(applicationService.updateApplicationStatus(id, status));
+        String userId = UserContextUtil.getCurrentUserId();
+        String userRole = UserContextUtil.getCurrentUserRole();
+        
+        long startTime = System.currentTimeMillis();
+        ProgramApplicationResponse response = applicationService.updateApplicationStatus(id, status);
+        long duration = System.currentTimeMillis() - startTime;
+        
+        Map<String, Object> details = new HashMap<>();
+        details.put("applicationId", id);
+        details.put("newStatus", status);
+        details.put("sewadarId", response.getSewadar() != null ? response.getSewadar().getZonalId() : "N/A");
+        details.put("programId", response.getProgramId());
+        details.put("durationMs", duration);
+        
+        String action = "APPROVE_APPLICATION".equals(status) ? "APPROVE_APPLICATION" : 
+                        "REJECT_APPLICATION".equals(status) ? "REJECT_APPLICATION" : 
+                        "UPDATE_APPLICATION_STATUS";
+        actionLogger.logAction(action, userId, userRole, details);
+        actionLogger.logPerformance(action, duration);
+        
+        return ResponseEntity.ok(response);
     }
 
     /**
@@ -75,7 +116,22 @@ public class ProgramApplicationController {
             @PathVariable Long id,
             @RequestParam String sewadarId) {
         log.info("PUT /api/program-applications/{}/request-drop", id);
-        return ResponseEntity.ok(applicationService.requestDrop(id, sewadarId));
+        String userId = UserContextUtil.getCurrentUserId();
+        String userRole = UserContextUtil.getCurrentUserRole();
+        
+        long startTime = System.currentTimeMillis();
+        ProgramApplicationResponse response = applicationService.requestDrop(id, sewadarId);
+        long duration = System.currentTimeMillis() - startTime;
+        
+        Map<String, Object> details = new HashMap<>();
+        details.put("applicationId", id);
+        details.put("sewadarId", sewadarId);
+        details.put("programId", response.getProgramId());
+        details.put("durationMs", duration);
+        actionLogger.logAction("REQUEST_DROP", userId != null ? userId : sewadarId, userRole, details);
+        actionLogger.logPerformance("REQUEST_DROP", duration);
+        
+        return ResponseEntity.ok(response);
     }
 
     /**
@@ -91,7 +147,24 @@ public class ProgramApplicationController {
             @RequestParam String inchargeId,
             @RequestParam(required = false, defaultValue = "true") Boolean allowReapply) {
         log.info("PUT /api/program-applications/{}/approve-drop - incharge: {}", id, inchargeId);
-        return ResponseEntity.ok(applicationService.approveDropRequest(id, inchargeId, allowReapply));
+        String userId = UserContextUtil.getCurrentUserId();
+        String userRole = UserContextUtil.getCurrentUserRole();
+        
+        long startTime = System.currentTimeMillis();
+        ProgramApplicationResponse response = applicationService.approveDropRequest(id, inchargeId, allowReapply);
+        long duration = System.currentTimeMillis() - startTime;
+        
+        Map<String, Object> details = new HashMap<>();
+        details.put("applicationId", id);
+        details.put("inchargeId", inchargeId);
+        details.put("sewadarId", response.getSewadar() != null ? response.getSewadar().getZonalId() : "N/A");
+        details.put("programId", response.getProgramId());
+        details.put("allowReapply", allowReapply);
+        details.put("durationMs", duration);
+        actionLogger.logAction("APPROVE_DROP_REQUEST", userId != null ? userId : inchargeId, userRole, details);
+        actionLogger.logPerformance("APPROVE_DROP_REQUEST", duration);
+        
+        return ResponseEntity.ok(response);
     }
 
     /**
@@ -114,7 +187,24 @@ public class ProgramApplicationController {
             @PathVariable Long id,
             @RequestParam String inchargeId) {
         log.info("PUT /api/program-applications/{}/rollback - incharge: {}", id, inchargeId);
-        return ResponseEntity.ok(applicationService.rollbackApplication(id, inchargeId));
+        String userId = UserContextUtil.getCurrentUserId();
+        String userRole = UserContextUtil.getCurrentUserRole();
+        
+        long startTime = System.currentTimeMillis();
+        ProgramApplicationResponse response = applicationService.rollbackApplication(id, inchargeId);
+        long duration = System.currentTimeMillis() - startTime;
+        
+        Map<String, Object> details = new HashMap<>();
+        details.put("applicationId", id);
+        details.put("inchargeId", inchargeId);
+        details.put("sewadarId", response.getSewadar() != null ? response.getSewadar().getZonalId() : "N/A");
+        details.put("programId", response.getProgramId());
+        details.put("newStatus", response.getStatus());
+        details.put("durationMs", duration);
+        actionLogger.logAction("ROLLBACK_APPLICATION", userId != null ? userId : inchargeId, userRole, details);
+        actionLogger.logPerformance("ROLLBACK_APPLICATION", duration);
+        
+        return ResponseEntity.ok(response);
     }
 
     @DeleteMapping("/{id}")

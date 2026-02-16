@@ -2,6 +2,8 @@ package com.rssb.application.controller;
 
 import com.rssb.application.dto.ProgramWorkflowResponse;
 import com.rssb.application.service.ProgramWorkflowService;
+import com.rssb.application.util.ActionLogger;
+import com.rssb.application.util.UserContextUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -9,7 +11,9 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/workflow")
@@ -19,6 +23,7 @@ import java.util.List;
 public class ProgramWorkflowController {
 
     private final ProgramWorkflowService workflowService;
+    private final ActionLogger actionLogger;
 
     @GetMapping("/program/{programId}")
     public ResponseEntity<ProgramWorkflowResponse> getWorkflow(@PathVariable Long programId) {
@@ -42,8 +47,20 @@ public class ProgramWorkflowController {
             @PathVariable Long programId) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String inchargeId = (String) auth.getPrincipal();
+        String userRole = UserContextUtil.getCurrentUserRole();
         
-        return ResponseEntity.ok(workflowService.moveToNextNode(programId, inchargeId));
+        long startTime = System.currentTimeMillis();
+        ProgramWorkflowResponse response = workflowService.moveToNextNode(programId, inchargeId);
+        long duration = System.currentTimeMillis() - startTime;
+        
+        Map<String, Object> details = new HashMap<>();
+        details.put("programId", programId);
+        details.put("currentNode", response.getCurrentNode());
+        details.put("durationMs", duration);
+        actionLogger.logAction("MOVE_WORKFLOW_NEXT_NODE", inchargeId, userRole, details);
+        actionLogger.logPerformance("MOVE_WORKFLOW_NEXT_NODE", duration);
+        
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping("/program/{programId}/release-form")
@@ -51,8 +68,21 @@ public class ProgramWorkflowController {
             @PathVariable Long programId) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String inchargeId = (String) auth.getPrincipal();
+        String userRole = UserContextUtil.getCurrentUserRole();
         
-        return ResponseEntity.ok(workflowService.releaseForm(programId, inchargeId));
+        long startTime = System.currentTimeMillis();
+        ProgramWorkflowResponse response = workflowService.releaseForm(programId, inchargeId);
+        long duration = System.currentTimeMillis() - startTime;
+        
+        Map<String, Object> details = new HashMap<>();
+        details.put("programId", programId);
+        details.put("formReleased", response.getFormReleased());
+        details.put("currentNode", response.getCurrentNode());
+        details.put("durationMs", duration);
+        actionLogger.logAction("RELEASE_WORKFLOW_FORM", inchargeId, userRole, details);
+        actionLogger.logPerformance("RELEASE_WORKFLOW_FORM", duration);
+        
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping("/program/{programId}/mark-details-collected")
@@ -60,8 +90,21 @@ public class ProgramWorkflowController {
             @PathVariable Long programId) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String inchargeId = (String) auth.getPrincipal();
+        String userRole = UserContextUtil.getCurrentUserRole();
         
-        return ResponseEntity.ok(workflowService.markDetailsCollected(programId, inchargeId));
+        long startTime = System.currentTimeMillis();
+        ProgramWorkflowResponse response = workflowService.markDetailsCollected(programId, inchargeId);
+        long duration = System.currentTimeMillis() - startTime;
+        
+        Map<String, Object> details = new HashMap<>();
+        details.put("programId", programId);
+        details.put("detailsCollected", response.getDetailsCollected());
+        details.put("currentNode", response.getCurrentNode());
+        details.put("durationMs", duration);
+        actionLogger.logAction("MARK_WORKFLOW_DETAILS_COLLECTED", inchargeId, userRole, details);
+        actionLogger.logPerformance("MARK_WORKFLOW_DETAILS_COLLECTED", duration);
+        
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping("/initialize-all")

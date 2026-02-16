@@ -2,15 +2,18 @@ package com.rssb.application.controller;
 
 import com.rssb.application.dto.*;
 import com.rssb.application.service.DashboardService;
+import com.rssb.application.util.ActionLogger;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.HashMap;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/dashboard")
@@ -19,6 +22,7 @@ import org.springframework.web.bind.annotation.*;
 public class DashboardController {
 
     private final DashboardService dashboardService;
+    private final ActionLogger actionLogger;
 
     /**
      * Get sewadars with filters, sorting, and pagination
@@ -93,7 +97,16 @@ public class DashboardController {
         String currentUserId = (String) auth.getPrincipal();
         String currentUserRole = auth.getAuthorities().iterator().next().getAuthority();
         
+        long startTime = System.currentTimeMillis();
         byte[] data = dashboardService.exportSewadars(request, format.toUpperCase(), currentUserId, currentUserRole);
+        long duration = System.currentTimeMillis() - startTime;
+        
+        Map<String, Object> details = new HashMap<>();
+        details.put("format", format.toUpperCase());
+        details.put("fileSizeBytes", data.length);
+        details.put("durationMs", duration);
+        actionLogger.logAction("EXPORT_SEWADARS", currentUserId, currentUserRole, details);
+        actionLogger.logPerformance("EXPORT_SEWADARS", duration);
         
         HttpHeaders headers = new HttpHeaders();
         String contentType = getContentType(format);
@@ -170,7 +183,16 @@ public class DashboardController {
         String currentUserId = (String) auth.getPrincipal();
         String currentUserRole = auth.getAuthorities().iterator().next().getAuthority();
         
+        long startTime = System.currentTimeMillis();
         byte[] data = dashboardService.exportApplications(request, format.toUpperCase(), currentUserId, currentUserRole);
+        long duration = System.currentTimeMillis() - startTime;
+        
+        Map<String, Object> details = new HashMap<>();
+        details.put("format", format.toUpperCase());
+        details.put("fileSizeBytes", data.length);
+        details.put("durationMs", duration);
+        actionLogger.logAction("EXPORT_APPLICATIONS", currentUserId, currentUserRole, details);
+        actionLogger.logPerformance("EXPORT_APPLICATIONS", duration);
         
         HttpHeaders headers = new HttpHeaders();
         String contentType = getContentType(format);

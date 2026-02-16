@@ -38,3 +38,14 @@ export const isSewadar = (user) => {
   return user?.role === 'SEWADAR'
 }
 
+/**
+ * Check if user can perform sewadar activities (apply to programs, view own applications, etc.)
+ * ADMIN, INCHARGE, and SEWADAR can all do sewadar activities.
+ * INCHARGE = SEWADAR + additional permissions
+ * @param {Object} user - User object with role property
+ * @returns {boolean} - True if user can do sewadar activities
+ */
+export const canDoSewadarActivities = (user) => {
+  return user?.role === 'ADMIN' || user?.role === 'INCHARGE' || user?.role === 'SEWADAR'
+}
+

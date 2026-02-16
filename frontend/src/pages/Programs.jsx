@@ -53,7 +53,8 @@ const Programs = () => {
 
   useEffect(() => {
     loadPrograms()
-    if (user?.role === 'SEWADAR') {
+    // INCHARGE and ADMIN can also apply to programs and view their applications
+    if (user?.role === 'SEWADAR' || user?.role === 'INCHARGE' || user?.role === 'ADMIN') {
       loadMyApplications()
     }
   }, [user])
@@ -94,7 +95,8 @@ const Programs = () => {
   }
 
   const filteredPrograms = programs.filter((program) => {
-    // For SEWADAR: Only show active programs where last date >= today
+    // For INCHARGE and ADMIN: Show all programs (no status/date filtering for management)
+    // For SEWADAR: Only show active programs where last date >= today (for applying)
     if (user?.role === 'SEWADAR') {
       // Must be active
       if (program.status !== 'active') {
@@ -114,7 +116,7 @@ const Programs = () => {
       }
     }
     
-    // For INCHARGE: Show all programs (no filtering)
+    // Apply search and status filters for all roles
     const matchesSearch =
       program.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       program.location?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -297,7 +299,7 @@ const Programs = () => {
                         </Typography>
                       </Box>
 
-                      {user?.role === 'SEWADAR' && program.status === 'active' && (
+                      {(user?.role === 'SEWADAR' || user?.role === 'INCHARGE' || user?.role === 'ADMIN') && program.status === 'active' && (
                         <Box mt="auto">
                           {appStatus === 'DROPPED' ? (
                             <Button

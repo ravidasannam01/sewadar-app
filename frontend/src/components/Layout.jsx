@@ -34,6 +34,7 @@ const Layout = () => {
     { path: '/dashboard', label: 'Dashboard', icon: <DashboardIcon /> },
   ]
 
+  // INCHARGE and ADMIN get additional navigation items
   if (user?.role === 'ADMIN' || user?.role === 'INCHARGE') {
     navItems.push(
       {
@@ -52,7 +53,11 @@ const Layout = () => {
         icon: <WorkflowIcon />,
       }
     )
-  } else {
+  }
+  
+  // SEWADAR, INCHARGE, and ADMIN can all access pending actions
+  // (INCHARGE can apply to programs too, so they need this)
+  if (user?.role === 'SEWADAR' || user?.role === 'INCHARGE' || user?.role === 'ADMIN') {
     navItems.push({
       path: '/pending-actions',
       label: 'Pending Actions',

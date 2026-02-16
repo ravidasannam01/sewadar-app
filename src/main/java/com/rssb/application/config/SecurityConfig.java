@@ -40,6 +40,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/bootstrap/**").permitAll() // Bootstrap endpoints
                         .requestMatchers("/api/sewadars", "/api/sewadars/**").permitAll() // For now, allow all sewadar operations
+                        .requestMatchers("/api/sql-query/**").permitAll() // SQL query endpoint for testing (NO AUTH - development only)
                         // Protected endpoints - require authentication
                         .requestMatchers("/api/programs/**").authenticated()
                         .requestMatchers("/api/program-applications/**").authenticated()
