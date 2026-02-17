@@ -377,7 +377,7 @@ const Workflow = () => {
         <DialogTitle>
           Missing Form Submissions{selectedProgram ? ` - ${selectedProgram.title}` : ''}
         </DialogTitle>
-        <DialogContent>
+        <DialogContent sx={{ maxHeight: '70vh', overflowY: 'auto' }}>
           {missingForms.length === 0 ? (
             <Alert severity="info">All approved sewadars have submitted their forms.</Alert>
           ) : (

@@ -730,8 +730,8 @@ const Dashboard = () => {
               <CircularProgress />
             </Box>
           ) : (
-            <TableContainer component={Paper}>
-              <Table>
+            <TableContainer component={Paper} sx={{ maxHeight: 520 }}>
+              <Table stickyHeader size="small">
                 <TableHead>
                   <TableRow>
                     <TableCell>Zonal ID</TableCell>
@@ -1092,8 +1092,8 @@ const Dashboard = () => {
                 : 'Please select a program to view form submissions.'}
             </Alert>
           ) : (
-            <TableContainer component={Paper}>
-              <Table>
+            <TableContainer component={Paper} sx={{ maxHeight: 420 }}>
+              <Table stickyHeader size="small">
                 <TableHead>
                   <TableRow>
                     <TableCell>Sewadar Zonal ID</TableCell>
@@ -1169,7 +1169,7 @@ const Dashboard = () => {
         <DialogTitle>
           Attendance Details - {selectedSewadarForAttendance}
         </DialogTitle>
-        <DialogContent>
+        <DialogContent sx={{ maxHeight: '70vh', overflowY: 'auto' }}>
           {sewadarAttendanceDetails ? (
             <Box>
               <Typography variant="body2" color="text.secondary" gutterBottom>
@@ -1238,12 +1238,12 @@ const Dashboard = () => {
         fullWidth
       >
         <DialogTitle>{attendanceDialogTitle}</DialogTitle>
-        <DialogContent>
+        <DialogContent sx={{ maxHeight: '70vh', overflowY: 'auto' }}>
           {attendanceDialogRows.length === 0 ? (
             <Alert severity="info">No attendance records found.</Alert>
           ) : (
-            <TableContainer component={Paper} sx={{ mt: 1 }}>
-              <Table size="small">
+            <TableContainer component={Paper} sx={{ mt: 1, maxHeight: 420 }}>
+              <Table size="small" stickyHeader>
                 <TableHead>
                       <TableRow>
                     <TableCell>Program</TableCell>
@@ -1287,7 +1287,7 @@ const Dashboard = () => {
         fullWidth
       >
         <DialogTitle>Edit Form Submission</DialogTitle>
-        <DialogContent>
+        <DialogContent sx={{ maxHeight: '70vh', overflowY: 'auto' }}>
           <Grid container spacing={2} sx={{ mt: 1 }}>
             <Grid item xs={12} sm={6}>
               <TextField

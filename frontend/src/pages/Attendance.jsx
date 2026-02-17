@@ -358,7 +358,7 @@ const Attendance = () => {
         <DialogTitle>
           Mark Attendance - {selectedProgram?.title}
         </DialogTitle>
-        <DialogContent>
+        <DialogContent sx={{ maxHeight: '70vh', overflowY: 'auto' }}>
           {loading ? (
             <Box display="flex" justifyContent="center" p={4}>
               <CircularProgress />
@@ -397,8 +397,8 @@ const Attendance = () => {
                   />
                 </Grid>
               </Grid>
-              <TableContainer>
-                <Table>
+              <TableContainer sx={{ maxHeight: 380 }}>
+                <Table size="small" stickyHeader>
                   <TableHead>
                     <TableRow>
                       <TableCell>Select</TableCell>
@@ -433,8 +433,8 @@ const Attendance = () => {
                   <Typography variant="subtitle1" sx={{ mb: 1 }}>
                     Already marked for this date
                   </Typography>
-                  <TableContainer>
-                    <Table>
+                  <TableContainer sx={{ maxHeight: 260 }}>
+                    <Table size="small" stickyHeader>
                       <TableHead>
                         <TableRow>
                           <TableCell>Name</TableCell>
@@ -505,7 +505,7 @@ const Attendance = () => {
         fullWidth
       >
         <DialogTitle>Attendance - {selectedProgram?.title}</DialogTitle>
-        <DialogContent>
+        <DialogContent sx={{ maxHeight: '70vh', overflowY: 'auto' }}>
           {loading ? (
             <Box display="flex" justifyContent="center" p={4}>
               <CircularProgress />

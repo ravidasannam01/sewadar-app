@@ -443,8 +443,8 @@ const Admin = () => {
             </Button>
           </Box>
 
-          <TableContainer component={Paper}>
-            <Table>
+          <TableContainer component={Paper} sx={{ maxHeight: 520 }}>
+            <Table stickyHeader size="small">
               <TableHead>
                 <TableRow>
                   <TableCell>Zonal ID</TableCell>
@@ -526,7 +526,7 @@ const Admin = () => {
         <DialogTitle>
           Applications for: {selectedProgram?.title}
         </DialogTitle>
-        <DialogContent>
+        <DialogContent sx={{ maxHeight: '70vh', overflowY: 'auto' }}>
           <Box display="flex" gap={2} mb={2} alignItems="flex-end">
             <Box>
               <Typography variant="caption" sx={{ mb: 0.5, display: 'block', color: 'text.secondary' }}>
@@ -663,7 +663,7 @@ const Admin = () => {
         <DialogTitle>
           Drop Requests for: {selectedProgram?.title}
         </DialogTitle>
-        <DialogContent>
+        <DialogContent sx={{ maxHeight: '70vh', overflowY: 'auto' }}>
           {loading ? (
             <Box display="flex" justifyContent="center" p={4}>
               <CircularProgress />
@@ -732,7 +732,7 @@ const Admin = () => {
         <DialogTitle>
           {selectedProgram ? 'Edit Program' : 'Create Program'}
         </DialogTitle>
-        <DialogContent>
+        <DialogContent sx={{ maxHeight: '70vh', overflowY: 'auto' }}>
           <ProgramForm
             program={selectedProgram}
             onClose={() => {
@@ -756,7 +756,7 @@ const Admin = () => {
         <DialogTitle>
           {selectedSewadar ? 'Edit Sewadar' : 'Add Sewadar'}
         </DialogTitle>
-        <DialogContent>
+        <DialogContent sx={{ maxHeight: '70vh', overflowY: 'auto' }}>
           <SewadarForm
             sewadar={selectedSewadar}
             onClose={() => {
@@ -781,7 +781,7 @@ const Admin = () => {
         <DialogTitle>
           Change Password for {selectedSewadarForPassword?.firstName} {selectedSewadarForPassword?.lastName}
         </DialogTitle>
-        <DialogContent>
+        <DialogContent sx={{ maxHeight: '70vh', overflowY: 'auto' }}>
           <TextField
             fullWidth
             type="password"
@@ -823,7 +823,7 @@ const Admin = () => {
             <DialogTitle>
               {selectedSewadarForRoleChange.role === 'INCHARGE' ? 'Demote Incharge' : 'Promote to Incharge'}
             </DialogTitle>
-            <DialogContent>
+            <DialogContent sx={{ maxHeight: '70vh', overflowY: 'auto' }}>
               <Typography variant="body2" sx={{ mb: 2 }}>
                 You are about to {selectedSewadarForRoleChange.role === 'INCHARGE' ? 'demote' : 'promote'}{' '}
                 <strong>{selectedSewadarForRoleChange.firstName} {selectedSewadarForRoleChange.lastName}</strong>{' '}

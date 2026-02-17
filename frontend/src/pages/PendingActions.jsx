@@ -217,7 +217,7 @@ const PendingActions = () => {
       {/* Form Dialog */}
       <Dialog open={openForm} onClose={handleCloseForm} maxWidth="md" fullWidth>
         <DialogTitle>Travel Details Form - {selectedProgram?.title}</DialogTitle>
-        <DialogContent>
+        <DialogContent sx={{ maxHeight: '70vh', overflowY: 'auto' }}>
           <Grid container spacing={2} sx={{ mt: 1 }}>
             {/* Name field removed - available from sewadar relationship */}
             <Grid item xs={12} sm={6}>

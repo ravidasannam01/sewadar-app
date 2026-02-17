@@ -428,7 +428,7 @@ const Programs = () => {
         <DialogTitle>
           {selectedProgram ? 'Edit Program' : 'Create Program'}
         </DialogTitle>
-        <DialogContent>
+        <DialogContent sx={{ maxHeight: '70vh', overflowY: 'auto' }}>
           <ProgramForm
             program={selectedProgram}
             onClose={handleCloseForm}
@@ -447,7 +447,7 @@ const Programs = () => {
         <DialogTitle>
           Applicants - {selectedProgramForApplicants?.title}
         </DialogTitle>
-        <DialogContent>
+        <DialogContent sx={{ maxHeight: '70vh', overflowY: 'auto' }}>
           {loadingApplicants ? (
             <Box display="flex" justifyContent="center" p={4}>
               <CircularProgress />
