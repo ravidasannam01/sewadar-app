@@ -200,7 +200,7 @@ const Programs = () => {
     <Box>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Typography variant="h4" component="h1" sx={{ fontWeight: 600 }}>
-          Programs
+          ND-Programs
         </Typography>
         {(user?.role === 'ADMIN' || user?.role === 'INCHARGE') && (
           <Button
@@ -295,7 +295,7 @@ const Programs = () => {
                           sx={{ mb: 1 }}
                         />
                         <Typography variant="body2" color="text.secondary">
-                          <strong>Location:</strong> {program.location} ({program.locationType})
+                          <strong>Location:</strong> {program.location}
                         </Typography>
                         <Typography variant="body2" color="text.secondary">
                           <strong>Dates:</strong>{' '}

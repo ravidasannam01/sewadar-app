@@ -28,7 +28,7 @@ const Layout = () => {
   }
 
   const navItems = [
-    { path: '/programs', label: 'Programs', icon: <EventIcon /> },
+    { path: '/programs', label: 'ND-Programs', icon: <EventIcon /> },
     { path: '/dashboard', label: 'Dashboard', icon: <DashboardIcon /> },
   ]
 

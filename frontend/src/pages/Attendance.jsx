@@ -293,7 +293,7 @@ const Attendance = () => {
                 </Box>
 
                 <Typography variant="body2" color="text.secondary" gutterBottom>
-                  <strong>Location:</strong> {program.location} ({program.locationType})
+                  <strong>Location:</strong> {program.location}
                 </Typography>
                 <Typography variant="body2" color="text.secondary" gutterBottom>
                   <strong>Dates:</strong> {program.programDates?.map(d => format(new Date(d), 'MMM dd, yyyy')).join(', ') || 'N/A'}
