@@ -6,6 +6,10 @@ import {
   IconButton,
   Typography,
   Grid,
+  MenuItem,
+  Select,
+  FormControl,
+  InputLabel,
 } from '@mui/material'
 import { Add as AddIcon, Delete as DeleteIcon } from '@mui/icons-material'
 import api from '../services/api'
@@ -30,6 +34,11 @@ const SewadarForm = ({ sewadar, onClose, onSuccess }) => {
     address2: '',
     email: '',
     remarks: '',
+    fatherHusbandName: '',
+    gender: '',
+    screenerCode: '',
+    satsangPlace: '',
+    emailId: '',
   })
   const [loading, setLoading] = useState(false)
 
@@ -54,6 +63,11 @@ const SewadarForm = ({ sewadar, onClose, onSuccess }) => {
         address2: sewadar.address?.address2 || '',
         email: sewadar.address?.email || '',
         remarks: sewadar.remarks || '',
+        fatherHusbandName: sewadar.fatherHusbandName || '',
+        gender: sewadar.gender || '',
+        screenerCode: sewadar.screenerCode || '',
+        satsangPlace: sewadar.satsangPlace || '',
+        emailId: sewadar.emailId || '',
       })
     }
   }, [sewadar])
@@ -108,6 +122,11 @@ const SewadarForm = ({ sewadar, onClose, onSuccess }) => {
         address1: formData.address1,
         address2: formData.address2,
         email: formData.email,
+        fatherHusbandName: formData.fatherHusbandName || null,
+        gender: formData.gender || null,
+        screenerCode: formData.screenerCode || null,
+        satsangPlace: formData.satsangPlace || null,
+        emailId: formData.emailId || null,
       }
 
       if (formData.password) {
@@ -300,13 +319,61 @@ const SewadarForm = ({ sewadar, onClose, onSuccess }) => {
             onChange={(e) => handleChange('address2', e.target.value)}
           />
         </Grid>
-        <Grid item xs={12}>
+        <Grid item xs={12} sm={6}>
           <TextField
             fullWidth
-            label="Email"
+            label="Father/Husband Name"
+            value={formData.fatherHusbandName}
+            onChange={(e) => handleChange('fatherHusbandName', e.target.value)}
+          />
+        </Grid>
+        <Grid item xs={12} sm={6}>
+          <FormControl fullWidth>
+            <InputLabel>Gender</InputLabel>
+            <Select
+              value={formData.gender}
+              onChange={(e) => handleChange('gender', e.target.value)}
+              label="Gender"
+            >
+              <MenuItem value="">None</MenuItem>
+              <MenuItem value="MALE">Male</MenuItem>
+              <MenuItem value="FEMALE">Female</MenuItem>
+            </Select>
+          </FormControl>
+        </Grid>
+        <Grid item xs={12} sm={6}>
+          <TextField
+            fullWidth
+            label="Screener Code"
+            value={formData.screenerCode}
+            onChange={(e) => handleChange('screenerCode', e.target.value)}
+          />
+        </Grid>
+        <Grid item xs={12} sm={6}>
+          <TextField
+            fullWidth
+            label="Satsang Place"
+            value={formData.satsangPlace}
+            onChange={(e) => handleChange('satsangPlace', e.target.value)}
+          />
+        </Grid>
+        <Grid item xs={12} sm={6}>
+          <TextField
+            fullWidth
+            label="Email ID"
+            type="email"
+            value={formData.emailId}
+            onChange={(e) => handleChange('emailId', e.target.value)}
+          />
+        </Grid>
+        <Grid item xs={12} sm={6}>
+          <TextField
+            fullWidth
+            label="Email (Address)"
             type="email"
             value={formData.email}
             onChange={(e) => handleChange('email', e.target.value)}
+            helperText="Email in address (legacy field)"
           />
         </Grid>
         <Grid item xs={12}>

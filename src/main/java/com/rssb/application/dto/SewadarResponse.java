@@ -32,5 +32,12 @@ public class SewadarResponse {
     private String photoUrl;
     private String aadharNumber; // 12-digit Aadhar number
     private List<String> languages; // Languages known
+    
+    // Additional fields
+    private String fatherHusbandName;
+    private String gender; // MALE or FEMALE
+    private String screenerCode;
+    private String satsangPlace;
+    private String emailId;
 }
 

@@ -210,7 +210,7 @@ const Layout = () => {
               {user?.firstName} {user?.lastName}
             </Typography>
             <Chip
-              label={user?.role}
+              label={user?.screenerCode || 'NA'}
               size="small"
               sx={{
                 bgcolor: (user?.role === 'ADMIN' || user?.role === 'INCHARGE') ? '#d4af37' : '#4a90a4',

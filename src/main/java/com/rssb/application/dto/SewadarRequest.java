@@ -49,5 +49,12 @@ public class SewadarRequest {
     private String photoUrl;
     private String aadharNumber; // 12-digit Aadhar number
     private java.util.List<String> languages; // Languages known
+    
+    // Additional fields
+    private String fatherHusbandName;
+    private String gender; // MALE or FEMALE
+    private String screenerCode;
+    private String satsangPlace;
+    private String emailId;
 }
 

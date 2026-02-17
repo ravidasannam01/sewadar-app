@@ -78,6 +78,22 @@ public class Sewadar {
     @Column(name = "aadhar_number", length = 12, unique = true)
     private String aadharNumber; // 12-digit Aadhar number
 
+    @Column(name = "father_husband_name", length = 100)
+    private String fatherHusbandName;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "gender", length = 10)
+    private Gender gender;
+
+    @Column(name = "screener_code", length = 50)
+    private String screenerCode;
+
+    @Column(name = "satsang_place", length = 255)
+    private String satsangPlace;
+
+    @Column(name = "email_id", length = 100)
+    private String emailId;
+
     @OneToMany(mappedBy = "sewadar", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<SewadarLanguage> languages = new ArrayList<>();

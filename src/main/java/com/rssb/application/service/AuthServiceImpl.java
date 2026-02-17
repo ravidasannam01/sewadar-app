@@ -1,9 +1,12 @@
 package com.rssb.application.service;
 
+import com.rssb.application.dto.AddressResponse;
 import com.rssb.application.dto.LoginRequest;
 import com.rssb.application.dto.LoginResponse;
 import com.rssb.application.dto.SewadarResponse;
+import com.rssb.application.entity.Address;
 import com.rssb.application.entity.Sewadar;
+import com.rssb.application.entity.SewadarLanguage;
 import com.rssb.application.repository.SewadarRepository;
 import com.rssb.application.util.JwtUtil;
 import lombok.RequiredArgsConstructor;
@@ -11,6 +14,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -39,21 +45,8 @@ public class AuthServiceImpl implements AuthService {
         String role = sewadar.getRole() != null ? sewadar.getRole().name() : "SEWADAR";
         String token = jwtUtil.generateToken(sewadar.getZonalId(), role);
 
-        // Map to response
-        SewadarResponse sewadarResponse = SewadarResponse.builder()
-                .zonalId(sewadar.getZonalId())
-                .firstName(sewadar.getFirstName())
-                .lastName(sewadar.getLastName())
-                .mobile(sewadar.getMobile())
-                .location(sewadar.getLocation())
-                .role(role)
-                .profession(sewadar.getProfession())
-                .joiningDate(sewadar.getJoiningDate())
-                .dateOfBirth(sewadar.getDateOfBirth())
-                .emergencyContact(sewadar.getEmergencyContact())
-                .emergencyContactRelationship(sewadar.getEmergencyContactRelationship())
-                .photoUrl(sewadar.getPhotoUrl())
-                .build();
+        // Map to response - use the service method to ensure all fields are included
+        SewadarResponse sewadarResponse = mapSewadarToResponse(sewadar, role);
 
         log.info("Login successful for sewadar: {}", sewadar.getZonalId());
 
@@ -80,6 +73,50 @@ public class AuthServiceImpl implements AuthService {
         } catch (Exception e) {
             return false;
         }
+    }
+
+    private SewadarResponse mapSewadarToResponse(Sewadar sewadar, String role) {
+        SewadarResponse.SewadarResponseBuilder builder = SewadarResponse.builder()
+                .zonalId(sewadar.getZonalId())
+                .firstName(sewadar.getFirstName())
+                .lastName(sewadar.getLastName())
+                .mobile(sewadar.getMobile())
+                .location(sewadar.getLocation())
+                .role(role)
+                .profession(sewadar.getProfession())
+                .joiningDate(sewadar.getJoiningDate())
+                .dateOfBirth(sewadar.getDateOfBirth())
+                .emergencyContact(sewadar.getEmergencyContact())
+                .emergencyContactRelationship(sewadar.getEmergencyContactRelationship())
+                .photoUrl(sewadar.getPhotoUrl())
+                .aadharNumber(sewadar.getAadharNumber())
+                .fatherHusbandName(sewadar.getFatherHusbandName())
+                .gender(sewadar.getGender() != null ? sewadar.getGender().name() : null)
+                .screenerCode(sewadar.getScreenerCode())
+                .satsangPlace(sewadar.getSatsangPlace())
+                .emailId(sewadar.getEmailId());
+
+        // Map languages
+        if (sewadar.getLanguages() != null && !sewadar.getLanguages().isEmpty()) {
+            List<String> languages = sewadar.getLanguages().stream()
+                    .map(lang -> lang.getLanguage())
+                    .collect(Collectors.toList());
+            builder.languages(languages);
+        }
+
+        // Map address
+        if (sewadar.getAddress() != null) {
+            Address address = sewadar.getAddress();
+            AddressResponse addressResponse = AddressResponse.builder()
+                    .id(address.getId())
+                    .address1(address.getAddress1())
+                    .address2(address.getAddress2())
+                    .email(address.getEmail())
+                    .build();
+            builder.address(addressResponse);
+        }
+
+        return builder.build();
     }
 }
 

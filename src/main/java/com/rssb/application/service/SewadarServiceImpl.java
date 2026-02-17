@@ -81,6 +81,17 @@ public class SewadarServiceImpl implements SewadarService {
         sewadar.setEmergencyContactRelationship(request.getEmergencyContactRelationship());
         sewadar.setPhotoUrl(request.getPhotoUrl());
         sewadar.setAadharNumber(request.getAadharNumber());
+        sewadar.setFatherHusbandName(request.getFatherHusbandName());
+        if (request.getGender() != null && !request.getGender().trim().isEmpty()) {
+            try {
+                sewadar.setGender(com.rssb.application.entity.Gender.valueOf(request.getGender().toUpperCase()));
+            } catch (IllegalArgumentException e) {
+                log.warn("Invalid gender value: {}, skipping", request.getGender());
+            }
+        }
+        sewadar.setScreenerCode(request.getScreenerCode());
+        sewadar.setSatsangPlace(request.getSatsangPlace());
+        sewadar.setEmailId(request.getEmailId());
 
         // Update password if provided
         if (request.getPassword() != null && !request.getPassword().trim().isEmpty()) {
@@ -230,7 +241,20 @@ public class SewadarServiceImpl implements SewadarService {
                 .emergencyContact(request.getEmergencyContact())
                 .emergencyContactRelationship(request.getEmergencyContactRelationship())
                 .photoUrl(request.getPhotoUrl())
-                .aadharNumber(request.getAadharNumber());
+                .aadharNumber(request.getAadharNumber())
+                .fatherHusbandName(request.getFatherHusbandName())
+                .screenerCode(request.getScreenerCode())
+                .satsangPlace(request.getSatsangPlace())
+                .emailId(request.getEmailId());
+        
+        // Handle gender enum
+        if (request.getGender() != null && !request.getGender().trim().isEmpty()) {
+            try {
+                builder.gender(com.rssb.application.entity.Gender.valueOf(request.getGender().toUpperCase()));
+            } catch (IllegalArgumentException e) {
+                log.warn("Invalid gender value: {}, skipping", request.getGender());
+            }
+        }
 
         // Role assignment logic:
         // 1. If no incharge exists and allowInchargeCreation=true, create as INCHARGE
@@ -340,7 +364,12 @@ public class SewadarServiceImpl implements SewadarService {
                 .emergencyContact(sewadar.getEmergencyContact())
                 .emergencyContactRelationship(sewadar.getEmergencyContactRelationship())
                 .photoUrl(sewadar.getPhotoUrl())
-                .aadharNumber(sewadar.getAadharNumber());
+                .aadharNumber(sewadar.getAadharNumber())
+                .fatherHusbandName(sewadar.getFatherHusbandName())
+                .gender(sewadar.getGender() != null ? sewadar.getGender().name() : null)
+                .screenerCode(sewadar.getScreenerCode())
+                .satsangPlace(sewadar.getSatsangPlace())
+                .emailId(sewadar.getEmailId());
         
         // Map languages
         if (sewadar.getLanguages() != null && !sewadar.getLanguages().isEmpty()) {
