@@ -32,6 +32,7 @@ import {
   Download as DownloadIcon,
   CheckCircle as CheckCircleIcon,
   Cancel as CancelIcon,
+  Visibility as VisibilityIcon,
 } from '@mui/icons-material'
 import { format } from 'date-fns'
 import api from '../services/api'
@@ -46,6 +47,7 @@ const Attendance = () => {
   const [attendanceRecords, setAttendanceRecords] = useState([])
   const [existingForSelectedDate, setExistingForSelectedDate] = useState([])
   const [openMarkAttendanceDialog, setOpenMarkAttendanceDialog] = useState(false)
+  const [openViewAttendanceDialog, setOpenViewAttendanceDialog] = useState(false)
   const [loading, setLoading] = useState(false)
   const [attendanceData, setAttendanceData] = useState({}) // {sewadarId: bool} - true if selected
   const [selectedDate, setSelectedDate] = useState('')
@@ -120,6 +122,17 @@ const Attendance = () => {
     loadAttendees(selectedProgram.id)
     // Also load existing attendance records so we can filter already-marked sewadars
     loadAttendanceRecords(selectedProgram.id)
+  }
+
+  const handleViewAttendance = async (program) => {
+    try {
+      setSelectedProgram(program)
+      await loadAttendanceRecords(program.id)
+      setOpenViewAttendanceDialog(true)
+    } catch (error) {
+      // loadAttendanceRecords already alerts; just log here
+      console.error('Error viewing attendance:', error)
+    }
   }
 
   const handleDownloadAttendance = async (program) => {
@@ -311,6 +324,15 @@ const Attendance = () => {
                   >
                     Download Attendance
                   </Button>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    startIcon={<VisibilityIcon />}
+                    onClick={() => handleViewAttendance(program)}
+                    disabled={loading}
+                  >
+                    View Attendance
+                  </Button>
                 </Box>
               </CardContent>
             </Card>
@@ -468,6 +490,69 @@ const Attendance = () => {
             disabled={loading || attendees.length === 0 || !selectedDate}
           >
             Save Attendance
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* View Attendance Dialog */}
+      <Dialog
+        open={openViewAttendanceDialog}
+        onClose={() => {
+          setOpenViewAttendanceDialog(false)
+          setAttendanceRecords([])
+        }}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>Attendance - {selectedProgram?.title}</DialogTitle>
+        <DialogContent>
+          {loading ? (
+            <Box display="flex" justifyContent="center" p={4}>
+              <CircularProgress />
+            </Box>
+          ) : attendanceRecords.length === 0 ? (
+            <Alert severity="info">No attendance records found for this program.</Alert>
+          ) : (
+            <TableContainer sx={{ mt: 1 }}>
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Name</TableCell>
+                    <TableCell>Zonal ID</TableCell>
+                    <TableCell>Mobile</TableCell>
+                    <TableCell>Date</TableCell>
+                    <TableCell>Notes</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {attendanceRecords.map((record) => (
+                    <TableRow key={record.id}>
+                      <TableCell>
+                        {(record.sewadar?.firstName || '') + ' ' + (record.sewadar?.lastName || '')}
+                      </TableCell>
+                      <TableCell>{record.sewadar?.zonalId || ''}</TableCell>
+                      <TableCell>{record.sewadar?.mobile || '-'}</TableCell>
+                      <TableCell>
+                        {record.attendanceDate
+                          ? format(new Date(record.attendanceDate), 'MMM dd, yyyy')
+                          : '-'}
+                      </TableCell>
+                      <TableCell>{record.notes || '-'}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => {
+              setOpenViewAttendanceDialog(false)
+              setAttendanceRecords([])
+            }}
+          >
+            Close
           </Button>
         </DialogActions>
       </Dialog>

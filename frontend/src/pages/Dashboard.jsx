@@ -63,6 +63,9 @@ const Dashboard = () => {
   const [lookupResult, setLookupResult] = useState(null)
   const [selectedProgramForDownload, setSelectedProgramForDownload] = useState(null)
   const [selectedProgramsForMulti, setSelectedProgramsForMulti] = useState([])
+  const [openAttendanceDialog, setOpenAttendanceDialog] = useState(false)
+  const [attendanceDialogTitle, setAttendanceDialogTitle] = useState('')
+  const [attendanceDialogRows, setAttendanceDialogRows] = useState([])
 
   // Form Submissions states
   const [formSubmissions, setFormSubmissions] = useState([])
@@ -218,6 +221,38 @@ const Dashboard = () => {
     }
   }
 
+  const openAttendanceDialogWith = (title, records) => {
+    setAttendanceDialogTitle(title)
+    setAttendanceDialogRows(records)
+    setOpenAttendanceDialog(true)
+  }
+
+  const handleViewProgramAttendance = async () => {
+    if (!selectedProgramForDownload) {
+      alert('Please select a program')
+      return
+    }
+
+    try {
+      setLoading(true)
+      const response = await api.get(`/attendances/program/${selectedProgramForDownload.id}`)
+      const records = (response.data || []).map((record) => ({
+        ...record,
+        programTitle: selectedProgramForDownload.title,
+        programId: selectedProgramForDownload.id,
+      }))
+      openAttendanceDialogWith(
+        `Attendance - ${selectedProgramForDownload.title}`,
+        records,
+      )
+    } catch (error) {
+      console.error('Error loading program attendance:', error)
+      alert('Error: ' + (error.response?.data?.message || error.message))
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const handleDownloadProgramAttendance = async () => {
     if (!selectedProgramForDownload) {
       alert('Please select a program')
@@ -230,12 +265,12 @@ const Dashboard = () => {
         responseType: 'blob',
       })
 
-      const blob = new Blob([response.data])
+        const blob = new Blob([response.data])
       const url = window.URL.createObjectURL(blob)
-      const link = document.createElement('a')
+        const link = document.createElement('a')
       link.href = url
       link.download = `attendance_${selectedProgramForDownload.title.replace(/\s+/g, '_')}_${selectedProgramForDownload.id}.csv`
-      link.click()
+        link.click()
       window.URL.revokeObjectURL(url)
       alert('Attendance CSV downloaded successfully!')
     } catch (error) {
@@ -316,7 +351,7 @@ const Dashboard = () => {
             programId: programId,
           }))
           allAttendance.push(...recordsWithProgram)
-        } catch (error) {
+    } catch (error) {
           console.error(`Error loading attendance for program ${programId}:`, error)
         }
       }
@@ -333,6 +368,40 @@ const Dashboard = () => {
       alert('Multi-program attendance CSV downloaded successfully!')
     } catch (error) {
       console.error('Error downloading multi-program attendance:', error)
+      alert('Error: ' + (error.response?.data?.message || error.message))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleViewMultiProgramAttendance = async () => {
+    if (selectedProgramsForMulti.length === 0) {
+      alert('Please select at least one program')
+      return
+    }
+
+    try {
+      setLoading(true)
+      const programIds = selectedProgramsForMulti.map((p) => p.id)
+      const allAttendance = []
+      for (const programId of programIds) {
+        try {
+          const response = await api.get(`/attendances/program/${programId}`)
+          const program = programs.find((p) => p.id === programId)
+          const recordsWithProgram = (response.data || []).map((record) => ({
+            ...record,
+            programTitle: program?.title || `Program ${programId}`,
+            programId,
+          }))
+          allAttendance.push(...recordsWithProgram)
+        } catch (error) {
+          console.error(`Error loading attendance for program ${programId}:`, error)
+        }
+      }
+
+      openAttendanceDialogWith('Multi-Program Attendance', allAttendance)
+    } catch (error) {
+      console.error('Error loading multi-program attendance:', error)
       alert('Error: ' + (error.response?.data?.message || error.message))
     } finally {
       setLoading(false)
@@ -374,6 +443,33 @@ const Dashboard = () => {
       alert('All programs attendance CSV downloaded successfully!')
     } catch (error) {
       console.error('Error downloading all programs attendance:', error)
+      alert('Error: ' + (error.response?.data?.message || error.message))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleViewAllProgramsAttendance = async () => {
+    try {
+      setLoading(true)
+      const allAttendance = []
+      for (const program of programs) {
+        try {
+          const response = await api.get(`/attendances/program/${program.id}`)
+          const recordsWithProgram = (response.data || []).map((record) => ({
+            ...record,
+            programTitle: program.title,
+            programId: program.id,
+          }))
+          allAttendance.push(...recordsWithProgram)
+        } catch (error) {
+          console.error(`Error loading attendance for program ${program.id}:`, error)
+        }
+      }
+
+      openAttendanceDialogWith('All Programs Attendance', allAttendance)
+    } catch (error) {
+      console.error('Error loading all programs attendance:', error)
       alert('Error: ' + (error.response?.data?.message || error.message))
     } finally {
       setLoading(false)
@@ -801,10 +897,10 @@ const Dashboard = () => {
               <Card>
                 <CardContent>
                   <Typography variant="h6" gutterBottom>
-                    Download Program Attendance
+                    Program Attendance
                   </Typography>
                   <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                    Download attendance matrix (CSV) for a specific program
+                    View or download attendance matrix (CSV) for a specific program
                   </Typography>
                   <Grid container spacing={2}>
                     <Grid item xs={12}>
@@ -819,6 +915,17 @@ const Dashboard = () => {
                           <TextField {...params} label="Select Program" size="small" />
                         )}
                       />
+                    </Grid>
+                    <Grid item xs={12}>
+                  <Button
+                    variant="outlined"
+                        fullWidth
+                        startIcon={<VisibilityIcon />}
+                        onClick={handleViewProgramAttendance}
+                        disabled={loading || !selectedProgramForDownload}
+                      >
+                        View Attendance
+                  </Button>
                     </Grid>
                     <Grid item xs={12}>
                       <Button
@@ -844,7 +951,7 @@ const Dashboard = () => {
                     Multi-Program Attendance
                   </Typography>
                   <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                    Download attendance records (present/absent) across multiple programs as CSV
+                    View or download attendance records (present/absent) across multiple programs
                   </Typography>
                   <Grid container spacing={2}>
                     <Grid item xs={12}>
@@ -862,15 +969,26 @@ const Dashboard = () => {
                       />
                     </Grid>
                     <Grid item xs={12}>
+                  <Button
+                    variant="outlined"
+                        fullWidth
+                        startIcon={<VisibilityIcon />}
+                        onClick={handleViewMultiProgramAttendance}
+                        disabled={loading || selectedProgramsForMulti.length === 0}
+                      >
+                        View Attendance
+                      </Button>
+                    </Grid>
+                    <Grid item xs={12}>
                       <Button
                         variant="contained"
                         fullWidth
-                        startIcon={<DownloadIcon />}
+                    startIcon={<DownloadIcon />}
                         onClick={handleDownloadMultiProgramAttendance}
                         disabled={loading || selectedProgramsForMulti.length === 0}
-                      >
+                  >
                         Download Attendance CSV
-                      </Button>
+                  </Button>
                     </Grid>
                   </Grid>
                 </CardContent>
@@ -885,14 +1003,25 @@ const Dashboard = () => {
                     All Programs Attendance
                   </Typography>
                   <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                    Download attendance records (present/absent) for all programs as CSV
+                    View or download attendance records (present/absent) for all programs
                   </Typography>
                   <Grid container spacing={2}>
+                    <Grid item xs={12}>
+                  <Button
+                    variant="outlined"
+                        fullWidth
+                        startIcon={<VisibilityIcon />}
+                        onClick={handleViewAllProgramsAttendance}
+                        disabled={loading || programs.length === 0}
+                      >
+                        View Attendance
+                      </Button>
+                    </Grid>
                     <Grid item xs={12}>
                       <Button
                         variant="contained"
                         fullWidth
-                        startIcon={<DownloadIcon />}
+                    startIcon={<DownloadIcon />}
                         onClick={handleDownloadAllProgramsAttendance}
                         disabled={loading || programs.length === 0}
                       >
@@ -1098,6 +1227,55 @@ const Dashboard = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenSewadarAttendanceDialog(false)}>Close</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Generic Attendance View Dialog */}
+      <Dialog
+        open={openAttendanceDialog}
+        onClose={() => setOpenAttendanceDialog(false)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>{attendanceDialogTitle}</DialogTitle>
+        <DialogContent>
+          {attendanceDialogRows.length === 0 ? (
+            <Alert severity="info">No attendance records found.</Alert>
+          ) : (
+            <TableContainer component={Paper} sx={{ mt: 1 }}>
+              <Table size="small">
+                <TableHead>
+                      <TableRow>
+                    <TableCell>Program</TableCell>
+                    <TableCell>Program ID</TableCell>
+                    <TableCell>Zonal ID</TableCell>
+                    <TableCell>Name</TableCell>
+                    <TableCell>Date</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {attendanceDialogRows.map((record) => (
+                    <TableRow key={record.id}>
+                      <TableCell>{record.programTitle || `Program ${record.programId}`}</TableCell>
+                      <TableCell>{record.programId}</TableCell>
+                      <TableCell>{record.sewadar?.zonalId || ''}</TableCell>
+                      <TableCell>
+                        {(record.sewadar?.firstName || '') + ' ' + (record.sewadar?.lastName || '')}
+                      </TableCell>
+                      <TableCell>
+                        {record.attendanceDate
+                          ? format(new Date(record.attendanceDate), 'MMM dd, yyyy')
+                          : '-'}
+                        </TableCell>
+                      </TableRow>
+                  ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenAttendanceDialog(false)}>Close</Button>
         </DialogActions>
       </Dialog>
 
