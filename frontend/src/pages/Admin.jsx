@@ -36,6 +36,10 @@ import {
   Cancel as CancelIcon,
   PersonAdd as PersonAddIcon,
   Undo as UndoIcon,
+  Visibility as VisibilityIcon,
+  Person as PersonIcon,
+  Event as EventIcon,
+  CalendarToday as CalendarIcon,
 } from '@mui/icons-material'
 import { format } from 'date-fns'
 import api from '../services/api'
@@ -67,6 +71,11 @@ const Admin = () => {
   const [loading, setLoading] = useState(false)
   const [sortBy, setSortBy] = useState('attendance')
   const [sortOrder, setSortOrder] = useState('desc')
+  const [openAttendanceSummaryDialog, setOpenAttendanceSummaryDialog] = useState(false)
+  const [selectedAppForAttendance, setSelectedAppForAttendance] = useState(null)
+  const [attendanceSummary, setAttendanceSummary] = useState(null)
+  const [selectedProgramForAttendance, setSelectedProgramForAttendance] = useState({})
+  const [programAttendanceDetails, setProgramAttendanceDetails] = useState({})
 
   useEffect(() => {
     if (isAdminOrIncharge(user)) {
@@ -164,6 +173,76 @@ const Admin = () => {
       }
     } catch (error) {
       alert(error.response?.data?.message || 'Failed to rollback')
+    }
+  }
+
+  const handleOpenAttendanceSummary = async (app) => {
+    setSelectedAppForAttendance(app)
+    setOpenAttendanceSummaryDialog(true)
+    setAttendanceSummary(null)
+    setSelectedProgramForAttendance({})
+    setProgramAttendanceDetails({})
+    
+    // Ensure programs are loaded
+    if (programs.length === 0) {
+      await loadPrograms()
+    }
+    
+    try {
+      setLoading(true)
+      // Fetch attendance summary - we already have the data from prioritizedApplications
+      const summary = {
+        totalAttendance: app.totalAttendanceCount || 0,
+        beasAttendance: app.beasAttendanceCount || 0,
+        nonBeasAttendance: app.nonBeasAttendanceCount || 0,
+        totalDays: app.totalDaysAttended || 0,
+        beasDays: app.beasDaysAttended || 0,
+        nonBeasDays: app.nonBeasDaysAttended || 0,
+      }
+      setAttendanceSummary(summary)
+    } catch (error) {
+      console.error('Error loading attendance summary:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleProgramSelectForAttendance = async (fieldType, programId) => {
+    if (!programId || !selectedAppForAttendance) return
+    
+    try {
+      setLoading(true)
+      // Fetch attendance records for this sewadar in this program
+      const response = await api.get(`/attendances/program/${programId}`)
+      const allAttendances = response.data || []
+      
+      // Filter for this sewadar
+      const sewadarAttendances = allAttendances.filter(
+        att => att.sewadar?.zonalId === selectedAppForAttendance.sewadar.zonalId
+      )
+      
+      setSelectedProgramForAttendance(prev => ({
+        ...prev,
+        [fieldType]: programId
+      }))
+      
+      setProgramAttendanceDetails(prev => ({
+        ...prev,
+        [fieldType]: sewadarAttendances
+      }))
+    } catch (error) {
+      console.error('Error loading program attendance:', error)
+      alert('Failed to load program attendance')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleViewSewadar = (sewadarZonalId) => {
+    const sewadar = sewadars.find(s => s.zonalId === sewadarZonalId)
+    if (sewadar) {
+      setSelectedSewadar(sewadar)
+      setOpenSewadarForm(true)
     }
   }
 
@@ -584,8 +663,7 @@ const Admin = () => {
                   <TableRow>
                     <TableCell>Name</TableCell>
                     <TableCell>Mobile</TableCell>
-                    <TableCell>Total Attendance</TableCell>
-                    <TableCell>Total Days</TableCell>
+                    <TableCell>Attendance Summary</TableCell>
                     <TableCell>Status</TableCell>
                     <TableCell>Actions</TableCell>
                   </TableRow>
@@ -597,42 +675,60 @@ const Admin = () => {
                         {app.sewadar.firstName} {app.sewadar.lastName}
                       </TableCell>
                       <TableCell>{app.sewadar.mobile}</TableCell>
-                      <TableCell>{app.totalAttendanceCount || 0}</TableCell>
-                      <TableCell>{app.totalDaysAttended || 0}</TableCell>
+                      <TableCell>
+                        <IconButton
+                          size="small"
+                          color="primary"
+                          onClick={() => handleOpenAttendanceSummary(app)}
+                          title="View Attendance Summary"
+                        >
+                          <VisibilityIcon />
+                        </IconButton>
+                      </TableCell>
                       <TableCell>
                         <Chip label={app.status} size="small" />
                       </TableCell>
                       <TableCell>
-                        {app.status === 'PENDING' && (
-                          <Box display="flex" gap={1}>
+                        <Box display="flex" gap={1}>
+                          {app.status === 'PENDING' && (
+                            <>
+                              <IconButton
+                                size="small"
+                                color="success"
+                                onClick={() => handleApproveApplication(app.id)}
+                                title="Approve"
+                              >
+                                <CheckCircleIcon />
+                              </IconButton>
+                              <IconButton
+                                size="small"
+                                color="error"
+                                onClick={() => handleRejectApplication(app.id)}
+                                title="Reject"
+                              >
+                                <CancelIcon />
+                              </IconButton>
+                            </>
+                          )}
+                          {(app.status === 'APPROVED' || app.status === 'REJECTED') && (
                             <IconButton
                               size="small"
-                              color="success"
-                              onClick={() => handleApproveApplication(app.id)}
-                              title="Approve"
+                              color="warning"
+                              onClick={() => handleRollbackApplication(app.id)}
+                              title="Rollback to PENDING"
                             >
-                              <CheckCircleIcon />
+                              <UndoIcon />
                             </IconButton>
-                            <IconButton
-                              size="small"
-                              color="error"
-                              onClick={() => handleRejectApplication(app.id)}
-                              title="Reject"
-                            >
-                              <CancelIcon />
-                            </IconButton>
-                          </Box>
-                        )}
-                        {(app.status === 'APPROVED' || app.status === 'REJECTED') && (
+                          )}
                           <IconButton
                             size="small"
-                            color="warning"
-                            onClick={() => handleRollbackApplication(app.id)}
-                            title="Rollback to PENDING"
+                            color="info"
+                            onClick={() => handleViewSewadar(app.sewadar.zonalId)}
+                            title="View Sewadar"
                           >
-                            <UndoIcon />
+                            <PersonIcon />
                           </IconButton>
-                        )}
+                        </Box>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -804,6 +900,298 @@ const Admin = () => {
           </Button>
           <Button onClick={handleSavePassword} variant="contained" disabled={!newPassword || newPassword.length < 6}>
             Change Password
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Attendance Summary Dialog */}
+      <Dialog
+        open={openAttendanceSummaryDialog}
+        onClose={() => {
+          setOpenAttendanceSummaryDialog(false)
+          setSelectedAppForAttendance(null)
+          setAttendanceSummary(null)
+          setSelectedProgramForAttendance({})
+          setProgramAttendanceDetails({})
+        }}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>
+          Attendance Summary - {selectedAppForAttendance?.sewadar?.firstName} {selectedAppForAttendance?.sewadar?.lastName}
+        </DialogTitle>
+        <DialogContent sx={{ maxHeight: '70vh', overflowY: 'auto' }}>
+          {loading ? (
+            <Box display="flex" justifyContent="center" p={4}>
+              <CircularProgress />
+            </Box>
+          ) : attendanceSummary ? (
+            <Grid container spacing={2} sx={{ mt: 1 }}>
+              {/* Total Attendance */}
+              <Grid item xs={12}>
+                <Card variant="outlined">
+                  <CardContent>
+                    <Box display="flex" alignItems="center" justifyContent="space-between">
+                      <Box display="flex" alignItems="center" gap={1}>
+                        <EventIcon color="primary" />
+                        <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                          Total Attendance: {attendanceSummary.totalAttendance} programs
+                        </Typography>
+                      </Box>
+                      <FormControl size="small" sx={{ minWidth: 200 }}>
+                        <Select
+                          value={selectedProgramForAttendance.totalAttendance || ''}
+                          onChange={(e) => handleProgramSelectForAttendance('totalAttendance', e.target.value)}
+                          displayEmpty
+                        >
+                          <MenuItem value="">Select Program</MenuItem>
+                          {programs.map((prog) => (
+                            <MenuItem key={prog.id} value={prog.id}>
+                              {prog.title}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
+                    </Box>
+                    {selectedProgramForAttendance.totalAttendance && programAttendanceDetails.totalAttendance && (
+                      <Box mt={2}>
+                        <Typography variant="body2" color="text.secondary">
+                          Attendance Records: {programAttendanceDetails.totalAttendance.length} day(s)
+                        </Typography>
+                        {programAttendanceDetails.totalAttendance.map((att, idx) => (
+                          <Typography key={idx} variant="caption" display="block">
+                            {format(new Date(att.attendanceDate), 'MMM dd, yyyy')} - Present
+                          </Typography>
+                        ))}
+                      </Box>
+                    )}
+                  </CardContent>
+                </Card>
+              </Grid>
+
+              {/* BEAS Attendance */}
+              <Grid item xs={12}>
+                <Card variant="outlined">
+                  <CardContent>
+                    <Box display="flex" alignItems="center" justifyContent="space-between">
+                      <Box display="flex" alignItems="center" gap={1}>
+                        <EventIcon color="success" />
+                        <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                          BEAS Attendance: {attendanceSummary.beasAttendance} programs
+                        </Typography>
+                      </Box>
+                      <FormControl size="small" sx={{ minWidth: 200 }}>
+                        <Select
+                          value={selectedProgramForAttendance.beasAttendance || ''}
+                          onChange={(e) => handleProgramSelectForAttendance('beasAttendance', e.target.value)}
+                          displayEmpty
+                        >
+                          <MenuItem value="">Select Program</MenuItem>
+                          {programs.filter(p => p.locationType === 'BEAS').map((prog) => (
+                            <MenuItem key={prog.id} value={prog.id}>
+                              {prog.title}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
+                    </Box>
+                    {selectedProgramForAttendance.beasAttendance && programAttendanceDetails.beasAttendance && (
+                      <Box mt={2}>
+                        <Typography variant="body2" color="text.secondary">
+                          Attendance Records: {programAttendanceDetails.beasAttendance.length} day(s)
+                        </Typography>
+                        {programAttendanceDetails.beasAttendance.map((att, idx) => (
+                          <Typography key={idx} variant="caption" display="block">
+                            {format(new Date(att.attendanceDate), 'MMM dd, yyyy')} - Present
+                          </Typography>
+                        ))}
+                      </Box>
+                    )}
+                  </CardContent>
+                </Card>
+              </Grid>
+
+              {/* Non-BEAS Attendance */}
+              <Grid item xs={12}>
+                <Card variant="outlined">
+                  <CardContent>
+                    <Box display="flex" alignItems="center" justifyContent="space-between">
+                      <Box display="flex" alignItems="center" gap={1}>
+                        <EventIcon color="info" />
+                        <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                          Non-BEAS Attendance: {attendanceSummary.nonBeasAttendance} programs
+                        </Typography>
+                      </Box>
+                      <FormControl size="small" sx={{ minWidth: 200 }}>
+                        <Select
+                          value={selectedProgramForAttendance.nonBeasAttendance || ''}
+                          onChange={(e) => handleProgramSelectForAttendance('nonBeasAttendance', e.target.value)}
+                          displayEmpty
+                        >
+                          <MenuItem value="">Select Program</MenuItem>
+                          {programs.filter(p => p.locationType === 'NON_BEAS').map((prog) => (
+                            <MenuItem key={prog.id} value={prog.id}>
+                              {prog.title}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
+                    </Box>
+                    {selectedProgramForAttendance.nonBeasAttendance && programAttendanceDetails.nonBeasAttendance && (
+                      <Box mt={2}>
+                        <Typography variant="body2" color="text.secondary">
+                          Attendance Records: {programAttendanceDetails.nonBeasAttendance.length} day(s)
+                        </Typography>
+                        {programAttendanceDetails.nonBeasAttendance.map((att, idx) => (
+                          <Typography key={idx} variant="caption" display="block">
+                            {format(new Date(att.attendanceDate), 'MMM dd, yyyy')} - Present
+                          </Typography>
+                        ))}
+                      </Box>
+                    )}
+                  </CardContent>
+                </Card>
+              </Grid>
+
+              {/* Total Days */}
+              <Grid item xs={12}>
+                <Card variant="outlined">
+                  <CardContent>
+                    <Box display="flex" alignItems="center" justifyContent="space-between">
+                      <Box display="flex" alignItems="center" gap={1}>
+                        <CalendarIcon color="primary" />
+                        <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                          Total Days: {attendanceSummary.totalDays} days
+                        </Typography>
+                      </Box>
+                      <FormControl size="small" sx={{ minWidth: 200 }}>
+                        <Select
+                          value={selectedProgramForAttendance.totalDays || ''}
+                          onChange={(e) => handleProgramSelectForAttendance('totalDays', e.target.value)}
+                          displayEmpty
+                        >
+                          <MenuItem value="">Select Program</MenuItem>
+                          {programs.map((prog) => (
+                            <MenuItem key={prog.id} value={prog.id}>
+                              {prog.title}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
+                    </Box>
+                    {selectedProgramForAttendance.totalDays && programAttendanceDetails.totalDays && (
+                      <Box mt={2}>
+                        <Typography variant="body2" color="text.secondary">
+                          Attendance Records: {programAttendanceDetails.totalDays.length} day(s)
+                        </Typography>
+                        {programAttendanceDetails.totalDays.map((att, idx) => (
+                          <Typography key={idx} variant="caption" display="block">
+                            {format(new Date(att.attendanceDate), 'MMM dd, yyyy')} - Present
+                          </Typography>
+                        ))}
+                      </Box>
+                    )}
+                  </CardContent>
+                </Card>
+              </Grid>
+
+              {/* BEAS Days */}
+              <Grid item xs={12}>
+                <Card variant="outlined">
+                  <CardContent>
+                    <Box display="flex" alignItems="center" justifyContent="space-between">
+                      <Box display="flex" alignItems="center" gap={1}>
+                        <CalendarIcon color="success" />
+                        <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                          BEAS Days: {attendanceSummary.beasDays} days
+                        </Typography>
+                      </Box>
+                      <FormControl size="small" sx={{ minWidth: 200 }}>
+                        <Select
+                          value={selectedProgramForAttendance.beasDays || ''}
+                          onChange={(e) => handleProgramSelectForAttendance('beasDays', e.target.value)}
+                          displayEmpty
+                        >
+                          <MenuItem value="">Select Program</MenuItem>
+                          {programs.filter(p => p.locationType === 'BEAS').map((prog) => (
+                            <MenuItem key={prog.id} value={prog.id}>
+                              {prog.title}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
+                    </Box>
+                    {selectedProgramForAttendance.beasDays && programAttendanceDetails.beasDays && (
+                      <Box mt={2}>
+                        <Typography variant="body2" color="text.secondary">
+                          Attendance Records: {programAttendanceDetails.beasDays.length} day(s)
+                        </Typography>
+                        {programAttendanceDetails.beasDays.map((att, idx) => (
+                          <Typography key={idx} variant="caption" display="block">
+                            {format(new Date(att.attendanceDate), 'MMM dd, yyyy')} - Present
+                          </Typography>
+                        ))}
+                      </Box>
+                    )}
+                  </CardContent>
+                </Card>
+              </Grid>
+
+              {/* Non-BEAS Days */}
+              <Grid item xs={12}>
+                <Card variant="outlined">
+                  <CardContent>
+                    <Box display="flex" alignItems="center" justifyContent="space-between">
+                      <Box display="flex" alignItems="center" gap={1}>
+                        <CalendarIcon color="info" />
+                        <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                          Non-BEAS Days: {attendanceSummary.nonBeasDays} days
+                        </Typography>
+                      </Box>
+                      <FormControl size="small" sx={{ minWidth: 200 }}>
+                        <Select
+                          value={selectedProgramForAttendance.nonBeasDays || ''}
+                          onChange={(e) => handleProgramSelectForAttendance('nonBeasDays', e.target.value)}
+                          displayEmpty
+                        >
+                          <MenuItem value="">Select Program</MenuItem>
+                          {programs.filter(p => p.locationType === 'NON_BEAS').map((prog) => (
+                            <MenuItem key={prog.id} value={prog.id}>
+                              {prog.title}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
+                    </Box>
+                    {selectedProgramForAttendance.nonBeasDays && programAttendanceDetails.nonBeasDays && (
+                      <Box mt={2}>
+                        <Typography variant="body2" color="text.secondary">
+                          Attendance Records: {programAttendanceDetails.nonBeasDays.length} day(s)
+                        </Typography>
+                        {programAttendanceDetails.nonBeasDays.map((att, idx) => (
+                          <Typography key={idx} variant="caption" display="block">
+                            {format(new Date(att.attendanceDate), 'MMM dd, yyyy')} - Present
+                          </Typography>
+                        ))}
+                      </Box>
+                    )}
+                  </CardContent>
+                </Card>
+              </Grid>
+            </Grid>
+          ) : (
+            <Alert severity="info">No attendance data available.</Alert>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => {
+            setOpenAttendanceSummaryDialog(false)
+            setSelectedAppForAttendance(null)
+            setAttendanceSummary(null)
+            setSelectedProgramForAttendance({})
+            setProgramAttendanceDetails({})
+          }}>
+            Close
           </Button>
         </DialogActions>
       </Dialog>
