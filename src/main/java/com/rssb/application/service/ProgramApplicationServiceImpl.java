@@ -385,6 +385,11 @@ public class ProgramApplicationServiceImpl implements ProgramApplicationService 
                 return Comparator.comparing(
                         (PrioritizedApplicationResponse a) -> a.getJoiningDate() != null 
                                 ? a.getJoiningDate() : java.time.LocalDate.MIN);
+            case "appliedat":
+            case "applied_at":
+                return Comparator.comparing(
+                        (PrioritizedApplicationResponse a) -> a.getAppliedAt() != null 
+                                ? a.getAppliedAt() : java.time.LocalDateTime.MIN);
             case "priorityscore":
             default:
                 return Comparator.comparing(

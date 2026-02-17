@@ -542,6 +542,7 @@ const Admin = () => {
                     }
                   }}
                 >
+                  <MenuItem value="appliedAt">Applied At</MenuItem>
                   <MenuItem value="attendance">Total Attendance</MenuItem>
                   <MenuItem value="beasAttendance">BEAS Attendance</MenuItem>
                   <MenuItem value="nonBeasAttendance">Non-BEAS Attendance</MenuItem>
@@ -577,8 +578,8 @@ const Admin = () => {
               <CircularProgress />
             </Box>
           ) : (
-            <TableContainer>
-              <Table>
+            <TableContainer sx={{ maxHeight: '50vh' }}>
+              <Table stickyHeader size="small">
                 <TableHead>
                   <TableRow>
                     <TableCell>Name</TableCell>
@@ -671,8 +672,8 @@ const Admin = () => {
           ) : dropRequests.length === 0 ? (
             <Alert severity="info">No drop requests pending.</Alert>
           ) : (
-            <TableContainer>
-              <Table>
+            <TableContainer sx={{ maxHeight: '50vh' }}>
+              <Table stickyHeader size="small">
                 <TableHead>
                   <TableRow>
                     <TableCell>Name</TableCell>
