@@ -29,7 +29,7 @@ import {
   FormControlLabel,
 } from '@mui/material'
 import {
-  Event as EventIcon,
+  Download as DownloadIcon,
   CheckCircle as CheckCircleIcon,
   Cancel as CancelIcon,
 } from '@mui/icons-material'
@@ -46,7 +46,6 @@ const Attendance = () => {
   const [attendanceRecords, setAttendanceRecords] = useState([])
   const [existingForSelectedDate, setExistingForSelectedDate] = useState([])
   const [openMarkAttendanceDialog, setOpenMarkAttendanceDialog] = useState(false)
-  const [openViewAttendanceDialog, setOpenViewAttendanceDialog] = useState(false)
   const [loading, setLoading] = useState(false)
   const [attendanceData, setAttendanceData] = useState({}) // {sewadarId: bool} - true if selected
   const [selectedDate, setSelectedDate] = useState('')
@@ -123,10 +122,30 @@ const Attendance = () => {
     loadAttendanceRecords(selectedProgram.id)
   }
 
-  const handleViewAttendance = (program) => {
-    setSelectedProgram(program)
-    setOpenViewAttendanceDialog(true)
-    loadAttendanceRecords(program.id)
+  const handleDownloadAttendance = async (program) => {
+    try {
+      setLoading(true)
+      const response = await api.get(`/dashboard/program/${program.id}/attendance/export/CSV`, {
+        responseType: 'blob'
+      })
+      
+      // Create a blob URL and trigger download
+      const url = window.URL.createObjectURL(new Blob([response.data]))
+      const link = document.createElement('a')
+      link.href = url
+      link.setAttribute('download', `attendance_${program.title.replace(/\s+/g, '_')}_${program.id}.csv`)
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      window.URL.revokeObjectURL(url)
+      
+      alert('Attendance CSV downloaded successfully!')
+    } catch (error) {
+      console.error('Error downloading attendance:', error)
+      alert('Error downloading attendance: ' + (error.response?.data?.message || error.message))
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleSaveAttendance = async () => {
@@ -286,10 +305,11 @@ const Attendance = () => {
                   <Button
                     variant="outlined"
                     size="small"
-                    startIcon={<EventIcon />}
-                    onClick={() => handleViewAttendance(program)}
+                    startIcon={<DownloadIcon />}
+                    onClick={() => handleDownloadAttendance(program)}
+                    disabled={loading}
                   >
-                    View Attendance
+                    Download Attendance
                   </Button>
                 </Box>
               </CardContent>
@@ -452,78 +472,6 @@ const Attendance = () => {
         </DialogActions>
       </Dialog>
 
-      {/* View Attendance Dialog */}
-      <Dialog
-        open={openViewAttendanceDialog}
-        onClose={() => {
-          setOpenViewAttendanceDialog(false)
-          setSelectedProgram(null)
-        }}
-        maxWidth="lg"
-        fullWidth
-      >
-        <DialogTitle>
-          Attendance Records - {selectedProgram?.title}
-        </DialogTitle>
-        <DialogContent>
-          {loading ? (
-            <Box display="flex" justifyContent="center" p={4}>
-              <CircularProgress />
-            </Box>
-          ) : attendanceRecords.length === 0 ? (
-            <Alert severity="info">No attendance records found for this program.</Alert>
-          ) : (
-            <TableContainer>
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Name</TableCell>
-                    <TableCell>Zonal ID</TableCell>
-                    <TableCell>Status</TableCell>
-                    <TableCell>Date</TableCell>
-                    <TableCell>Notes</TableCell>
-                    <TableCell>Marked At</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {attendanceRecords.map((record) => (
-                    <TableRow key={record.id}>
-                      <TableCell>
-                        {record.sewadar?.firstName || ''} {record.sewadar?.lastName || ''}
-                      </TableCell>
-                      <TableCell>{record.sewadar?.zonalId || ''}</TableCell>
-                      <TableCell>
-                        <Chip
-                          label="Present"
-                          color="success"
-                          size="small"
-                        />
-                      </TableCell>
-                      <TableCell>
-                        {record.attendanceDate ? format(new Date(record.attendanceDate), 'MMM dd, yyyy') : '-'}
-                      </TableCell>
-                      <TableCell>{record.notes || '-'}</TableCell>
-                      <TableCell>
-                        <Typography variant="caption">
-                          {record.markedAt ? format(new Date(record.markedAt), 'MMM dd, yyyy HH:mm') : '-'}
-                        </Typography>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => {
-            setOpenViewAttendanceDialog(false)
-            setSelectedProgram(null)
-          }}>
-            Close
-          </Button>
-        </DialogActions>
-      </Dialog>
     </Box>
   )
 }

@@ -616,7 +616,7 @@ async function loadAdminPrograms() {
                     <div class="card-header">
                         <h3>${program.title}</h3>
                         <span class="status-badge ${program.status}">${program.status}</span>
-                    </div>
+                </div>
                 <div class="card-body">
                         <p><strong>Location:</strong> ${program.location || 'N/A'} ${program.locationType ? `(${program.locationType})` : ''}</p>
                         <p><strong>Applications:</strong> <span class="clickable-link" onclick="showApplicants(${program.id}, ${JSON.stringify(program.title || '')})" style="cursor: pointer; color: #667eea; text-decoration: underline;">${program.applicationCount || 0}${program.maxSewadars ? ` / ${program.maxSewadars}` : ''}</span></p>
@@ -1128,7 +1128,7 @@ async function loadAttendancePrograms() {
                     <p><strong>Applications:</strong> <span class="clickable-link" onclick="showApplicants(${program.id}, '${program.title}')" style="cursor: pointer; color: #667eea; text-decoration: underline;">${program.applicationCount || 0}${program.maxSewadars ? ` / ${program.maxSewadars}` : ''}</span></p>
                     <div class="card-actions">
                         <button class="btn btn-primary btn-sm" onclick="showMarkAttendanceWithSave(${program.id})">Mark Attendance</button>
-                        <button class="btn btn-secondary btn-sm" onclick="showViewAttendance(${program.id})">View Attendance</button>
+                        <button class="btn btn-secondary btn-sm" onclick="downloadAttendance(${program.id})">Download Attendance</button>
                     </div>
                 </div>
             </div>
@@ -1239,52 +1239,37 @@ function closeAttendanceModal() {
     currentProgramForAttendance = null;
 }
 
-async function showViewAttendance(programId) {
+async function downloadAttendance(programId) {
     try {
         const program = await apiCall(`/programs/${programId}`);
-        const records = await apiCall(`/attendances/program/${programId}`);
         
-        const content = document.getElementById('view-attendance-modal-content');
-        if (records.length === 0) {
-            content.innerHTML = '<p class="info-message">No attendance records found for this program.</p>';
-        } else {
-            content.innerHTML = `
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>Name</th>
-                            <th>Zonal ID</th>
-                            <th>Status</th>
-                            <th>Date</th>
-                            <th>Notes</th>
-                            <th>Marked At</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${records.map(record => `
-                            <tr>
-                                <td>${record.sewadar?.firstName || ''} ${record.sewadar?.lastName || ''}</td>
-                                <td>${record.sewadar?.zonalId || ''}</td>
-                                <td><span class="status-badge success">Present</span></td>
-                                <td>${formatDate(record.attendanceDate)}</td>
-                                <td>${record.notes || '-'}</td>
-                                <td>${formatDateTime(record.markedAt)}</td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-            `;
+        // Fetch CSV file
+        const token = localStorage.getItem('token');
+        const response = await fetch(`${API_BASE_URL}/dashboard/program/${programId}/attendance/export/CSV`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to download attendance CSV');
         }
         
-        document.getElementById('view-attendance-modal-title').textContent = `Attendance Records - ${program.title}`;
-        document.getElementById('view-attendance-modal').style.display = 'block';
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `attendance_${program.title.replace(/\s+/g, '_')}_${programId}.csv`;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(url);
+        
+        showMessage('Attendance CSV downloaded successfully!', 'success');
     } catch (error) {
-        showMessage('Error loading attendance records: ' + error.message, 'error');
+        showMessage('Error downloading attendance: ' + error.message, 'error');
     }
-}
-
-function closeViewAttendanceModal() {
-    document.getElementById('view-attendance-modal').style.display = 'none';
 }
 
 // Update showMarkAttendance to include save button
@@ -1643,7 +1628,7 @@ function closeFormSubmissionModal() {
 // ==================== MODAL CLOSE HANDLERS ====================
 
 window.onclick = function(event) {
-    const modals = ['program-modal', 'sewadar-modal', 'attendance-modal', 'view-attendance-modal',
+    const modals = ['program-modal', 'sewadar-modal', 'attendance-modal',
                     'applications-dialog-modal', 'drop-requests-dialog-modal', 'password-modal',
                     'role-change-modal', 'form-submission-modal', 'applicants-modal'];
     
