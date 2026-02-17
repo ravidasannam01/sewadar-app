@@ -71,8 +71,7 @@ public class SewadarFormSubmissionService {
 
         SewadarFormSubmission submission;
         if (existing != null) {
-            // Update existing
-            existing.setName(request.getName());
+            // Update existing (name removed - available from sewadar relationship)
             existing.setStartingDateTimeFromHome(request.getStartingDateTimeFromHome());
             existing.setReachingDateTimeToHome(request.getReachingDateTimeToHome());
             existing.setOnwardTrainFlightDateTime(request.getOnwardTrainFlightDateTime());
@@ -83,11 +82,10 @@ public class SewadarFormSubmissionService {
             existing.setStayInPandal(request.getStayInPandal());
             submission = formSubmissionRepository.save(existing);
         } else {
-            // Create new
+            // Create new (name removed - available from sewadar relationship)
             submission = SewadarFormSubmission.builder()
                 .program(program)
                 .sewadar(sewadar)
-                .name(request.getName())
                 .startingDateTimeFromHome(request.getStartingDateTimeFromHome())
                 .reachingDateTimeToHome(request.getReachingDateTimeToHome())
                 .onwardTrainFlightDateTime(request.getOnwardTrainFlightDateTime())
@@ -132,6 +130,61 @@ public class SewadarFormSubmissionService {
         return List.of();
     }
 
+    public SewadarFormSubmissionResponse updateFormSubmission(Long id, SewadarFormSubmissionRequest request) {
+        SewadarFormSubmission submission = formSubmissionRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("FormSubmission", "id", id));
+
+        // Update fields
+        submission.setStartingDateTimeFromHome(request.getStartingDateTimeFromHome());
+        submission.setReachingDateTimeToHome(request.getReachingDateTimeToHome());
+        submission.setOnwardTrainFlightDateTime(request.getOnwardTrainFlightDateTime());
+        submission.setOnwardTrainFlightNo(request.getOnwardTrainFlightNo());
+        submission.setReturnTrainFlightDateTime(request.getReturnTrainFlightDateTime());
+        submission.setReturnTrainFlightNo(request.getReturnTrainFlightNo());
+        submission.setStayInHotel(request.getStayInHotel());
+        submission.setStayInPandal(request.getStayInPandal());
+
+        SewadarFormSubmission updated = formSubmissionRepository.save(submission);
+        log.info("Form submission {} updated", id);
+        return mapToResponse(updated);
+    }
+
+    public byte[] exportFormSubmissionsCsv(Long programId) {
+        List<SewadarFormSubmission> submissions = formSubmissionRepository.findByProgramId(programId);
+        
+        StringBuilder csv = new StringBuilder();
+        // Header
+        csv.append("Sewadar Zonal ID,Sewadar Name,Starting Date/Time From Home,Reaching Date/Time To Home,")
+           .append("Onward Train/Flight Date/Time,Onward Train/Flight No,Return Train/Flight Date/Time,")
+           .append("Return Train/Flight No,Stay In Hotel,Stay In Pandal,Submitted At\n");
+        
+        // Data rows
+        for (SewadarFormSubmission submission : submissions) {
+            String sewadarName = submission.getSewadar().getFirstName() + " " + submission.getSewadar().getLastName();
+            csv.append(escapeCsv(submission.getSewadar().getZonalId())).append(",")
+               .append(escapeCsv(sewadarName)).append(",")
+               .append(escapeCsv(submission.getStartingDateTimeFromHome() != null ? submission.getStartingDateTimeFromHome().toString() : "")).append(",")
+               .append(escapeCsv(submission.getReachingDateTimeToHome() != null ? submission.getReachingDateTimeToHome().toString() : "")).append(",")
+               .append(escapeCsv(submission.getOnwardTrainFlightDateTime() != null ? submission.getOnwardTrainFlightDateTime().toString() : "")).append(",")
+               .append(escapeCsv(submission.getOnwardTrainFlightNo())).append(",")
+               .append(escapeCsv(submission.getReturnTrainFlightDateTime() != null ? submission.getReturnTrainFlightDateTime().toString() : "")).append(",")
+               .append(escapeCsv(submission.getReturnTrainFlightNo())).append(",")
+               .append(escapeCsv(submission.getStayInHotel())).append(",")
+               .append(escapeCsv(submission.getStayInPandal())).append(",")
+               .append(escapeCsv(submission.getSubmittedAt() != null ? submission.getSubmittedAt().toString() : "")).append("\n");
+        }
+        
+        return csv.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8);
+    }
+
+    private String escapeCsv(String value) {
+        if (value == null) return "";
+        if (value.contains(",") || value.contains("\"") || value.contains("\n")) {
+            return "\"" + value.replace("\"", "\"\"") + "\"";
+        }
+        return value;
+    }
+
     private SewadarFormSubmissionResponse mapToResponse(SewadarFormSubmission submission) {
         return SewadarFormSubmissionResponse.builder()
             .id(submission.getId())
@@ -139,7 +192,7 @@ public class SewadarFormSubmissionService {
             .programTitle(submission.getProgram().getTitle())
             .sewadarId(submission.getSewadar().getZonalId())
             .sewadarName(submission.getSewadar().getFirstName() + " " + submission.getSewadar().getLastName())
-            .name(submission.getName())
+            // name removed - use sewadarName instead
             .startingDateTimeFromHome(submission.getStartingDateTimeFromHome())
             .reachingDateTimeToHome(submission.getReachingDateTimeToHome())
             .onwardTrainFlightDateTime(submission.getOnwardTrainFlightDateTime())

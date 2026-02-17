@@ -28,7 +28,7 @@ const PendingActions = () => {
   const [openForm, setOpenForm] = useState(false)
   const [selectedProgram, setSelectedProgram] = useState(null)
   const [formData, setFormData] = useState({
-    name: '',
+    // name removed - available from sewadar relationship
     startingDateTimeFromHome: null,
     reachingDateTimeToHome: null,
     onwardTrainFlightDateTime: null,
@@ -121,7 +121,7 @@ const PendingActions = () => {
     setOpenForm(false)
     setSelectedProgram(null)
     setFormData({
-      name: '',
+      // name removed - available from sewadar relationship
       startingDateTimeFromHome: null,
       reachingDateTimeToHome: null,
       onwardTrainFlightDateTime: null,
@@ -219,14 +219,7 @@ const PendingActions = () => {
         <DialogTitle>Travel Details Form - {selectedProgram?.title}</DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              />
-            </Grid>
+            {/* Name field removed - available from sewadar relationship */}
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth

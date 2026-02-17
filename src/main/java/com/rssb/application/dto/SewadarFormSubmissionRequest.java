@@ -16,7 +16,7 @@ public class SewadarFormSubmissionRequest {
     @NotNull(message = "Program ID is required")
     private Long programId;
 
-    private String name;
+    // Name removed - available from sewadar relationship
     private LocalDateTime startingDateTimeFromHome;
     private LocalDateTime reachingDateTimeToHome;
     private LocalDateTime onwardTrainFlightDateTime;

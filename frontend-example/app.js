@@ -1365,65 +1365,272 @@ function clearDashboardFilters() {
     loadDashboardSewadars();
 }
 
-async function loadDashboardApplications() {
-    const programId = document.getElementById('dashboard-program-id-filter')?.value;
-    const status = document.getElementById('dashboard-status-filter')?.value;
+// ==================== DASHBOARD - ATTENDANCE LOOKUP ====================
+
+let allProgramsForDashboard = [];
+let allSewadarsForDashboard = [];
+
+async function loadProgramsForDashboard() {
+    try {
+        allProgramsForDashboard = await apiCall('/programs');
+        const programSelects = ['attendance-lookup-program', 'program-attendance-select', 'forms-program-select'];
+        programSelects.forEach(selectId => {
+            const select = document.getElementById(selectId);
+            if (select) {
+                select.innerHTML = '<option value="">Select Program</option>' + 
+                    allProgramsForDashboard.map(p => `<option value="${p.id}">${p.title}</option>`).join('');
+            }
+        });
+        const multiSelect = document.getElementById('multi-program-select');
+        if (multiSelect) {
+            multiSelect.innerHTML = allProgramsForDashboard.map(p => 
+                `<option value="${p.id}">${p.title}</option>`).join('');
+        }
+    } catch (error) {
+        console.error('Error loading programs:', error);
+    }
+}
+
+async function loadSewadarsForDashboard() {
+    try {
+        allSewadarsForDashboard = await apiCall('/sewadars');
+        const select = document.getElementById('attendance-lookup-sewadar');
+        if (select) {
+            select.innerHTML = '<option value="">Select Sewadar</option>' + 
+                allSewadarsForDashboard.map(s => 
+                    `<option value="${s.zonalId}">${s.zonalId} - ${s.firstName} ${s.lastName}</option>`).join('');
+        }
+    } catch (error) {
+        console.error('Error loading sewadars:', error);
+    }
+}
+
+async function handleQuickLookup() {
+    const programId = document.getElementById('attendance-lookup-program').value;
+    const sewadarId = document.getElementById('attendance-lookup-sewadar').value;
+    const date = document.getElementById('attendance-lookup-date').value;
+    
+    if (!programId || !sewadarId || !date) {
+        showMessage('Please select program, sewadar, and date', 'error');
+        return;
+    }
     
     try {
-        const response = await apiCall('/dashboard/applications', {
-            method: 'POST',
-            body: JSON.stringify({
-                page: 0,
-                size: 100,
-                programId: programId ? parseInt(programId) : null,
-                statuses: status ? [status] : null
-            })
-        });
-        
-        const applications = response.applications || [];
-        const listEl = document.getElementById('dashboard-applications-list');
-        if (!listEl) return;
-        
-        if (applications.length === 0) {
-            listEl.innerHTML = '<p class="info-message">No applications found matching the filters.</p>';
+        const result = await apiCall(`/attendances/lookup?sewadarId=${sewadarId}&programId=${programId}&date=${date}`);
+        const resultEl = document.getElementById('attendance-lookup-result');
+        if (result.isPresent) {
+            resultEl.innerHTML = `<div class="success-message">✅ Present on ${formatDate(date)}</div>`;
+    } else {
+            resultEl.innerHTML = `<div class="info-message">❌ Not present on ${formatDate(date)}</div>`;
+        }
+    } catch (error) {
+        showMessage('Error: ' + error.message, 'error');
+    }
+}
+
+async function handleLoadProgramAttendance() {
+    const programId = document.getElementById('program-attendance-select').value;
+    if (!programId) {
+        showMessage('Please select a program', 'error');
+        return;
+    }
+    
+    try {
+        const attendance = await apiCall(`/attendances/program/${programId}`);
+        const listEl = document.getElementById('program-attendance-list');
+        if (attendance.length === 0) {
+            listEl.innerHTML = '<p class="info-message">No attendance records found.</p>';
             return;
         }
         
         listEl.innerHTML = `
+            <p style="margin-bottom: 10px;"><strong>Found ${attendance.length} attendance record(s)</strong></p>
             <table class="data-table">
                 <thead>
                     <tr>
-                        <th>Application ID</th>
-                        <th>Zonal ID</th>
-                        <th>Name</th>
-                        <th>Mobile</th>
+                        <th>Sewadar</th>
+                        <th>Date</th>
                         <th>Status</th>
-                        <th>Applied At</th>
                     </tr>
                 </thead>
                 <tbody>
-                    ${applications.map(app => `
+                    ${attendance.slice(0, 10).map(record => `
                         <tr>
-                            <td>${app.applicationId}</td>
-                            <td>${app.sewadarZonalId}</td>
-                            <td>${app.sewadarName}</td>
-                            <td>${app.mobile || ''}</td>
-                            <td><span class="status-badge ${app.status}">${app.status}</span></td>
-                            <td>${formatDateTime(app.appliedAt)}</td>
+                            <td>${record.sewadar?.firstName || ''} ${record.sewadar?.lastName || ''} (${record.sewadar?.zonalId || ''})</td>
+                            <td>${formatDate(record.attendanceDate)}</td>
+                            <td><span class="status-badge APPROVED">Present</span></td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+            ${attendance.length > 10 ? `<p style="margin-top: 10px; font-size: 12px; color: #666;">Showing first 10 of ${attendance.length} records</p>` : ''}
+        `;
+    } catch (error) {
+        showMessage('Error: ' + error.message, 'error');
+    }
+}
+
+async function handleLoadMultiProgramAttendance() {
+    const multiSelect = document.getElementById('multi-program-select');
+    const selectedIds = Array.from(multiSelect.selectedOptions).map(opt => opt.value);
+    
+    if (selectedIds.length === 0) {
+        showMessage('Please select at least one program', 'error');
+        return;
+    }
+    
+    try {
+        const allAttendance = [];
+        for (const programId of selectedIds) {
+            try {
+                const attendance = await apiCall(`/attendances/program/${programId}`);
+                allAttendance.push(...attendance);
+            } catch (error) {
+                console.error(`Error loading attendance for program ${programId}:`, error);
+            }
+        }
+        
+        const listEl = document.getElementById('multi-program-attendance-list');
+        if (allAttendance.length === 0) {
+            listEl.innerHTML = '<p class="info-message">No attendance records found.</p>';
+            return;
+        }
+        
+        listEl.innerHTML = `
+            <p style="margin-bottom: 10px;"><strong>Found ${allAttendance.length} attendance record(s) across ${selectedIds.length} program(s)</strong></p>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Program</th>
+                        <th>Sewadar</th>
+                        <th>Date</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${allAttendance.map(record => `
+                        <tr>
+                            <td>${record.programTitle || '-'}</td>
+                            <td>${record.sewadar?.firstName || ''} ${record.sewadar?.lastName || ''} (${record.sewadar?.zonalId || ''})</td>
+                            <td>${formatDate(record.attendanceDate)}</td>
+                            <td><span class="status-badge APPROVED">Present</span></td>
                         </tr>
                     `).join('')}
                 </tbody>
             </table>
         `;
     } catch (error) {
-        showMessage('Error loading applications: ' + error.message, 'error');
+        showMessage('Error: ' + error.message, 'error');
     }
 }
 
-function clearDashboardApplicationFilters() {
-    document.getElementById('dashboard-program-id-filter').value = '';
-    document.getElementById('dashboard-status-filter').value = '';
-    loadDashboardApplications();
+// ==================== DASHBOARD - FORM SUBMISSIONS ====================
+
+let currentFormSubmissions = [];
+let editingFormId = null;
+
+async function handleLoadFormSubmissions() {
+    const programId = document.getElementById('forms-program-select').value;
+    if (!programId) {
+        showMessage('Please select a program', 'error');
+        return;
+    }
+    
+    try {
+        currentFormSubmissions = await apiCall(`/form-submissions/program/${programId}`);
+        const listEl = document.getElementById('forms-list');
+        const exportBtn = document.getElementById('export-forms-btn');
+        
+        if (currentFormSubmissions.length === 0) {
+            listEl.innerHTML = '<p class="info-message">No form submissions found for this program.</p>';
+            exportBtn.disabled = true;
+            return;
+        }
+        
+        exportBtn.disabled = false;
+        listEl.innerHTML = `
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Sewadar Zonal ID</th>
+                        <th>Sewadar Name</th>
+                        <th>Starting From Home</th>
+                        <th>Reaching To Home</th>
+                        <th>Onward Train/Flight</th>
+                        <th>Return Train/Flight</th>
+                        <th>Stay In Hotel</th>
+                        <th>Stay In Pandal</th>
+                        <th>Submitted At</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${currentFormSubmissions.map(form => `
+                        <tr>
+                            <td>${form.sewadarId}</td>
+                            <td>${form.sewadarName}</td>
+                            <td>${form.startingDateTimeFromHome ? formatDateTime(form.startingDateTimeFromHome) : '-'}</td>
+                            <td>${form.reachingDateTimeToHome ? formatDateTime(form.reachingDateTimeToHome) : '-'}</td>
+                            <td>${form.onwardTrainFlightNo ? `${form.onwardTrainFlightNo} (${form.onwardTrainFlightDateTime ? formatDateTime(form.onwardTrainFlightDateTime) : ''})` : '-'}</td>
+                            <td>${form.returnTrainFlightNo ? `${form.returnTrainFlightNo} (${form.returnTrainFlightDateTime ? formatDateTime(form.returnTrainFlightDateTime) : ''})` : '-'}</td>
+                            <td>${form.stayInHotel || '-'}</td>
+                            <td>${form.stayInPandal || '-'}</td>
+                            <td>${form.submittedAt ? formatDateTime(form.submittedAt) : '-'}</td>
+                            <td>
+                                <button class="btn btn-sm btn-primary" onclick="editFormSubmission(${form.id})">Edit</button>
+                            </td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        `;
+    } catch (error) {
+        showMessage('Error: ' + error.message, 'error');
+    }
+}
+
+async function handleExportFormSubmissions() {
+    const programId = document.getElementById('forms-program-select').value;
+    if (!programId) {
+        showMessage('Please select a program', 'error');
+        return;
+    }
+    
+    try {
+        const program = allProgramsForDashboard.find(p => p.id == programId);
+        const programTitle = program ? program.title.replace(/\s+/g, '_') : programId;
+        
+        const response = await fetch(`${API_BASE_URL}/form-submissions/program/${programId}/export/csv`, {
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+        });
+        
+        if (!response.ok) throw new Error('Export failed');
+        
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `form_submissions_${programTitle}_${programId}.csv`;
+        link.click();
+        window.URL.revokeObjectURL(url);
+        
+        showMessage('Form submissions CSV downloaded successfully!');
+    } catch (error) {
+        showMessage('Error: ' + error.message, 'error');
+    }
+}
+
+function editFormSubmission(formId) {
+    const form = currentFormSubmissions.find(f => f.id === formId);
+    if (!form) return;
+    
+    editingFormId = formId;
+    // Populate form edit modal (you can create a separate modal for this)
+    // For now, we'll use a simple prompt-based approach or create a modal
+    showMessage('Form editing feature - to be implemented with a modal', 'info');
+    // TODO: Create edit modal similar to form submission modal
 }
 
 function showDashboardTab(tab) {
@@ -1432,6 +1639,14 @@ function showDashboardTab(tab) {
     
     document.getElementById(`dashboard-${tab}-tab`).classList.add('active');
     event.target.classList.add('active');
+    
+    // Load data when switching to attendance or forms tab
+    if (tab === 'attendance') {
+        loadProgramsForDashboard();
+        loadSewadarsForDashboard();
+    } else if (tab === 'forms') {
+        loadProgramsForDashboard();
+    }
 }
 
 function showAdminTab(tab) {
@@ -1596,7 +1811,7 @@ async function submitForm(event) {
     
     const formData = {
         programId: currentProgramForFormSubmission,
-        name: document.getElementById('form-name').value,
+        // name removed - available from sewadar relationship
         startingDateTimeFromHome: document.getElementById('form-starting-datetime').value || null,
         reachingDateTimeToHome: document.getElementById('form-reaching-datetime').value || null,
         onwardTrainFlightDateTime: document.getElementById('form-onward-datetime').value || null,

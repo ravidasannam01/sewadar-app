@@ -24,5 +24,10 @@ public interface AttendanceService {
      * @param inchargeZonalId Incharge/admin zonal ID performing the operation
      */
     void deleteAttendance(Long id, String inchargeZonalId);
+    
+    /**
+     * Quick lookup: Check if a sewadar is present on a given date for a program
+     */
+    boolean isSewadarPresentOnDate(String sewadarId, Long programId, java.time.LocalDate date);
 }
 

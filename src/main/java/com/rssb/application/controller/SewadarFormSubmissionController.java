@@ -77,5 +77,47 @@ public class SewadarFormSubmissionController {
         // For now, return empty list - can be implemented later if needed
         return ResponseEntity.ok(List.of());
     }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<SewadarFormSubmissionResponse> updateFormSubmission(
+            @PathVariable Long id,
+            @Valid @RequestBody SewadarFormSubmissionRequest request) {
+        String userId = UserContextUtil.getCurrentUserId();
+        String userRole = UserContextUtil.getCurrentUserRole();
+        
+        long startTime = System.currentTimeMillis();
+        SewadarFormSubmissionResponse response = formSubmissionService.updateFormSubmission(id, request);
+        long duration = System.currentTimeMillis() - startTime;
+        
+        Map<String, Object> details = new HashMap<>();
+        details.put("submissionId", id);
+        details.put("programId", request.getProgramId());
+        details.put("durationMs", duration);
+        actionLogger.logAction("UPDATE_FORM_SUBMISSION", userId, userRole, details);
+        actionLogger.logPerformance("UPDATE_FORM_SUBMISSION", duration);
+        
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/program/{programId}/export/csv")
+    public ResponseEntity<byte[]> exportFormSubmissionsCsv(@PathVariable Long programId) {
+        String userId = UserContextUtil.getCurrentUserId();
+        String userRole = UserContextUtil.getCurrentUserRole();
+        
+        long startTime = System.currentTimeMillis();
+        byte[] csvData = formSubmissionService.exportFormSubmissionsCsv(programId);
+        long duration = System.currentTimeMillis() - startTime;
+        
+        Map<String, Object> details = new HashMap<>();
+        details.put("programId", programId);
+        details.put("durationMs", duration);
+        actionLogger.logAction("EXPORT_FORM_SUBMISSIONS_CSV", userId, userRole, details);
+        actionLogger.logPerformance("EXPORT_FORM_SUBMISSIONS_CSV", duration);
+        
+        return ResponseEntity.ok()
+                .header("Content-Type", "text/csv")
+                .header("Content-Disposition", "attachment; filename=form_submissions_program_" + programId + ".csv")
+                .body(csvData);
+    }
 }
 

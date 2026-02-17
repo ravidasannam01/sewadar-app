@@ -31,10 +31,7 @@ public class SewadarFormSubmission {
     @JoinColumn(name = "sewadar_id", nullable = false, referencedColumnName = "zonal_id")
     private Sewadar sewadar;
 
-    // Form fields
-    @Column(name = "name", length = 255)
-    private String name;
-
+    // Form fields (name removed - available from sewadar relationship)
     @Column(name = "starting_date_time_from_home")
     private LocalDateTime startingDateTimeFromHome;
 

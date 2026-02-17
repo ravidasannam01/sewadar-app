@@ -157,5 +157,35 @@ public class AttendanceController {
         log.info("GET /api/attendances/all-sewadars/summary");
         return ResponseEntity.ok(attendanceService.getAllSewadarsAttendanceSummary());
     }
+
+    /**
+     * Check if a sewadar is present on a given date for a program (quick lookup)
+     */
+    @GetMapping("/lookup")
+    public ResponseEntity<Map<String, Object>> checkAttendance(
+            @RequestParam String sewadarId,
+            @RequestParam Long programId,
+            @RequestParam String date) {
+        log.info("GET /api/attendances/lookup - sewadar: {}, program: {}, date: {}", sewadarId, programId, date);
+        String userId = UserContextUtil.getCurrentUserId();
+        String userRole = UserContextUtil.getCurrentUserRole();
+        
+        boolean isPresent = attendanceService.isSewadarPresentOnDate(sewadarId, programId, java.time.LocalDate.parse(date));
+        
+        Map<String, Object> response = new HashMap<>();
+        response.put("sewadarId", sewadarId);
+        response.put("programId", programId);
+        response.put("date", date);
+        response.put("isPresent", isPresent);
+        
+        Map<String, Object> details = new HashMap<>();
+        details.put("sewadarId", sewadarId);
+        details.put("programId", programId);
+        details.put("date", date);
+        details.put("isPresent", isPresent);
+        actionLogger.logAction("ATTENDANCE_LOOKUP", userId, userRole, details);
+        
+        return ResponseEntity.ok(response);
+    }
 }
 

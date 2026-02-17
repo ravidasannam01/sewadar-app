@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Box,
   Tabs,
@@ -28,12 +28,17 @@ import {
   DialogContent,
   DialogActions,
   Chip,
+  Autocomplete,
 } from '@mui/material'
 import {
   Search as SearchIcon,
   Download as DownloadIcon,
   Visibility as VisibilityIcon,
+  Edit as EditIcon,
+  CheckCircle as CheckCircleIcon,
+  Cancel as CancelIcon,
 } from '@mui/icons-material'
+import { format } from 'date-fns'
 import api from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
 
@@ -41,20 +46,30 @@ const Dashboard = () => {
   const { user } = useAuth()
   const [activeTab, setActiveTab] = useState(0)
   const [sewadars, setSewadars] = useState([])
-  const [applications, setApplications] = useState([])
   const [loading, setLoading] = useState(false)
   const [sewadarsPage, setSewadarsPage] = useState(0)
   const [sewadarsRowsPerPage, setSewadarsRowsPerPage] = useState(25)
-  const [applicationsPage, setApplicationsPage] = useState(0)
-  const [applicationsRowsPerPage, setApplicationsRowsPerPage] = useState(25)
   const [totalSewadars, setTotalSewadars] = useState(0)
-  const [totalApplications, setTotalApplications] = useState(0)
   const [selectedSewadarForAttendance, setSelectedSewadarForAttendance] = useState(null)
-  const [selectedProgramForAttendance, setSelectedProgramForAttendance] = useState(null)
   const [sewadarAttendanceDetails, setSewadarAttendanceDetails] = useState(null)
-  const [programAttendanceDetails, setProgramAttendanceDetails] = useState(null)
   const [openSewadarAttendanceDialog, setOpenSewadarAttendanceDialog] = useState(false)
-  const [openProgramAttendanceDialog, setOpenProgramAttendanceDialog] = useState(false)
+
+  // Attendance Lookup states
+  const [programs, setPrograms] = useState([])
+  const [allSewadars, setAllSewadars] = useState([])
+  const [selectedProgramForLookup, setSelectedProgramForLookup] = useState(null)
+  const [selectedSewadarForLookup, setSelectedSewadarForLookup] = useState(null)
+  const [lookupDate, setLookupDate] = useState('')
+  const [lookupResult, setLookupResult] = useState(null)
+  const [selectedProgramForDownload, setSelectedProgramForDownload] = useState(null)
+  const [selectedProgramsForMulti, setSelectedProgramsForMulti] = useState([])
+
+  // Form Submissions states
+  const [formSubmissions, setFormSubmissions] = useState([])
+  const [selectedProgramForForms, setSelectedProgramForForms] = useState(null)
+  const [openFormEditDialog, setOpenFormEditDialog] = useState(false)
+  const [editingForm, setEditingForm] = useState(null)
+  const [formEditData, setFormEditData] = useState({})
 
   // Sewadars filters
   const [sewadarsFilters, setSewadarsFilters] = useState({
@@ -67,11 +82,34 @@ const Dashboard = () => {
     sortOrder: 'ASC',
   })
 
-  // Applications filters
-  const [applicationsFilters, setApplicationsFilters] = useState({
-    programId: '',
-    statuses: [],
-  })
+  useEffect(() => {
+    if (activeTab === 1 || activeTab === 2) {
+      // Load programs for attendance lookup and form submissions
+      loadPrograms()
+    }
+    if (activeTab === 1) {
+      // Load sewadars for quick lookup autocomplete
+      loadAllSewadars()
+    }
+  }, [activeTab])
+
+  const loadPrograms = async () => {
+    try {
+      const response = await api.get('/programs')
+      setPrograms(response.data)
+    } catch (error) {
+      console.error('Error loading programs:', error)
+    }
+  }
+
+  const loadAllSewadars = async () => {
+    try {
+      const response = await api.get('/sewadars')
+      setAllSewadars(response.data)
+    } catch (error) {
+      console.error('Error loading sewadars:', error)
+    }
+  }
 
   const loadSewadars = async (page = 0) => {
     setLoading(true)
@@ -96,25 +134,6 @@ const Dashboard = () => {
       setTotalSewadars(response.data.totalElements || 0)
     } catch (error) {
       console.error('Error loading sewadars:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const loadApplications = async (page = 0) => {
-    setLoading(true)
-    try {
-      const response = await api.post('/dashboard/applications', {
-        page,
-        size: applicationsRowsPerPage,
-        programId: applicationsFilters.programId ? parseInt(applicationsFilters.programId) : null,
-        statuses: applicationsFilters.statuses.length > 0 ? applicationsFilters.statuses : null,
-      })
-
-      setApplications(response.data.applications || [])
-      setTotalApplications(response.data.totalElements || 0)
-    } catch (error) {
-      console.error('Error loading applications:', error)
     } finally {
       setLoading(false)
     }
@@ -161,33 +180,281 @@ const Dashboard = () => {
         )
 
         const blob = new Blob([response.data])
-        const downloadUrl = window.URL.createObjectURL(blob)
+        const url_blob = window.URL.createObjectURL(blob)
         const link = document.createElement('a')
-        link.href = downloadUrl
-        link.download = `sewadars.${format.toLowerCase()}`
+        link.href = url_blob
+        link.download = `sewadars_${format.toLowerCase()}.${format.toLowerCase()}`
         link.click()
-      } else if (type === 'applications') {
-        url = `/dashboard/applications/export/${format}`
-        const response = await api.post(
-          url,
-          {
-            page: 0,
-            size: 10000,
-            programId: applicationsFilters.programId ? parseInt(applicationsFilters.programId) : null,
-            statuses: applicationsFilters.statuses.length > 0 ? applicationsFilters.statuses : null,
-          },
-          { responseType: 'blob' }
-        )
-
-        const blob = new Blob([response.data])
-        const downloadUrl = window.URL.createObjectURL(blob)
-        const link = document.createElement('a')
-        link.href = downloadUrl
-        link.download = `applications.${format.toLowerCase()}`
-        link.click()
+        window.URL.revokeObjectURL(url_blob)
       }
     } catch (error) {
-      alert('Export failed: ' + (error.response?.data?.message || error.message))
+      console.error('Error exporting:', error)
+      alert('Error exporting data: ' + (error.response?.data?.message || error.message))
+    }
+  }
+
+  // Attendance Lookup Functions
+  const handleQuickLookup = async () => {
+    if (!selectedSewadarForLookup || !selectedProgramForLookup || !lookupDate) {
+      alert('Please select sewadar, program, and date')
+      return
+    }
+
+    try {
+      setLoading(true)
+      const response = await api.get('/attendances/lookup', {
+        params: {
+          sewadarId: selectedSewadarForLookup,
+          programId: selectedProgramForLookup.id,
+          date: lookupDate,
+        },
+      })
+      setLookupResult(response.data)
+    } catch (error) {
+      console.error('Error checking attendance:', error)
+      alert('Error: ' + (error.response?.data?.message || error.message))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleDownloadProgramAttendance = async () => {
+    if (!selectedProgramForDownload) {
+      alert('Please select a program')
+      return
+    }
+
+    try {
+      setLoading(true)
+      const response = await api.get(`/dashboard/program/${selectedProgramForDownload.id}/attendance/export/CSV`, {
+        responseType: 'blob',
+      })
+
+      const blob = new Blob([response.data])
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `attendance_${selectedProgramForDownload.title.replace(/\s+/g, '_')}_${selectedProgramForDownload.id}.csv`
+      link.click()
+      window.URL.revokeObjectURL(url)
+      alert('Attendance CSV downloaded successfully!')
+    } catch (error) {
+      console.error('Error downloading attendance:', error)
+      alert('Error: ' + (error.response?.data?.message || error.message))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const generateAttendanceCSV = (attendanceRecords) => {
+    const headers = ['Program', 'Program ID', 'Sewadar Zonal ID', 'Sewadar Name', 'Date', 'Status']
+    const rows = attendanceRecords.map(record => {
+      const programTitle = record.programTitle || `Program ${record.programId || ''}`
+      const sewadarName = record.sewadar 
+        ? `${record.sewadar.firstName || ''} ${record.sewadar.lastName || ''}`.trim()
+        : ''
+      const sewadarZonalId = record.sewadar?.zonalId || ''
+      const date = record.attendanceDate 
+        ? format(new Date(record.attendanceDate), 'yyyy-MM-dd')
+        : ''
+      const status = record.attended !== false ? 'Present' : 'Absent'
+      
+      return [
+        programTitle,
+        record.programId || '',
+        sewadarZonalId,
+        sewadarName,
+        date,
+        status
+      ]
+    })
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(cell => {
+        // Escape commas and quotes in CSV
+        const cellStr = String(cell || '')
+        if (cellStr.includes(',') || cellStr.includes('"') || cellStr.includes('\n')) {
+          return `"${cellStr.replace(/"/g, '""')}"`
+        }
+        return cellStr
+      }).join(','))
+    ].join('\n')
+
+    return csvContent
+  }
+
+  const downloadCSV = (csvContent, filename) => {
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const url = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = filename
+    link.click()
+    window.URL.revokeObjectURL(url)
+  }
+
+  const handleDownloadMultiProgramAttendance = async () => {
+    if (selectedProgramsForMulti.length === 0) {
+      alert('Please select at least one program')
+      return
+    }
+
+    try {
+      setLoading(true)
+      const programIds = selectedProgramsForMulti.map(p => p.id)
+      // Load attendance for each program and combine
+      const allAttendance = []
+      for (const programId of programIds) {
+        try {
+          const response = await api.get(`/attendances/program/${programId}`)
+          // Add program title to each record
+          const program = programs.find(p => p.id === programId)
+          const recordsWithProgram = response.data.map(record => ({
+            ...record,
+            programTitle: program?.title || `Program ${programId}`,
+            programId: programId,
+          }))
+          allAttendance.push(...recordsWithProgram)
+        } catch (error) {
+          console.error(`Error loading attendance for program ${programId}:`, error)
+        }
+      }
+
+      if (allAttendance.length === 0) {
+        alert('No attendance records found for selected programs')
+        return
+      }
+
+      const csvContent = generateAttendanceCSV(allAttendance)
+      const programTitles = selectedProgramsForMulti.map(p => p.title.replace(/\s+/g, '_')).join('_')
+      const filename = `multi_program_attendance_${programTitles}_${Date.now()}.csv`
+      downloadCSV(csvContent, filename)
+      alert('Multi-program attendance CSV downloaded successfully!')
+    } catch (error) {
+      console.error('Error downloading multi-program attendance:', error)
+      alert('Error: ' + (error.response?.data?.message || error.message))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleDownloadAllProgramsAttendance = async () => {
+    if (programs.length === 0) {
+      alert('No programs available')
+      return
+    }
+
+    try {
+      setLoading(true)
+      // Load attendance for all programs
+      const allAttendance = []
+      for (const program of programs) {
+        try {
+          const response = await api.get(`/attendances/program/${program.id}`)
+          const recordsWithProgram = response.data.map(record => ({
+            ...record,
+            programTitle: program.title,
+            programId: program.id,
+          }))
+          allAttendance.push(...recordsWithProgram)
+        } catch (error) {
+          console.error(`Error loading attendance for program ${program.id}:`, error)
+        }
+      }
+
+      if (allAttendance.length === 0) {
+        alert('No attendance records found')
+        return
+      }
+
+      const csvContent = generateAttendanceCSV(allAttendance)
+      const filename = `all_programs_attendance_${Date.now()}.csv`
+      downloadCSV(csvContent, filename)
+      alert('All programs attendance CSV downloaded successfully!')
+    } catch (error) {
+      console.error('Error downloading all programs attendance:', error)
+      alert('Error: ' + (error.response?.data?.message || error.message))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Form Submissions Functions
+  const handleLoadFormSubmissions = async () => {
+    if (!selectedProgramForForms) {
+      alert('Please select a program')
+      return
+    }
+
+    try {
+      setLoading(true)
+      const response = await api.get(`/form-submissions/program/${selectedProgramForForms.id}`)
+      setFormSubmissions(response.data)
+    } catch (error) {
+      console.error('Error loading form submissions:', error)
+      alert('Error: ' + (error.response?.data?.message || error.message))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleExportFormSubmissions = async () => {
+    if (!selectedProgramForForms) {
+      alert('Please select a program')
+      return
+    }
+
+    try {
+      setLoading(true)
+      const response = await api.get(`/form-submissions/program/${selectedProgramForForms.id}/export/csv`, {
+        responseType: 'blob',
+      })
+
+        const blob = new Blob([response.data])
+      const url = window.URL.createObjectURL(blob)
+        const link = document.createElement('a')
+      link.href = url
+      link.download = `form_submissions_${selectedProgramForForms.title.replace(/\s+/g, '_')}_${selectedProgramForForms.id}.csv`
+        link.click()
+      window.URL.revokeObjectURL(url)
+      alert('Form submissions CSV downloaded successfully!')
+    } catch (error) {
+      console.error('Error exporting form submissions:', error)
+      alert('Error: ' + (error.response?.data?.message || error.message))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleEditForm = (form) => {
+    setEditingForm(form)
+    setFormEditData({
+      programId: form.programId,
+      startingDateTimeFromHome: form.startingDateTimeFromHome || '',
+      reachingDateTimeToHome: form.reachingDateTimeToHome || '',
+      onwardTrainFlightDateTime: form.onwardTrainFlightDateTime || '',
+      onwardTrainFlightNo: form.onwardTrainFlightNo || '',
+      returnTrainFlightDateTime: form.returnTrainFlightDateTime || '',
+      returnTrainFlightNo: form.returnTrainFlightNo || '',
+      stayInHotel: form.stayInHotel || '',
+      stayInPandal: form.stayInPandal || '',
+    })
+    setOpenFormEditDialog(true)
+  }
+
+  const handleSaveFormEdit = async () => {
+    try {
+      setLoading(true)
+      await api.put(`/form-submissions/${editingForm.id}`, formEditData)
+      alert('Form submission updated successfully!')
+      setOpenFormEditDialog(false)
+      handleLoadFormSubmissions()
+    } catch (error) {
+      console.error('Error updating form submission:', error)
+      alert('Error: ' + (error.response?.data?.message || error.message))
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -200,10 +467,12 @@ const Dashboard = () => {
       <Paper sx={{ mb: 3 }}>
         <Tabs value={activeTab} onChange={(e, v) => setActiveTab(v)}>
           <Tab label="Sewadars" />
-          <Tab label="Applications" />
+          <Tab label="Attendance Lookup" />
+          <Tab label="Form Submissions" />
         </Tabs>
       </Paper>
 
+      {/* Tab 0: Sewadars */}
       {activeTab === 0 && (
         <Box>
           <Paper sx={{ p: 3, mb: 3 }}>
@@ -452,83 +721,231 @@ const Dashboard = () => {
         </Box>
       )}
 
+      {/* Tab 1: Attendance Lookup */}
       {activeTab === 1 && (
+        <Box>
+          <Grid container spacing={3}>
+            {/* Quick Lookup Card */}
+            <Grid item xs={12} md={6}>
+              <Card>
+                <CardContent>
+            <Typography variant="h6" gutterBottom>
+                    Quick Lookup
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                    Check if a sewadar is present on a specific date for a program
+            </Typography>
+            <Grid container spacing={2}>
+                    <Grid item xs={12}>
+                      <Autocomplete
+                        options={programs}
+                        getOptionLabel={(option) => option.title || ''}
+                        value={selectedProgramForLookup}
+                        onChange={(e, newValue) => setSelectedProgramForLookup(newValue)}
+                        renderInput={(params) => (
+                          <TextField {...params} label="Select Program" size="small" />
+                        )}
+                      />
+                    </Grid>
+                    <Grid item xs={12}>
+                      <Autocomplete
+                        options={allSewadars}
+                        getOptionLabel={(option) => `${option.zonalId} - ${option.firstName} ${option.lastName}`}
+                        value={allSewadars.find(s => s.zonalId === selectedSewadarForLookup) || null}
+                        onChange={(e, newValue) => setSelectedSewadarForLookup(newValue?.zonalId || '')}
+                        renderInput={(params) => (
+                          <TextField {...params} label="Select Sewadar" size="small" />
+                        )}
+                      />
+                    </Grid>
+                    <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                        type="date"
+                        label="Date"
+                        value={lookupDate}
+                        onChange={(e) => setLookupDate(e.target.value)}
+                  size="small"
+                        InputLabelProps={{ shrink: true }}
+                />
+              </Grid>
+                    <Grid item xs={12}>
+                      <Button
+                        variant="contained"
+                        fullWidth
+                        onClick={handleQuickLookup}
+                        disabled={loading || !selectedProgramForLookup || !selectedSewadarForLookup || !lookupDate}
+                      >
+                        Check Attendance
+                      </Button>
+              </Grid>
+                    {lookupResult && (
+              <Grid item xs={12}>
+                        <Alert
+                          severity={lookupResult.isPresent ? 'success' : 'info'}
+                          icon={lookupResult.isPresent ? <CheckCircleIcon /> : <CancelIcon />}
+                        >
+                          {lookupResult.isPresent
+                            ? `✅ Present on ${format(new Date(lookupResult.date), 'MMM dd, yyyy')}`
+                            : `❌ Not present on ${format(new Date(lookupResult.date), 'MMM dd, yyyy')}`}
+                        </Alert>
+                      </Grid>
+                    )}
+                  </Grid>
+                </CardContent>
+              </Card>
+            </Grid>
+
+            {/* Program Attendance Download Card */}
+            <Grid item xs={12} md={6}>
+              <Card>
+                <CardContent>
+                  <Typography variant="h6" gutterBottom>
+                    Download Program Attendance
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                    Download attendance matrix (CSV) for a specific program
+                  </Typography>
+                  <Grid container spacing={2}>
+                    <Grid item xs={12}>
+                      <Autocomplete
+                        options={programs}
+                        getOptionLabel={(option) => option.title || ''}
+                        value={selectedProgramForDownload}
+                        onChange={(e, newValue) => {
+                          setSelectedProgramForDownload(newValue)
+                        }}
+                        renderInput={(params) => (
+                          <TextField {...params} label="Select Program" size="small" />
+                        )}
+                      />
+                    </Grid>
+                    <Grid item xs={12}>
+                      <Button
+                        variant="contained"
+                        fullWidth
+                        startIcon={<DownloadIcon />}
+                        onClick={handleDownloadProgramAttendance}
+                        disabled={loading || !selectedProgramForDownload}
+                      >
+                        Download Attendance CSV
+                      </Button>
+                    </Grid>
+                  </Grid>
+                </CardContent>
+              </Card>
+            </Grid>
+
+            {/* Multi-Program Attendance Card */}
+            <Grid item xs={12} md={6}>
+              <Card>
+                <CardContent>
+                  <Typography variant="h6" gutterBottom>
+                    Multi-Program Attendance
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                    Download attendance records (present/absent) across multiple programs as CSV
+                  </Typography>
+                  <Grid container spacing={2}>
+                    <Grid item xs={12}>
+                      <Autocomplete
+                        multiple
+                        options={programs}
+                        getOptionLabel={(option) => option.title || ''}
+                        value={selectedProgramsForMulti}
+                        onChange={(e, newValue) => {
+                          setSelectedProgramsForMulti(newValue)
+                        }}
+                        renderInput={(params) => (
+                          <TextField {...params} label="Select Programs" size="small" />
+                        )}
+                      />
+                    </Grid>
+                    <Grid item xs={12}>
+                      <Button
+                        variant="contained"
+                        fullWidth
+                        startIcon={<DownloadIcon />}
+                        onClick={handleDownloadMultiProgramAttendance}
+                        disabled={loading || selectedProgramsForMulti.length === 0}
+                      >
+                        Download Attendance CSV
+                      </Button>
+                    </Grid>
+                  </Grid>
+                </CardContent>
+              </Card>
+            </Grid>
+
+            {/* All Programs Attendance Card */}
+            <Grid item xs={12} md={6}>
+              <Card>
+                <CardContent>
+                  <Typography variant="h6" gutterBottom>
+                    All Programs Attendance
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                    Download attendance records (present/absent) for all programs as CSV
+                  </Typography>
+                  <Grid container spacing={2}>
+                    <Grid item xs={12}>
+                      <Button
+                        variant="contained"
+                        fullWidth
+                        startIcon={<DownloadIcon />}
+                        onClick={handleDownloadAllProgramsAttendance}
+                        disabled={loading || programs.length === 0}
+                      >
+                        Download All Programs Attendance CSV
+                      </Button>
+                    </Grid>
+                  </Grid>
+                </CardContent>
+              </Card>
+            </Grid>
+          </Grid>
+        </Box>
+      )}
+
+      {/* Tab 2: Form Submissions */}
+      {activeTab === 2 && (
         <Box>
           <Paper sx={{ p: 3, mb: 3 }}>
             <Typography variant="h6" gutterBottom>
-              Application Filters
+              Form Submissions
             </Typography>
-            <Grid container spacing={2}>
-              <Grid item xs={12} sm={6} md={3}>
-                <TextField
-                  fullWidth
-                  label="Program ID"
-                  type="number"
-                  value={applicationsFilters.programId}
-                  onChange={(e) =>
-                    setApplicationsFilters({
-                      ...applicationsFilters,
-                      programId: e.target.value,
-                    })
-                  }
-                  size="small"
+            <Grid container spacing={2} alignItems="center">
+              <Grid item xs={12} sm={8}>
+                <Autocomplete
+                  options={programs}
+                  getOptionLabel={(option) => option.title || ''}
+                  value={selectedProgramForForms}
+                  onChange={(e, newValue) => {
+                    setSelectedProgramForForms(newValue)
+                    setFormSubmissions([])
+                  }}
+                  renderInput={(params) => (
+                    <TextField {...params} label="Select Program" size="small" />
+                  )}
                 />
               </Grid>
-              <Grid item xs={12} sm={6} md={3}>
-                <FormControl fullWidth size="small">
-                  <InputLabel>Status</InputLabel>
-                  <Select
-                    multiple
-                    value={applicationsFilters.statuses}
-                    onChange={(e) =>
-                      setApplicationsFilters({
-                        ...applicationsFilters,
-                        statuses: e.target.value,
-                      })
-                    }
-                    label="Status"
-                  >
-                    <MenuItem value="PENDING">PENDING</MenuItem>
-                    <MenuItem value="APPROVED">APPROVED</MenuItem>
-                    <MenuItem value="REJECTED">REJECTED</MenuItem>
-                    <MenuItem value="DROPPED">DROPPED</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid item xs={12}>
-                <Box display="flex" gap={2}>
-                  <Button variant="contained" onClick={() => loadApplications(0)}>
-                    Apply Filters
-                  </Button>
+              <Grid item xs={12} sm={4}>
+                <Box display="flex" gap={1}>
                   <Button
-                    variant="outlined"
-                    onClick={() => {
-                      setApplicationsFilters({ programId: '', statuses: [] })
-                      loadApplications(0)
-                    }}
+                    variant="contained"
+                    onClick={handleLoadFormSubmissions}
+                    disabled={loading || !selectedProgramForForms}
+                    fullWidth
                   >
-                    Clear
+                    Load Forms
                   </Button>
                   <Button
                     variant="outlined"
                     startIcon={<DownloadIcon />}
-                    onClick={() => handleExport('applications', 'CSV')}
+                    onClick={handleExportFormSubmissions}
+                    disabled={loading || !selectedProgramForForms || formSubmissions.length === 0}
                   >
                     Export CSV
-                  </Button>
-                  <Button
-                    variant="outlined"
-                    startIcon={<DownloadIcon />}
-                    onClick={() => handleExport('applications', 'XLSX')}
-                  >
-                    Export XLSX
-                  </Button>
-                  <Button
-                    variant="outlined"
-                    startIcon={<DownloadIcon />}
-                    onClick={() => handleExport('applications', 'PDF')}
-                  >
-                    Export PDF
                   </Button>
                 </Box>
               </Grid>
@@ -539,106 +956,110 @@ const Dashboard = () => {
             <Box display="flex" justifyContent="center" p={4}>
               <CircularProgress />
             </Box>
+          ) : formSubmissions.length === 0 ? (
+            <Alert severity="info">
+              {selectedProgramForForms
+                ? 'No form submissions found for this program. Click "Load Forms" to refresh.'
+                : 'Please select a program to view form submissions.'}
+            </Alert>
           ) : (
             <TableContainer component={Paper}>
               <Table>
                 <TableHead>
                   <TableRow>
-                    <TableCell>Application ID</TableCell>
-                    <TableCell>Zonal ID</TableCell>
-                    <TableCell>Name</TableCell>
-                    <TableCell>Mobile</TableCell>
-                    <TableCell>Status</TableCell>
-                    <TableCell>Applied At</TableCell>
+                    <TableCell>Sewadar Zonal ID</TableCell>
+                    <TableCell>Sewadar Name</TableCell>
+                    <TableCell>Starting From Home</TableCell>
+                    <TableCell>Reaching To Home</TableCell>
+                    <TableCell>Onward Train/Flight</TableCell>
+                    <TableCell>Return Train/Flight</TableCell>
+                    <TableCell>Stay In Hotel</TableCell>
+                    <TableCell>Stay In Pandal</TableCell>
+                    <TableCell>Submitted At</TableCell>
+                    <TableCell>Actions</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {applications.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={6} align="center">
-                        <Alert severity="info">Click "Apply Filters" to load applications</Alert>
+                  {formSubmissions.map((form) => (
+                    <TableRow key={form.id}>
+                      <TableCell>{form.sewadarId}</TableCell>
+                      <TableCell>{form.sewadarName}</TableCell>
+                      <TableCell>
+                        {form.startingDateTimeFromHome
+                          ? format(new Date(form.startingDateTimeFromHome), 'MMM dd, yyyy HH:mm')
+                          : '-'}
                       </TableCell>
-                    </TableRow>
-                  ) : (
-                    applications.map((app) => (
-                      <TableRow key={app.applicationId}>
-                        <TableCell>{app.applicationId}</TableCell>
-                        <TableCell>{app.sewadarZonalId}</TableCell>
-                        <TableCell>{app.sewadarName}</TableCell>
-                        <TableCell>{app.mobile || ''}</TableCell>
                         <TableCell>
-                          <Chip
-                            label={app.status}
-                            size="small"
-                            color={
-                              app.status === 'APPROVED'
-                                ? 'success'
-                                : app.status === 'REJECTED' || app.status === 'DROPPED'
-                                ? 'error'
-                                : 'default'
-                            }
-                          />
+                        {form.reachingDateTimeToHome
+                          ? format(new Date(form.reachingDateTimeToHome), 'MMM dd, yyyy HH:mm')
+                          : '-'}
                         </TableCell>
                         <TableCell>
-                          {app.appliedAt ? format(new Date(app.appliedAt), 'MMM dd, yyyy HH:mm') : '-'}
+                        {form.onwardTrainFlightNo
+                          ? `${form.onwardTrainFlightNo} (${form.onwardTrainFlightDateTime ? format(new Date(form.onwardTrainFlightDateTime), 'MMM dd, yyyy HH:mm') : ''})`
+                          : '-'}
+                      </TableCell>
+                      <TableCell>
+                        {form.returnTrainFlightNo
+                          ? `${form.returnTrainFlightNo} (${form.returnTrainFlightDateTime ? format(new Date(form.returnTrainFlightDateTime), 'MMM dd, yyyy HH:mm') : ''})`
+                          : '-'}
+                      </TableCell>
+                      <TableCell>{form.stayInHotel || '-'}</TableCell>
+                      <TableCell>{form.stayInPandal || '-'}</TableCell>
+                      <TableCell>
+                        {form.submittedAt
+                          ? format(new Date(form.submittedAt), 'MMM dd, yyyy HH:mm')
+                          : '-'}
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          startIcon={<EditIcon />}
+                          onClick={() => handleEditForm(form)}
+                        >
+                          Edit
+                        </Button>
                         </TableCell>
                       </TableRow>
-                    ))
-                  )}
+                  ))}
                 </TableBody>
               </Table>
-              <TablePagination
-                component="div"
-                count={totalApplications}
-                page={applicationsPage}
-                onPageChange={(e, newPage) => {
-                  setApplicationsPage(newPage)
-                  loadApplications(newPage)
-                }}
-                rowsPerPage={applicationsRowsPerPage}
-                onRowsPerPageChange={(e) => {
-                  setApplicationsRowsPerPage(parseInt(e.target.value, 10))
-                  setApplicationsPage(0)
-                  loadApplications(0)
-                }}
-                rowsPerPageOptions={[10, 25, 50, 100]}
-              />
             </TableContainer>
           )}
         </Box>
       )}
 
-      {/* Sewadar Detailed Attendance Dialog */}
+      {/* Sewadar Attendance Details Dialog */}
       <Dialog
         open={openSewadarAttendanceDialog}
-        onClose={() => {
-          setOpenSewadarAttendanceDialog(false)
-          setSelectedSewadarForAttendance(null)
-          setSewadarAttendanceDetails(null)
-        }}
-        maxWidth="lg"
+        onClose={() => setOpenSewadarAttendanceDialog(false)}
+        maxWidth="md"
         fullWidth
       >
         <DialogTitle>
-          Detailed Attendance - Sewadar {selectedSewadarForAttendance}
+          Attendance Details - {selectedSewadarForAttendance}
         </DialogTitle>
         <DialogContent>
-          {loading ? (
-            <Box display="flex" justifyContent="center" p={4}>
-              <CircularProgress />
-            </Box>
-          ) : sewadarAttendanceDetails ? (
+          {sewadarAttendanceDetails ? (
             <Box>
-              <Typography variant="h6" gutterBottom>
-                {sewadarAttendanceDetails.sewadarName || `Sewadar ${selectedSewadarForAttendance}`}
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                <strong>Total Programs:</strong> {sewadarAttendanceDetails.totalProgramsCount || 0}
               </Typography>
-              {sewadarAttendanceDetails.mobile && (
                 <Typography variant="body2" color="text.secondary" gutterBottom>
-                  Mobile: {sewadarAttendanceDetails.mobile}
+                <strong>Total Days:</strong> {sewadarAttendanceDetails.totalDaysAttended || 0}
                 </Typography>
-              )}
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                <strong>BEAS Programs:</strong> {sewadarAttendanceDetails.beasProgramsCount || 0} |{' '}
+                <strong>BEAS Days:</strong> {sewadarAttendanceDetails.beasDaysAttended || 0}
+              </Typography>
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                <strong>Non-BEAS Programs:</strong> {sewadarAttendanceDetails.nonBeasProgramsCount || 0} |{' '}
+                <strong>Non-BEAS Days:</strong> {sewadarAttendanceDetails.nonBeasDaysAttended || 0}
+              </Typography>
+              {sewadarAttendanceDetails.attendanceDetails && sewadarAttendanceDetails.attendanceDetails.length > 0 && (
               <TableContainer sx={{ mt: 2 }}>
-                <Table>
+                  <Table size="small">
                   <TableHead>
                     <TableRow>
                       <TableCell>Program</TableCell>
@@ -648,92 +1069,166 @@ const Dashboard = () => {
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {sewadarAttendanceDetails.records && sewadarAttendanceDetails.records.length > 0 ? (
-                      sewadarAttendanceDetails.records.map((record, index) => (
-                        <TableRow key={index}>
-                          <TableCell>{record.programTitle || '-'}</TableCell>
-                          <TableCell>{record.programLocation || '-'}</TableCell>
+                      {sewadarAttendanceDetails.attendanceDetails.map((detail, idx) => (
+                        <TableRow key={idx}>
+                          <TableCell>{detail.programTitle}</TableCell>
+                          <TableCell>{detail.location}</TableCell>
                           <TableCell>
-                            {record.attendanceDate ? format(new Date(record.attendanceDate), 'MMM dd, yyyy') : '-'}
+                            {detail.markedAt
+                              ? format(new Date(detail.markedAt), 'MMM dd, yyyy')
+                              : '-'}
                           </TableCell>
                           <TableCell>
                             <Chip
-                              label={record.status || 'Present'}
+                              label={detail.attended ? 'Present' : 'Absent'}
+                              color={detail.attended ? 'success' : 'default'}
                               size="small"
-                              color={record.status === 'Present' ? 'success' : 'default'}
                             />
                           </TableCell>
                         </TableRow>
-                      ))
-                    ) : (
-                      <TableRow>
-                        <TableCell colSpan={4} align="center">
-                          <Alert severity="info">No attendance records found</Alert>
-                        </TableCell>
-                      </TableRow>
-                    )}
+                      ))}
                   </TableBody>
                 </Table>
               </TableContainer>
-              <Box mt={2}>
-                <Button
-                  variant="outlined"
-                  startIcon={<DownloadIcon />}
-                  onClick={async () => {
-                    try {
-                      const response = await api.get(
-                        `/dashboard/sewadar/${selectedSewadarForAttendance}/attendance/export/CSV`,
-                        { responseType: 'blob' }
-                      )
-                      const blob = new Blob([response.data])
-                      const downloadUrl = window.URL.createObjectURL(blob)
-                      const link = document.createElement('a')
-                      link.href = downloadUrl
-                      link.download = `sewadar_${selectedSewadarForAttendance}_attendance.csv`
-                      link.click()
-                    } catch (error) {
-                      alert('Export failed: ' + (error.response?.data?.message || error.message))
-                    }
-                  }}
-                >
-                  Export CSV
-                </Button>
-                <Button
-                  variant="outlined"
-                  startIcon={<DownloadIcon />}
-                  onClick={async () => {
-                    try {
-                      const response = await api.get(
-                        `/dashboard/sewadar/${selectedSewadarForAttendance}/attendance/export/XLSX`,
-                        { responseType: 'blob' }
-                      )
-                      const blob = new Blob([response.data])
-                      const downloadUrl = window.URL.createObjectURL(blob)
-                      const link = document.createElement('a')
-                      link.href = downloadUrl
-                      link.download = `sewadar_${selectedSewadarForAttendance}_attendance.xlsx`
-                      link.click()
-                    } catch (error) {
-                      alert('Export failed: ' + (error.response?.data?.message || error.message))
-                    }
-                  }}
-                  sx={{ ml: 1 }}
-                >
-                  Export XLSX
-                </Button>
-              </Box>
+              )}
             </Box>
           ) : (
-            <Alert severity="info">No attendance details available</Alert>
+            <CircularProgress />
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => {
-            setOpenSewadarAttendanceDialog(false)
-            setSelectedSewadarForAttendance(null)
-            setSewadarAttendanceDetails(null)
-          }}>
-            Close
+          <Button onClick={() => setOpenSewadarAttendanceDialog(false)}>Close</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Form Edit Dialog */}
+      <Dialog
+        open={openFormEditDialog}
+        onClose={() => setOpenFormEditDialog(false)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>Edit Form Submission</DialogTitle>
+        <DialogContent>
+          <Grid container spacing={2} sx={{ mt: 1 }}>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                type="datetime-local"
+                label="Starting Date/Time From Home"
+                value={formEditData.startingDateTimeFromHome ? new Date(formEditData.startingDateTimeFromHome).toISOString().slice(0, 16) : ''}
+                onChange={(e) =>
+                  setFormEditData({
+                    ...formEditData,
+                    startingDateTimeFromHome: e.target.value ? new Date(e.target.value).toISOString() : null,
+                  })
+                }
+                InputLabelProps={{ shrink: true }}
+                size="small"
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                type="datetime-local"
+                label="Reaching Date/Time To Home"
+                value={formEditData.reachingDateTimeToHome ? new Date(formEditData.reachingDateTimeToHome).toISOString().slice(0, 16) : ''}
+                onChange={(e) =>
+                  setFormEditData({
+                    ...formEditData,
+                    reachingDateTimeToHome: e.target.value ? new Date(e.target.value).toISOString() : null,
+                  })
+                }
+                InputLabelProps={{ shrink: true }}
+                size="small"
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                type="datetime-local"
+                label="Onward Train/Flight Date/Time"
+                value={formEditData.onwardTrainFlightDateTime ? new Date(formEditData.onwardTrainFlightDateTime).toISOString().slice(0, 16) : ''}
+                onChange={(e) =>
+                  setFormEditData({
+                    ...formEditData,
+                    onwardTrainFlightDateTime: e.target.value ? new Date(e.target.value).toISOString() : null,
+                  })
+                }
+                InputLabelProps={{ shrink: true }}
+                size="small"
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Onward Train/Flight No"
+                value={formEditData.onwardTrainFlightNo || ''}
+                onChange={(e) =>
+                  setFormEditData({ ...formEditData, onwardTrainFlightNo: e.target.value })
+                }
+                size="small"
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                type="datetime-local"
+                label="Return Train/Flight Date/Time"
+                value={formEditData.returnTrainFlightDateTime ? new Date(formEditData.returnTrainFlightDateTime).toISOString().slice(0, 16) : ''}
+                onChange={(e) =>
+                  setFormEditData({
+                    ...formEditData,
+                    returnTrainFlightDateTime: e.target.value ? new Date(e.target.value).toISOString() : null,
+                  })
+                }
+                InputLabelProps={{ shrink: true }}
+                size="small"
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Return Train/Flight No"
+                value={formEditData.returnTrainFlightNo || ''}
+                onChange={(e) =>
+                  setFormEditData({ ...formEditData, returnTrainFlightNo: e.target.value })
+                }
+                size="small"
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Stay In Hotel"
+                value={formEditData.stayInHotel || ''}
+                onChange={(e) =>
+                  setFormEditData({ ...formEditData, stayInHotel: e.target.value })
+                }
+                multiline
+                rows={2}
+                size="small"
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Stay In Pandal"
+                value={formEditData.stayInPandal || ''}
+                onChange={(e) =>
+                  setFormEditData({ ...formEditData, stayInPandal: e.target.value })
+                }
+                multiline
+                rows={2}
+                size="small"
+              />
+            </Grid>
+          </Grid>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenFormEditDialog(false)}>Cancel</Button>
+          <Button variant="contained" onClick={handleSaveFormEdit} disabled={loading}>
+            Save
           </Button>
         </DialogActions>
       </Dialog>
@@ -742,4 +1237,3 @@ const Dashboard = () => {
 }
 
 export default Dashboard
-

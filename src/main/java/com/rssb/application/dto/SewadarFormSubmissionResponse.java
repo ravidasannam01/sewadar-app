@@ -17,7 +17,7 @@ public class SewadarFormSubmissionResponse {
     private String programTitle;
     private String sewadarId;
     private String sewadarName;
-    private String name;
+    // Name removed - use sewadarName instead
     private LocalDateTime startingDateTimeFromHome;
     private LocalDateTime reachingDateTimeToHome;
     private LocalDateTime onwardTrainFlightDateTime;

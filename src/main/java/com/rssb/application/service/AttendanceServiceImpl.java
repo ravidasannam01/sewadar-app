@@ -322,6 +322,29 @@ public class AttendanceServiceImpl implements AttendanceService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public boolean isSewadarPresentOnDate(String sewadarId, Long programId, java.time.LocalDate date) {
+        log.info("Checking if sewadar {} is present on {} for program {}", sewadarId, date, programId);
+        
+        Program program = programRepository.findById(programId)
+                .orElseThrow(() -> new ResourceNotFoundException("Program", "id", programId));
+        
+        // Find the ProgramDate for the given date
+        ProgramDate programDate = program.getProgramDates().stream()
+                .filter(pd -> pd.getProgramDate().equals(date))
+                .findFirst()
+                .orElse(null);
+        
+        if (programDate == null) {
+            return false; // Date is not a valid program date
+        }
+        
+        // Check if attendance exists
+        return attendanceRepository.findByProgramDateIdAndSewadarZonalId(programDate.getId(), sewadarId)
+                .isPresent();
+    }
+
+    @Override
     public void deleteAttendance(Long id, String inchargeZonalId) {
         log.info("Incharge {} deleting attendance record {}", inchargeZonalId, id);
 
