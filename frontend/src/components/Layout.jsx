@@ -18,6 +18,8 @@ import {
   Dialog,
   DialogContent,
   Backdrop,
+  Grid,
+  Paper,
 } from '@mui/material'
 import { useAuth } from '../contexts/AuthContext'
 import LogoutIcon from '@mui/icons-material/Logout'
@@ -30,6 +32,17 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 import MenuIcon from '@mui/icons-material/Menu'
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft'
 import CloseIcon from '@mui/icons-material/Close'
+import PersonIcon from '@mui/icons-material/Person'
+import PhoneIcon from '@mui/icons-material/Phone'
+import EmailIcon from '@mui/icons-material/Email'
+import LocationOnIcon from '@mui/icons-material/LocationOn'
+import WorkIcon from '@mui/icons-material/Work'
+import CalendarTodayIcon from '@mui/icons-material/CalendarToday'
+import LanguageIcon from '@mui/icons-material/Language'
+import ContactEmergencyIcon from '@mui/icons-material/ContactEmergency'
+import BadgeIcon from '@mui/icons-material/Badge'
+import HomeIcon from '@mui/icons-material/Home'
+import NotesIcon from '@mui/icons-material/Notes'
 
 const Layout = () => {
   const { user, logout } = useAuth()
@@ -41,6 +54,7 @@ const Layout = () => {
   const [mobileOpen, setMobileOpen] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [photoModalOpen, setPhotoModalOpen] = useState(false)
+  const [profileModalOpen, setProfileModalOpen] = useState(false)
 
   const handleLogout = () => {
     logout()
@@ -209,11 +223,11 @@ const Layout = () => {
             </Typography>
           </Box>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, sm: 2 }, flexWrap: 'wrap' }}>
-            <Tooltip title="Click to view profile photo">
+            <Tooltip title="Click to view full profile">
               <Avatar
                 src={user?.photoUrl || undefined}
                 alt={`${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'User'}
-                onClick={() => setPhotoModalOpen(true)}
+                onClick={() => setProfileModalOpen(true)}
                 sx={{
                   width: 32,
                   height: 32,
@@ -236,7 +250,16 @@ const Layout = () => {
                   .toUpperCase()}
               </Avatar>
             </Tooltip>
-            <Box sx={{ textAlign: 'right' }}>
+            <Box 
+              sx={{ 
+                textAlign: 'right',
+                cursor: 'pointer',
+                '&:hover': {
+                  opacity: 0.8,
+                },
+              }}
+              onClick={() => setProfileModalOpen(true)}
+            >
               <Typography 
                 variant="body2"
                 sx={{ display: { xs: 'none', sm: 'block' } }}
@@ -431,6 +454,344 @@ const Layout = () => {
                 Location: {user.location}
               </Typography>
             )}
+          </Box>
+        </DialogContent>
+      </Dialog>
+
+      {/* Full Profile Modal */}
+      <Dialog
+        open={profileModalOpen}
+        onClose={() => setProfileModalOpen(false)}
+        maxWidth="md"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+            overflow: 'hidden',
+            background: 'linear-gradient(135deg, #f5f5f5 0%, #ffffff 100%)',
+            maxHeight: '90vh',
+          },
+        }}
+        BackdropComponent={Backdrop}
+        BackdropProps={{
+          sx: {
+            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+            backdropFilter: 'blur(4px)',
+          },
+        }}
+      >
+        <DialogContent sx={{ p: 0, position: 'relative', overflow: 'auto' }}>
+          <IconButton
+            onClick={() => setProfileModalOpen(false)}
+            sx={{
+              position: 'absolute',
+              top: 8,
+              right: 8,
+              zIndex: 1,
+              bgcolor: 'rgba(255, 255, 255, 0.9)',
+              '&:hover': {
+                bgcolor: 'rgba(255, 255, 255, 1)',
+              },
+            }}
+          >
+            <CloseIcon />
+          </IconButton>
+
+          {/* Header Section */}
+          <Box
+            sx={{
+              background: 'linear-gradient(135deg, #800000 0%, #b71c1c 100%)',
+              color: 'white',
+              p: 4,
+              pt: 5,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+            }}
+          >
+            <Avatar
+              src={user?.photoUrl || undefined}
+              alt={`${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'User'}
+              sx={{
+                width: 120,
+                height: 120,
+                bgcolor: 'rgba(255, 255, 255, 0.2)',
+                fontSize: '3rem',
+                mb: 2,
+                border: '4px solid white',
+                boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
+              }}
+            >
+              {(user?.firstName?.[0] ||
+                user?.lastName?.[0] ||
+                user?.zonalId?.[0] ||
+                '?'
+              )
+                .toString()
+                .toUpperCase()}
+            </Avatar>
+
+            <Typography variant="h4" sx={{ fontWeight: 600, mb: 1 }}>
+              {user?.firstName} {user?.lastName}
+            </Typography>
+
+            <Box sx={{ display: 'flex', gap: 1.5, mt: 1, flexWrap: 'wrap', justifyContent: 'center' }}>
+              <Chip
+                label={user?.zonalId || 'N/A'}
+                size="small"
+                sx={{
+                  bgcolor: 'rgba(255, 255, 255, 0.2)',
+                  color: 'white',
+                  fontWeight: 600,
+                }}
+              />
+              <Chip
+                label={user?.screenerCode || 'NA'}
+                size="small"
+                sx={{
+                  bgcolor: (user?.role === 'ADMIN' || user?.role === 'INCHARGE') ? '#d4af37' : '#4a90a4',
+                  color: 'white',
+                  fontWeight: 600,
+                }}
+              />
+              <Chip
+                label={user?.role || 'SEWADAR'}
+                size="small"
+                sx={{
+                  bgcolor: user?.role === 'ADMIN' ? '#d32f2f' : user?.role === 'INCHARGE' ? '#1976d2' : '#757575',
+                  color: 'white',
+                  fontWeight: 600,
+                }}
+              />
+            </Box>
+          </Box>
+
+          {/* Content Section */}
+          <Box sx={{ p: 3 }}>
+            <Grid container spacing={3}>
+              {/* Personal Information */}
+              <Grid item xs={12} md={6}>
+                <Paper elevation={2} sx={{ p: 2.5, height: '100%', borderRadius: 2 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                    <PersonIcon sx={{ color: '#800000', mr: 1 }} />
+                    <Typography variant="h6" sx={{ fontWeight: 600, color: '#800000' }}>
+                      Personal Information
+                    </Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                    {user?.gender && (
+                      <Box>
+                        <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>
+                          Gender
+                        </Typography>
+                        <Typography variant="body2">{user.gender}</Typography>
+                      </Box>
+                    )}
+                    {user?.dateOfBirth && (
+                      <Box>
+                        <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>
+                          Date of Birth
+                        </Typography>
+                        <Typography variant="body2">
+                          {new Date(user.dateOfBirth).toLocaleDateString('en-US', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric',
+                          })}
+                        </Typography>
+                      </Box>
+                    )}
+                    {user?.fatherHusbandName && (
+                      <Box>
+                        <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>
+                          Father/Husband Name
+                        </Typography>
+                        <Typography variant="body2">{user.fatherHusbandName}</Typography>
+                      </Box>
+                    )}
+                    {user?.aadharNumber && (
+                      <Box>
+                        <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>
+                          Aadhar Number
+                        </Typography>
+                        <Typography variant="body2">{user.aadharNumber}</Typography>
+                      </Box>
+                    )}
+                  </Box>
+                </Paper>
+              </Grid>
+
+              {/* Contact Information */}
+              <Grid item xs={12} md={6}>
+                <Paper elevation={2} sx={{ p: 2.5, height: '100%', borderRadius: 2 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                    <PhoneIcon sx={{ color: '#800000', mr: 1 }} />
+                    <Typography variant="h6" sx={{ fontWeight: 600, color: '#800000' }}>
+                      Contact Information
+                    </Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                    {user?.mobile && (
+                      <Box>
+                        <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>
+                          Mobile
+                        </Typography>
+                        <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                          <PhoneIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+                          {user.mobile}
+                        </Typography>
+                      </Box>
+                    )}
+                    {user?.emailId && (
+                      <Box>
+                        <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>
+                          Email
+                        </Typography>
+                        <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                          <EmailIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+                          {user.emailId}
+                        </Typography>
+                      </Box>
+                    )}
+                    {user?.address && (
+                      <Box>
+                        <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>
+                          Address
+                        </Typography>
+                        <Typography variant="body2" sx={{ display: 'flex', alignItems: 'flex-start', gap: 0.5 }}>
+                          <HomeIcon sx={{ fontSize: 16, color: 'text.secondary', mt: 0.5 }} />
+                          <Box>
+                            {user.address.address1 && <Box>{user.address.address1}</Box>}
+                            {user.address.address2 && <Box>{user.address.address2}</Box>}
+                            {user.address.email && (
+                              <Box sx={{ mt: 0.5, color: 'text.secondary' }}>
+                                <EmailIcon sx={{ fontSize: 14, verticalAlign: 'middle', mr: 0.5 }} />
+                                {user.address.email}
+                              </Box>
+                            )}
+                          </Box>
+                        </Typography>
+                      </Box>
+                    )}
+                  </Box>
+                </Paper>
+              </Grid>
+
+              {/* Professional Information */}
+              <Grid item xs={12} md={6}>
+                <Paper elevation={2} sx={{ p: 2.5, height: '100%', borderRadius: 2 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                    <WorkIcon sx={{ color: '#800000', mr: 1 }} />
+                    <Typography variant="h6" sx={{ fontWeight: 600, color: '#800000' }}>
+                      Professional Information
+                    </Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                    {user?.profession && (
+                      <Box>
+                        <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>
+                          Profession
+                        </Typography>
+                        <Typography variant="body2">{user.profession}</Typography>
+                      </Box>
+                    )}
+                    {user?.joiningDate && (
+                      <Box>
+                        <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>
+                          Joining Date
+                        </Typography>
+                        <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                          <CalendarTodayIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+                          {new Date(user.joiningDate).toLocaleDateString('en-US', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric',
+                          })}
+                        </Typography>
+                      </Box>
+                    )}
+                    {user?.location && (
+                      <Box>
+                        <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>
+                          Location
+                        </Typography>
+                        <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                          <LocationOnIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+                          {user.location}
+                        </Typography>
+                      </Box>
+                    )}
+                    {user?.satsangPlace && (
+                      <Box>
+                        <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>
+                          Satsang Place
+                        </Typography>
+                        <Typography variant="body2">{user.satsangPlace}</Typography>
+                      </Box>
+                    )}
+                  </Box>
+                </Paper>
+              </Grid>
+
+              {/* Additional Information */}
+              <Grid item xs={12} md={6}>
+                <Paper elevation={2} sx={{ p: 2.5, height: '100%', borderRadius: 2 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                    <BadgeIcon sx={{ color: '#800000', mr: 1 }} />
+                    <Typography variant="h6" sx={{ fontWeight: 600, color: '#800000' }}>
+                      Additional Information
+                    </Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                    {user?.languages && user.languages.length > 0 && (
+                      <Box>
+                        <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>
+                          Languages Known
+                        </Typography>
+                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 0.5 }}>
+                          {user.languages.map((lang, idx) => (
+                            <Chip
+                              key={idx}
+                              label={lang}
+                              size="small"
+                              icon={<LanguageIcon sx={{ fontSize: 14 }} />}
+                              sx={{ bgcolor: '#f5f5f5' }}
+                            />
+                          ))}
+                        </Box>
+                      </Box>
+                    )}
+                    {user?.emergencyContact && (
+                      <Box>
+                        <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>
+                          Emergency Contact
+                        </Typography>
+                        <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                          <ContactEmergencyIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+                          {user.emergencyContact}
+                          {user?.emergencyContactRelationship && (
+                            <Typography component="span" variant="caption" sx={{ color: 'text.secondary', ml: 0.5 }}>
+                              ({user.emergencyContactRelationship})
+                            </Typography>
+                          )}
+                        </Typography>
+                      </Box>
+                    )}
+                    {user?.remarks && (
+                      <Box>
+                        <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>
+                          Remarks
+                        </Typography>
+                        <Typography variant="body2" sx={{ display: 'flex', alignItems: 'flex-start', gap: 0.5 }}>
+                          <NotesIcon sx={{ fontSize: 16, color: 'text.secondary', mt: 0.5 }} />
+                          {user.remarks}
+                        </Typography>
+                      </Box>
+                    )}
+                  </Box>
+                </Paper>
+              </Grid>
+            </Grid>
           </Box>
         </DialogContent>
       </Dialog>

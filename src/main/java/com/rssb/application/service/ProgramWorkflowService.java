@@ -201,17 +201,20 @@ public class ProgramWorkflowService {
 
     /**
      * Get all workflows for programs.
-     * ADMIN sees all programs, INCHARGE sees only programs they created.
+     * ADMIN and INCHARGE both see all programs.
      * Automatically initializes workflows for programs that don't have one.
+     * @deprecated Use getWorkflowsForIncharge(String inchargeId, Boolean includeArchived) instead
      */
+    @Deprecated
     @Transactional(readOnly = true)
     public List<ProgramWorkflowResponse> getWorkflowsForIncharge(String inchargeId) {
-        // Check if user is ADMIN - if so, return all programs
+        // ADMIN and INCHARGE both see all programs
         Sewadar user = sewadarRepository.findByZonalId(inchargeId).orElse(null);
         List<Program> programs;
-        if (user != null && user.getRole() == com.rssb.application.entity.Role.ADMIN) {
+        if (user != null && (user.getRole() == com.rssb.application.entity.Role.ADMIN || user.getRole() == com.rssb.application.entity.Role.INCHARGE)) {
             programs = programRepository.findAll();
         } else {
+            // SEWADAR role (shouldn't happen, but fallback)
             programs = programRepository.findByCreatedByZonalId(inchargeId);
         }
         return programs.stream()
@@ -921,15 +924,19 @@ public class ProgramWorkflowService {
 
     /**
      * Get workflows for incharge with optional archived filter.
+     * ADMIN and INCHARGE both see ALL programs (not just ones they created).
+     * This allows promoted incharges to see all workflows in the system.
      */
     @Transactional(readOnly = true)
     public List<ProgramWorkflowResponse> getWorkflowsForIncharge(String inchargeId, Boolean includeArchived) {
-        // Check if user is ADMIN - if so, return all programs
+        // ADMIN and INCHARGE both see all programs
+        // This matches frontend expectation and allows promoted incharges to manage all workflows
         Sewadar user = sewadarRepository.findByZonalId(inchargeId).orElse(null);
         List<Program> programs;
-        if (user != null && user.getRole() == com.rssb.application.entity.Role.ADMIN) {
+        if (user != null && (user.getRole() == com.rssb.application.entity.Role.ADMIN || user.getRole() == com.rssb.application.entity.Role.INCHARGE)) {
             programs = programRepository.findAll();
         } else {
+            // SEWADAR role (shouldn't happen, but fallback)
             programs = programRepository.findByCreatedByZonalId(inchargeId);
         }
         
