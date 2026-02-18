@@ -874,6 +874,103 @@ public class ProgramWorkflowService {
                 program.getTitle(), program.getId(), emailSentCount, emailFailedCount, whatsappSentCount, whatsappFailedCount);
     }
 
+    /**
+     * Archive a workflow (mark as complete and archived).
+     */
+    public ProgramWorkflowResponse archiveWorkflow(Long programId, String inchargeId) {
+        Program program = programRepository.findById(programId)
+            .orElseThrow(() -> new ResourceNotFoundException("Program", "id", programId));
+
+        ProgramWorkflow workflow = workflowRepository.findByProgramId(programId)
+            .orElseThrow(() -> new ResourceNotFoundException("Workflow", "programId", programId));
+
+        // Verify that the workflow is at the final step (node 6)
+        if (workflow.getCurrentNode() != 6) {
+            throw new IllegalArgumentException("Workflow must be at the final step (node 6) before archiving.");
+        }
+
+        workflow.setArchived(true);
+        workflow.setArchivedAt(java.time.LocalDateTime.now());
+        workflow = workflowRepository.save(workflow);
+        log.info("Workflow archived for program {} by incharge {}", programId, inchargeId);
+
+        return mapToResponse(workflow, program);
+    }
+
+    /**
+     * Unarchive a workflow (restore from archive).
+     */
+    public ProgramWorkflowResponse unarchiveWorkflow(Long programId, String inchargeId) {
+        Program program = programRepository.findById(programId)
+            .orElseThrow(() -> new ResourceNotFoundException("Program", "id", programId));
+
+        ProgramWorkflow workflow = workflowRepository.findByProgramId(programId)
+            .orElseThrow(() -> new ResourceNotFoundException("Workflow", "programId", programId));
+
+        if (!workflow.getArchived()) {
+            throw new IllegalArgumentException("Workflow is not archived.");
+        }
+
+        workflow.setArchived(false);
+        workflow.setArchivedAt(null);
+        workflow = workflowRepository.save(workflow);
+        log.info("Workflow unarchived for program {} by incharge {}", programId, inchargeId);
+
+        return mapToResponse(workflow, program);
+    }
+
+    /**
+     * Get workflows for incharge with optional archived filter.
+     */
+    @Transactional(readOnly = true)
+    public List<ProgramWorkflowResponse> getWorkflowsForIncharge(String inchargeId, Boolean includeArchived) {
+        // Check if user is ADMIN - if so, return all programs
+        Sewadar user = sewadarRepository.findByZonalId(inchargeId).orElse(null);
+        List<Program> programs;
+        if (user != null && user.getRole() == com.rssb.application.entity.Role.ADMIN) {
+            programs = programRepository.findAll();
+        } else {
+            programs = programRepository.findByCreatedByZonalId(inchargeId);
+        }
+        
+        return programs.stream()
+            .map(program -> {
+                try {
+                    Optional<ProgramWorkflow> workflowOpt = workflowRepository.findByProgramId(program.getId());
+                    
+                    if (workflowOpt.isEmpty()) {
+                        // Initialize in a separate write transaction using self-injection
+                        log.info("Initializing workflow for existing program: {}", program.getId());
+                        if (self != null) {
+                            return self.initializeAndGetWorkflow(program.getId(), program);
+                        } else {
+                            // Fallback
+                            ProgramWorkflow workflow = initializeWorkflow(program);
+                            return mapToResponse(workflow, program);
+                        }
+                    }
+                    
+                    ProgramWorkflow workflow = workflowOpt.get();
+                    // Filter by archived status if specified
+                    if (includeArchived != null) {
+                        if (includeArchived && !workflow.getArchived()) {
+                            return null; // Skip non-archived when only archived requested
+                        }
+                        if (!includeArchived && workflow.getArchived()) {
+                            return null; // Skip archived when only non-archived requested
+                        }
+                    }
+                    // Access program data within transaction to avoid lazy loading issues
+                    return mapToResponse(workflow, program);
+                } catch (Exception e) {
+                    log.error("Error getting workflow for program {}", program.getId(), e);
+                    throw new RuntimeException("Failed to get workflow for program " + program.getId(), e);
+                }
+            })
+            .filter(response -> response != null)
+            .collect(java.util.stream.Collectors.toList());
+    }
+
     private ProgramWorkflowResponse mapToResponse(ProgramWorkflow workflow, Program program) {
         Integer node = workflow.getCurrentNode();
         return ProgramWorkflowResponse.builder()
@@ -884,6 +981,8 @@ public class ProgramWorkflowService {
             .currentNodeName(node <= NODE_NAMES.length ? NODE_NAMES[node - 1] : "Unknown")
             .formReleased(workflow.getFormReleased())
             .detailsCollected(workflow.getDetailsCollected())
+            .archived(workflow.getArchived())
+            .archivedAt(workflow.getArchivedAt())
             .build();
     }
 }

@@ -40,6 +40,13 @@ public class ProgramWorkflow {
     @Builder.Default
     private Boolean detailsCollected = false;
 
+    @Column(name = "archived", nullable = false)
+    @Builder.Default
+    private Boolean archived = false;
+
+    @Column(name = "archived_at")
+    private LocalDateTime archivedAt;
+
     @Column(name = "created_at", nullable = false)
     @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();

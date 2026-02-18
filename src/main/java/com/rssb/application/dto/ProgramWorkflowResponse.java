@@ -17,5 +17,7 @@ public class ProgramWorkflowResponse {
     private String currentNodeName;
     private Boolean formReleased;
     private Boolean detailsCollected;
+    private Boolean archived;
+    private java.time.LocalDateTime archivedAt;
 }
 

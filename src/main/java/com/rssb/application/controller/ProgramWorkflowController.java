@@ -39,8 +39,9 @@ public class ProgramWorkflowController {
 
     @GetMapping("/incharge/{inchargeId}")
     public ResponseEntity<List<ProgramWorkflowResponse>> getWorkflowsForIncharge(
-            @PathVariable String inchargeId) {
-        return ResponseEntity.ok(workflowService.getWorkflowsForIncharge(inchargeId));
+            @PathVariable String inchargeId,
+            @RequestParam(required = false) Boolean archived) {
+        return ResponseEntity.ok(workflowService.getWorkflowsForIncharge(inchargeId, archived));
     }
 
     @PostMapping("/program/{programId}/next-node")
@@ -146,6 +147,55 @@ public class ProgramWorkflowController {
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
         response.put("message", "Notifications sent to missing form submitters");
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Archive a workflow (mark as complete and archived).
+     * Only workflows at node 6 can be archived.
+     */
+    @PostMapping("/program/{programId}/archive")
+    public ResponseEntity<ProgramWorkflowResponse> archiveWorkflow(
+            @PathVariable Long programId) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String inchargeId = (String) auth.getPrincipal();
+        String userRole = UserContextUtil.getCurrentUserRole();
+        
+        long startTime = System.currentTimeMillis();
+        ProgramWorkflowResponse response = workflowService.archiveWorkflow(programId, inchargeId);
+        long duration = System.currentTimeMillis() - startTime;
+        
+        Map<String, Object> details = new HashMap<>();
+        details.put("programId", programId);
+        details.put("archived", true);
+        details.put("durationMs", duration);
+        actionLogger.logAction("ARCHIVE_WORKFLOW", inchargeId, userRole, details);
+        actionLogger.logPerformance("ARCHIVE_WORKFLOW", duration);
+        
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Unarchive a workflow (restore from archive).
+     */
+    @PostMapping("/program/{programId}/unarchive")
+    public ResponseEntity<ProgramWorkflowResponse> unarchiveWorkflow(
+            @PathVariable Long programId) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String inchargeId = (String) auth.getPrincipal();
+        String userRole = UserContextUtil.getCurrentUserRole();
+        
+        long startTime = System.currentTimeMillis();
+        ProgramWorkflowResponse response = workflowService.unarchiveWorkflow(programId, inchargeId);
+        long duration = System.currentTimeMillis() - startTime;
+        
+        Map<String, Object> details = new HashMap<>();
+        details.put("programId", programId);
+        details.put("archived", false);
+        details.put("durationMs", duration);
+        actionLogger.logAction("UNARCHIVE_WORKFLOW", inchargeId, userRole, details);
+        actionLogger.logPerformance("UNARCHIVE_WORKFLOW", duration);
+        
         return ResponseEntity.ok(response);
     }
 

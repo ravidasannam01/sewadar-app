@@ -59,12 +59,13 @@ const Workflow = () => {
   const [editingProgramId, setEditingProgramId] = useState(null)
   const [messageText, setMessageText] = useState('')
   const [defaultMessage, setDefaultMessage] = useState('')
+  const [showArchived, setShowArchived] = useState(false)
 
   useEffect(() => {
     if (isAdminOrIncharge(user)) {
       loadData()
     }
-  }, [user])
+  }, [user, showArchived])
 
   const loadData = async () => {
     try {
@@ -82,17 +83,13 @@ const Workflow = () => {
 
       setPrograms(programsRes.data || [])
 
-      // Load workflows for all programs
-      const workflowPromises = (programsRes.data || []).map((p) =>
-        api
-          .get(`/workflow/program/${p.id}`)
-          .then((r) => r.data)
-          .catch((err) => {
-            console.error(`Error loading workflow for program ${p.id}:`, err)
-            return null
-          }),
-      )
-      const workflowData = await Promise.all(workflowPromises)
+      // Load workflows for incharge with archived filter
+      const workflowsRes = await api.get(`/workflow/incharge/${user.zonalId}?archived=${showArchived}`).catch((err) => {
+        console.error('Error loading workflows:', err)
+        return { data: [] }
+      })
+
+      const workflowData = workflowsRes.data || []
       const workflowMap = {}
       workflowData.forEach((w) => {
         if (w) {
@@ -101,8 +98,15 @@ const Workflow = () => {
       })
       setWorkflows(workflowMap)
 
-      // Load program-level preferences for each program
-      const programPrefPromises = (programsRes.data || []).map((p) =>
+      // Filter programs to only show those with workflows (matching archived filter)
+      const programIdsWithWorkflows = new Set(workflowData.map((w) => w.programId))
+      const filteredPrograms = (programsRes.data || []).filter((p) =>
+        programIdsWithWorkflows.has(p.id),
+      )
+      setPrograms(filteredPrograms)
+
+      // Load program-level preferences for each program (use filtered programs)
+      const programPrefPromises = filteredPrograms.map((p) =>
         api
           .get(`/program-notification-preferences/program/${p.id}`)
           .then((r) => ({ programId: p.id, preferences: r.data }))
@@ -308,7 +312,57 @@ const Workflow = () => {
         </Button>
       )
     }
-    return <Chip label="Workflow Complete" color="success" />
+    // If archived, show unarchive button, otherwise show archive button
+    if (workflow.archived) {
+      return (
+        <Button
+          variant="outlined"
+          color="secondary"
+          onClick={() => handleUnarchiveWorkflow(workflow.programId)}
+        >
+          Unarchive Workflow
+        </Button>
+      )
+    }
+    return (
+      <Button
+        variant="contained"
+        color="success"
+        onClick={() => handleArchiveWorkflow(workflow.programId)}
+      >
+        Complete & Archive
+      </Button>
+    )
+  }
+
+  const handleArchiveWorkflow = async (programId) => {
+    if (!window.confirm('Are you sure you want to complete and archive this workflow? This will mark it as finished.')) {
+      return
+    }
+
+    try {
+      await api.post(`/workflow/program/${programId}/archive`)
+      await loadData()
+      alert('Workflow archived successfully!')
+    } catch (error) {
+      const message = error.response?.data?.message || 'Failed to archive workflow'
+      alert(message)
+    }
+  }
+
+  const handleUnarchiveWorkflow = async (programId) => {
+    if (!window.confirm('Are you sure you want to unarchive this workflow? It will be restored to active status.')) {
+      return
+    }
+
+    try {
+      await api.post(`/workflow/program/${programId}/unarchive`)
+      await loadData()
+      alert('Workflow unarchived successfully!')
+    } catch (error) {
+      const message = error.response?.data?.message || 'Failed to unarchive workflow'
+      alert(message)
+    }
   }
 
   const handleTriggerNotifications = async () => {
@@ -346,16 +400,28 @@ const Workflow = () => {
         <Typography variant="h4" component="h1" sx={{ fontWeight: 600 }}>
           Program Workflow Management
         </Typography>
-        <Button
-          variant="contained"
-          color="primary"
-          startIcon={<SendIcon />}
-          onClick={handleTriggerNotifications}
-          disabled={triggeringNotifications || loading}
-          sx={{ minWidth: 200 }}
-        >
-          {triggeringNotifications ? 'Triggering...' : 'Trigger Notifications'}
-        </Button>
+        <Box display="flex" gap={2} alignItems="center">
+          <FormControlLabel
+            control={
+              <Switch
+                checked={showArchived}
+                onChange={(e) => setShowArchived(e.target.checked)}
+                color="primary"
+              />
+            }
+            label={showArchived ? 'Show Archived' : 'Show Active'}
+          />
+          <Button
+            variant="contained"
+            color="primary"
+            startIcon={<SendIcon />}
+            onClick={handleTriggerNotifications}
+            disabled={triggeringNotifications || loading}
+            sx={{ minWidth: 200 }}
+          >
+            {triggeringNotifications ? 'Triggering...' : 'Trigger Notifications'}
+          </Button>
+        </Box>
       </Box>
 
       {error && (
@@ -382,9 +448,19 @@ const Workflow = () => {
                   <CardContent>
                     <Box display="flex" justifyContent="space-between" alignItems="start" mb={2}>
                       <Box>
-                        <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                          {program.title}
-                        </Typography>
+                        <Box display="flex" alignItems="center" gap={1} mb={0.5}>
+                          <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                            {program.title}
+                          </Typography>
+                          {workflow?.archived && (
+                            <Chip
+                              label="Archived"
+                              size="small"
+                              color="secondary"
+                              sx={{ fontSize: '0.7rem' }}
+                            />
+                          )}
+                        </Box>
                         <Typography variant="body2" color="text.secondary">
                           {program.location}
                         </Typography>
