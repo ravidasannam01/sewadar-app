@@ -6,9 +6,11 @@ import com.rssb.application.exception.ResourceNotFoundException;
 import com.rssb.application.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -31,6 +33,26 @@ public class ProgramWorkflowService {
     private final ProgramApplicationRepository applicationRepository;
     private final SewadarFormSubmissionRepository formSubmissionRepository;
     private final WhatsAppService whatsAppService;
+    private final EmailService emailService;
+    
+    // Notification configuration
+    @Value("${notification.step2.recipients:INCHARGES}")
+    private String step2Recipients;
+    
+    @Value("${notification.step2.whatsapp.enabled:true}")
+    private boolean step2WhatsAppEnabled;
+    
+    @Value("${notification.step2.email.enabled:false}")
+    private boolean step2EmailEnabled;
+    
+    @Value("${notification.step3.recipients:APPROVED}")
+    private String step3Recipients;
+    
+    @Value("${notification.step3.whatsapp.enabled:true}")
+    private boolean step3WhatsAppEnabled;
+    
+    @Value("${notification.step3.email.enabled:false}")
+    private boolean step3EmailEnabled;
     
     // Self-injection for transaction proxy
     private ProgramWorkflowService self;
@@ -318,6 +340,7 @@ public class ProgramWorkflowService {
     /**
      * Send notifications for a specific workflow node for a single program.
      * This is used both by the daily scheduler and immediate node transitions.
+     * Supports configurable recipients (INCHARGES, ALL, APPROVED) and both WhatsApp/Email.
      */
     private void sendNotificationsForNode(Program program, ProgramWorkflow workflow) {
         if (program == null || workflow == null || workflow.getCurrentNode() == null) {
@@ -341,19 +364,136 @@ public class ProgramWorkflowService {
             return;
         }
 
-        // Get incharge(s) - all incharges for now
-        List<Sewadar> incharges = sewadarRepository.findByRole(Role.INCHARGE);
+        // Determine recipients and notification methods based on node and configuration
+        List<Sewadar> recipients = getRecipientsForNode(program, currentNode);
+        boolean useWhatsApp = shouldUseWhatsApp(currentNode);
+        boolean useEmail = shouldUseEmail(currentNode);
 
-        String message = globalPreference.getNotificationMessage()
-                .replace("{programTitle}", program.getTitle());
+        // Prepare message based on recipient type
+        String message = prepareMessageForRecipients(globalPreference.getNotificationMessage(), 
+                program, currentNode, recipients);
 
-        for (Sewadar incharge : incharges) {
-            if (incharge.getMobile() != null && !incharge.getMobile().isEmpty()) {
-                whatsAppService.sendMessage(incharge.getMobile(), message);
-                log.info("Sent notification to incharge {} for program {} at node {}",
-                        incharge.getZonalId(), program.getId(), currentNode);
+        // Send notifications
+        for (Sewadar recipient : recipients) {
+            if (useWhatsApp && recipient.getMobile() != null && !recipient.getMobile().isEmpty()) {
+                whatsAppService.sendMessage(recipient.getMobile(), message);
+                log.info("Sent WhatsApp notification to {} ({}) for program {} at node {}",
+                        recipient.getZonalId(), recipient.getMobile(), program.getId(), currentNode);
+            }
+            
+            if (useEmail && recipient.getEmailId() != null && !recipient.getEmailId().isEmpty()) {
+                String subject = "Program Notification: " + program.getTitle();
+                emailService.sendEmail(recipient.getEmailId(), subject, message);
+                log.info("Sent email notification to {} ({}) for program {} at node {}",
+                        recipient.getZonalId(), recipient.getEmailId(), program.getId(), currentNode);
             }
         }
+    }
+
+    /**
+     * Get recipients for a specific workflow node based on configuration.
+     */
+    private List<Sewadar> getRecipientsForNode(Program program, Integer nodeNumber) {
+        String recipientType;
+        
+        // Step 2: Post Application Message
+        if (nodeNumber == 2) {
+            recipientType = step2Recipients.toUpperCase();
+        }
+        // Step 3: Release Form
+        else if (nodeNumber == 3) {
+            recipientType = step3Recipients.toUpperCase();
+        }
+        // Other steps: default to INCHARGES
+        else {
+            recipientType = "INCHARGES";
+        }
+
+        switch (recipientType) {
+            case "ALL":
+                // Send to all sewadars (for step 2: direct message to apply)
+                return sewadarRepository.findAll();
+                
+            case "APPROVED":
+                // Send only to approved applicants (for step 3: form release)
+                List<ProgramApplication> approvedApps = applicationRepository
+                        .findByProgramIdAndStatus(program.getId(), "APPROVED");
+                return approvedApps.stream()
+                        .map(ProgramApplication::getSewadar)
+                        .collect(Collectors.toList());
+                
+            case "INCHARGES":
+            default:
+                // Send only to incharges (alert/reminder to post in community)
+                return sewadarRepository.findByRole(Role.INCHARGE);
+        }
+    }
+
+    /**
+     * Check if WhatsApp should be used for this node.
+     */
+    private boolean shouldUseWhatsApp(Integer nodeNumber) {
+        if (nodeNumber == 2) {
+            return step2WhatsAppEnabled;
+        } else if (nodeNumber == 3) {
+            return step3WhatsAppEnabled;
+        }
+        return true; // Default to WhatsApp for other nodes
+    }
+
+    /**
+     * Check if Email should be used for this node.
+     */
+    private boolean shouldUseEmail(Integer nodeNumber) {
+        if (nodeNumber == 2) {
+            return step2EmailEnabled;
+        } else if (nodeNumber == 3) {
+            return step3EmailEnabled;
+        }
+        return false; // Default to no email for other nodes
+    }
+
+    /**
+     * Prepare message text based on recipient type.
+     * Different messages for INCHARGES (alert) vs ALL/APPROVED (direct message).
+     */
+    private String prepareMessageForRecipients(String baseMessage, Program program, 
+            Integer nodeNumber, List<Sewadar> recipients) {
+        String message = baseMessage.replace("{programTitle}", program.getTitle());
+        
+        // Determine recipient type
+        String recipientType;
+        if (nodeNumber == 2) {
+            recipientType = step2Recipients.toUpperCase();
+        } else if (nodeNumber == 3) {
+            recipientType = step3Recipients.toUpperCase();
+        } else {
+            recipientType = "INCHARGES";
+        }
+
+        // Customize message based on recipient type and node
+        if (nodeNumber == 2) {
+            if ("INCHARGES".equals(recipientType)) {
+                // Alert/reminder for incharges to post in community group
+                message = "Reminder: Please post an application message in the community group for program '" + 
+                        program.getTitle() + "'. " + message;
+            } else if ("ALL".equals(recipientType)) {
+                // Direct message to all sewadars to apply
+                message = "New program available: '" + program.getTitle() + "'. " + 
+                        "Please apply for this program through the application system. " + message;
+            }
+        } else if (nodeNumber == 3) {
+            if ("INCHARGES".equals(recipientType)) {
+                // Alert for incharges
+                message = "Reminder: Form has been released for program '" + program.getTitle() + "'. " + message;
+            } else if ("APPROVED".equals(recipientType)) {
+                // Direct message to approved applicants
+                message = "Form is now available for program '" + program.getTitle() + 
+                        "'. Please submit your travel details form. " + message;
+            }
+        }
+
+        return message;
     }
 
     /**
@@ -452,10 +592,22 @@ public class ProgramWorkflowService {
             baseMessage = "Please submit your travel details form for the program '" + program.getTitle() + "'.";
         }
 
+        // Send via both WhatsApp and Email if configured
+        boolean useWhatsApp = step3WhatsAppEnabled; // Use step3 config for form reminders
+        boolean useEmail = step3EmailEnabled;
+        
         for (com.rssb.application.dto.SewadarResponse sewadar : missing) {
-            if (sewadar.getMobile() != null && !sewadar.getMobile().isEmpty()) {
+            if (useWhatsApp && sewadar.getMobile() != null && !sewadar.getMobile().isEmpty()) {
                 whatsAppService.sendMessage(sewadar.getMobile(), baseMessage);
-                log.info("Sent missing form reminder to sewadar {} for program {}", sewadar.getZonalId(), programId);
+                log.info("Sent WhatsApp missing form reminder to sewadar {} for program {}", 
+                        sewadar.getZonalId(), programId);
+            }
+            
+            if (useEmail && sewadar.getEmailId() != null && !sewadar.getEmailId().isEmpty()) {
+                String subject = "Reminder: Submit Form for " + program.getTitle();
+                emailService.sendEmail(sewadar.getEmailId(), subject, baseMessage);
+                log.info("Sent email missing form reminder to sewadar {} for program {}", 
+                        sewadar.getZonalId(), programId);
             }
         }
     }
