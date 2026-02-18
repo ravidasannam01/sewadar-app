@@ -1,6 +1,6 @@
 ====================================================================================================
 COMPREHENSIVE PROGRAM FLOW TEST - CURL COMMANDS AND RESPONSES
-Generated at: 2026-02-18 21:56:40
+Generated at: 2026-02-18 22:14:41
 ====================================================================================================
 
 
@@ -178,7 +178,7 @@ Status:
 
 Response Body (JSON):
 {
-  "token": "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJBRE1JTjAwMSIsInJvbGUiOiJBRE1JTiIsImlhdCI6MTc3MTQzMjAwMSwiZXhwIjoxNzcxNTE4NDAxfQ.wwTERhU1208iSLwpJ-GEGTD8kozirCNn9N78oGa6WBNO3Cd2NvpKurOyaLquQB7nsV3UZ-yQKWLUvh-EhxhrEA",
+  "token": "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJBRE1JTjAwMSIsInJvbGUiOiJBRE1JTiIsImlhdCI6MTc3MTQzMzA4MiwiZXhwIjoxNzcxNTE5NDgyfQ.EdBFXGDdU85j3WdliaCQU0Hj1ocuoKTe394YR9U3jr7-NLBufpYnBmxvOFpmPB-BX2T7K9vnCgdYMXDgB5N-8A",
   "tokenType": "Bearer",
   "sewadar": {
     "zonalId": "ADMIN001",
@@ -203,7 +203,7 @@ Response Body (JSON):
     "satsangPlace": null,
     "emailId": "sawisam08@gmail.com"
   },
-  "expiresIn": 1771518401
+  "expiresIn": 1771519482
 }
 ----------------------------------------------------------------------------------------------------
 
@@ -229,7 +229,7 @@ Status:
 
 Response Body (JSON):
 {
-  "token": "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJJTkNIMDAxIiwicm9sZSI6IklOQ0hBUkdFIiwiaWF0IjoxNzcxNDMyMDAxLCJleHAiOjE3NzE1MTg0MDF9.x0owUS83yEi-ZG7QJoBMxVr9lOAGDLgqYJlLrdocNIowERbScLmibXGt9EzK_ukVo36izUy53qqWRT5SQ7v08g",
+  "token": "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJJTkNIMDAxIiwicm9sZSI6IklOQ0hBUkdFIiwiaWF0IjoxNzcxNDMzMDgyLCJleHAiOjE3NzE1MTk0ODJ9.Q0wfOVGS6yhSzTaIEIf-Jsplv2F69mpGlAqdzXfYIqZMJfIgQAqqCHIFb4S0w59cYkXTS7sSNR5rIn95OpU8eQ",
   "tokenType": "Bearer",
   "sewadar": {
     "zonalId": "INCH001",
@@ -262,7 +262,7 @@ Response Body (JSON):
     "satsangPlace": "BEAS Main Hall",
     "emailId": "ramaa8500601@gmail.com"
   },
-  "expiresIn": 1771518401
+  "expiresIn": 1771519482
 }
 ----------------------------------------------------------------------------------------------------
 
@@ -274,7 +274,7 @@ STEP: Create sewadar SEW001 with complete data
 CURL COMMAND:
 ----------------------------------------------------------------------------------------------------
 curl -X POST 'http://localhost:8080/api/sewadars' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJBRE1JTjAwMSIsInJvbGUiOiJBRE1JTiIsImlhdCI6MTc3MTQzMjAwMSwiZXhwIjoxNzcxNTE4NDAxfQ.wwTERhU1208iSLwpJ-GEGTD8kozirCNn9N78oGa6WBNO3Cd2NvpKurOyaLquQB7nsV3UZ-yQKWLUvh-EhxhrEA' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJBRE1JTjAwMSIsInJvbGUiOiJBRE1JTiIsImlhdCI6MTc3MTQzMzA4MiwiZXhwIjoxNzcxNTE5NDgyfQ.EdBFXGDdU85j3WdliaCQU0Hj1ocuoKTe394YR9U3jr7-NLBufpYnBmxvOFpmPB-BX2T7K9vnCgdYMXDgB5N-8A' \
   -H 'Content-Type: application/json' \
   -d '{
   "firstName": "Sewadar",
@@ -283,7 +283,7 @@ curl -X POST 'http://localhost:8080/api/sewadars' \
   "location": "Mumbai",
   "mobile": "91999900101",
   "password": "sew123",
-  "emailId": "raghuyadav99591@gmail.com",
+  "emailId": "sawanannam9@gmail.com",
   "address1": "101 Street",
   "address2": "Area 1",
   "email": "sewadar1.address@example.com",
@@ -340,7 +340,7 @@ Response Body (JSON):
   "gender": "MALE",
   "screenerCode": "SCR001",
   "satsangPlace": "BEAS Main Hall",
-  "emailId": "raghuyadav99591@gmail.com"
+  "emailId": "sawanannam9@gmail.com"
 }
 ----------------------------------------------------------------------------------------------------
 
@@ -352,7 +352,7 @@ STEP: Create sewadar SEW002 with complete data
 CURL COMMAND:
 ----------------------------------------------------------------------------------------------------
 curl -X POST 'http://localhost:8080/api/sewadars' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJBRE1JTjAwMSIsInJvbGUiOiJBRE1JTiIsImlhdCI6MTc3MTQzMjAwMSwiZXhwIjoxNzcxNTE4NDAxfQ.wwTERhU1208iSLwpJ-GEGTD8kozirCNn9N78oGa6WBNO3Cd2NvpKurOyaLquQB7nsV3UZ-yQKWLUvh-EhxhrEA' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJBRE1JTjAwMSIsInJvbGUiOiJBRE1JTiIsImlhdCI6MTc3MTQzMzA4MiwiZXhwIjoxNzcxNTE5NDgyfQ.EdBFXGDdU85j3WdliaCQU0Hj1ocuoKTe394YR9U3jr7-NLBufpYnBmxvOFpmPB-BX2T7K9vnCgdYMXDgB5N-8A' \
   -H 'Content-Type: application/json' \
   -d '{
   "firstName": "Sewadar",
@@ -361,7 +361,7 @@ curl -X POST 'http://localhost:8080/api/sewadars' \
   "location": "Delhi",
   "mobile": "91999900102",
   "password": "sew123",
-  "emailId": "pda30360@gmail.com",
+  "emailId": "raghuyadav99591@gmail.com",
   "address1": "102 Street",
   "address2": "Area 2",
   "email": "sewadar2.address@example.com",
@@ -418,7 +418,7 @@ Response Body (JSON):
   "gender": "FEMALE",
   "screenerCode": "SCR002",
   "satsangPlace": "Delhi Center",
-  "emailId": "pda30360@gmail.com"
+  "emailId": "raghuyadav99591@gmail.com"
 }
 ----------------------------------------------------------------------------------------------------
 
@@ -430,7 +430,7 @@ STEP: Create sewadar SEW003 with complete data
 CURL COMMAND:
 ----------------------------------------------------------------------------------------------------
 curl -X POST 'http://localhost:8080/api/sewadars' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJBRE1JTjAwMSIsInJvbGUiOiJBRE1JTiIsImlhdCI6MTc3MTQzMjAwMSwiZXhwIjoxNzcxNTE4NDAxfQ.wwTERhU1208iSLwpJ-GEGTD8kozirCNn9N78oGa6WBNO3Cd2NvpKurOyaLquQB7nsV3UZ-yQKWLUvh-EhxhrEA' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJBRE1JTjAwMSIsInJvbGUiOiJBRE1JTiIsImlhdCI6MTc3MTQzMzA4MiwiZXhwIjoxNzcxNTE5NDgyfQ.EdBFXGDdU85j3WdliaCQU0Hj1ocuoKTe394YR9U3jr7-NLBufpYnBmxvOFpmPB-BX2T7K9vnCgdYMXDgB5N-8A' \
   -H 'Content-Type: application/json' \
   -d '{
   "firstName": "Sewadar",
@@ -439,7 +439,7 @@ curl -X POST 'http://localhost:8080/api/sewadars' \
   "location": "Mumbai",
   "mobile": "91999900103",
   "password": "sew123",
-  "emailId": "sawanannam9@gmail.com",
+  "emailId": "pda30360@gmail.com",
   "address1": "103 Street",
   "address2": "Area 3",
   "email": "sewadar3.address@example.com",
@@ -498,7 +498,7 @@ Response Body (JSON):
   "gender": "MALE",
   "screenerCode": "SCR003",
   "satsangPlace": "Mumbai Center",
-  "emailId": "sawanannam9@gmail.com"
+  "emailId": "pda30360@gmail.com"
 }
 ----------------------------------------------------------------------------------------------------
 
@@ -510,7 +510,7 @@ STEP: Promote SEW001 to incharge
 CURL COMMAND:
 ----------------------------------------------------------------------------------------------------
 curl -X POST 'http://localhost:8080/api/sewadars/SEW001/promote?inchargeId=INCH001&password=incharge123' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJJTkNIMDAxIiwicm9sZSI6IklOQ0hBUkdFIiwiaWF0IjoxNzcxNDMyMDAxLCJleHAiOjE3NzE1MTg0MDF9.x0owUS83yEi-ZG7QJoBMxVr9lOAGDLgqYJlLrdocNIowERbScLmibXGt9EzK_ukVo36izUy53qqWRT5SQ7v08g' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJJTkNIMDAxIiwicm9sZSI6IklOQ0hBUkdFIiwiaWF0IjoxNzcxNDMzMDgyLCJleHAiOjE3NzE1MTk0ODJ9.Q0wfOVGS6yhSzTaIEIf-Jsplv2F69mpGlAqdzXfYIqZMJfIgQAqqCHIFb4S0w59cYkXTS7sSNR5rIn95OpU8eQ' \
   -H 'Content-Type: application/json'
 ----------------------------------------------------------------------------------------------------
 
@@ -549,7 +549,7 @@ Response Body (JSON):
   "gender": "MALE",
   "screenerCode": "SCR001",
   "satsangPlace": "BEAS Main Hall",
-  "emailId": "raghuyadav99591@gmail.com"
+  "emailId": "sawanannam9@gmail.com"
 }
 ----------------------------------------------------------------------------------------------------
 
@@ -575,7 +575,7 @@ Status:
 
 Response Body (JSON):
 {
-  "token": "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJTRVcwMDEiLCJyb2xlIjoiSU5DSEFSR0UiLCJpYXQiOjE3NzE0MzIwMDEsImV4cCI6MTc3MTUxODQwMX0.nc0vAYZYeCYxSo5vdAYXKtusdhwlZQzoDOjoeUc0vIs7UYCZmuMkzfSyRAXhAGy-kn7o5RfQ8rOACs98jUHo4Q",
+  "token": "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJTRVcwMDEiLCJyb2xlIjoiSU5DSEFSR0UiLCJpYXQiOjE3NzE0MzMwODIsImV4cCI6MTc3MTUxOTQ4Mn0.HT4I4RyTCoulwsdEzTg3l0Dq3vG0HdEeboJD7MJAcrXMmUMvdhB1kyWqQvHO0zZsS5ZYYTR2Pl2W27N0tlLbQw",
   "tokenType": "Bearer",
   "sewadar": {
     "zonalId": "SEW001",
@@ -606,9 +606,9 @@ Response Body (JSON):
     "gender": "MALE",
     "screenerCode": "SCR001",
     "satsangPlace": "BEAS Main Hall",
-    "emailId": "raghuyadav99591@gmail.com"
+    "emailId": "sawanannam9@gmail.com"
   },
-  "expiresIn": 1771518401
+  "expiresIn": 1771519482
 }
 ----------------------------------------------------------------------------------------------------
 
@@ -620,7 +620,7 @@ STEP: Create program with today's date
 CURL COMMAND:
 ----------------------------------------------------------------------------------------------------
 curl -X POST 'http://localhost:8080/api/programs' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJTRVcwMDEiLCJyb2xlIjoiSU5DSEFSR0UiLCJpYXQiOjE3NzE0MzIwMDEsImV4cCI6MTc3MTUxODQwMX0.nc0vAYZYeCYxSo5vdAYXKtusdhwlZQzoDOjoeUc0vIs7UYCZmuMkzfSyRAXhAGy-kn7o5RfQ8rOACs98jUHo4Q' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJTRVcwMDEiLCJyb2xlIjoiSU5DSEFSR0UiLCJpYXQiOjE3NzE0MzMwODIsImV4cCI6MTc3MTUxOTQ4Mn0.HT4I4RyTCoulwsdEzTg3l0Dq3vG0HdEeboJD7MJAcrXMmUMvdhB1kyWqQvHO0zZsS5ZYYTR2Pl2W27N0tlLbQw' \
   -H 'Content-Type: application/json' \
   -d '{
   "title": "Today's Program - 2026-02-18",
@@ -706,7 +706,7 @@ Status:
 
 Response Body (JSON):
 {
-  "token": "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJTRVcwMDEiLCJyb2xlIjoiSU5DSEFSR0UiLCJpYXQiOjE3NzE0MzIwMjQsImV4cCI6MTc3MTUxODQyNH0.M9VUa4f5DmZn1berz6xCllEsh433Ag01LgcT-3HILOv_nczwQ9EqYOef12fjSVaOhwyFQyjQ_qU0uo-b5aVtcQ",
+  "token": "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJTRVcwMDEiLCJyb2xlIjoiSU5DSEFSR0UiLCJpYXQiOjE3NzE0MzMxMjIsImV4cCI6MTc3MTUxOTUyMn0.ZFqhTBuJssUPCZ8Gs28JmTVzArZYFuRnQRKCEF4p4dwFXeyw0hA-nhdZ23ydHaW7ONQ6E6HoG_ALaVnRdknjmw",
   "tokenType": "Bearer",
   "sewadar": {
     "zonalId": "SEW001",
@@ -737,9 +737,9 @@ Response Body (JSON):
     "gender": "MALE",
     "screenerCode": "SCR001",
     "satsangPlace": "BEAS Main Hall",
-    "emailId": "raghuyadav99591@gmail.com"
+    "emailId": "sawanannam9@gmail.com"
   },
-  "expiresIn": 1771518424
+  "expiresIn": 1771519522
 }
 ----------------------------------------------------------------------------------------------------
 
@@ -751,7 +751,7 @@ STEP: Apply to program as SEW001
 CURL COMMAND:
 ----------------------------------------------------------------------------------------------------
 curl -X POST 'http://localhost:8080/api/program-applications' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJTRVcwMDEiLCJyb2xlIjoiSU5DSEFSR0UiLCJpYXQiOjE3NzE0MzIwMjQsImV4cCI6MTc3MTUxODQyNH0.M9VUa4f5DmZn1berz6xCllEsh433Ag01LgcT-3HILOv_nczwQ9EqYOef12fjSVaOhwyFQyjQ_qU0uo-b5aVtcQ' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJTRVcwMDEiLCJyb2xlIjoiSU5DSEFSR0UiLCJpYXQiOjE3NzE0MzMxMjIsImV4cCI6MTc3MTUxOTUyMn0.ZFqhTBuJssUPCZ8Gs28JmTVzArZYFuRnQRKCEF4p4dwFXeyw0hA-nhdZ23ydHaW7ONQ6E6HoG_ALaVnRdknjmw' \
   -H 'Content-Type: application/json' \
   -d '{
   "sewadarId": "SEW001",
@@ -761,43 +761,16 @@ curl -X POST 'http://localhost:8080/api/program-applications' \
 
 RESPONSE:
 ----------------------------------------------------------------------------------------------------
-Status Code: 201
+Status Code: 400
 Status: 
 
 Response Body (JSON):
 {
-  "id": 1,
-  "programId": 1,
-  "programTitle": "Today's Program - 2026-02-18",
-  "sewadar": {
-    "zonalId": "SEW001",
-    "firstName": "Sewadar",
-    "lastName": "User001",
-    "location": null,
-    "mobile": "91999900101",
-    "address": null,
-    "remarks": null,
-    "role": null,
-    "joiningDate": null,
-    "profession": null,
-    "dateOfBirth": null,
-    "emergencyContact": null,
-    "emergencyContactRelationship": null,
-    "photoUrl": null,
-    "aadharNumber": null,
-    "languages": null,
-    "fatherHusbandName": null,
-    "gender": null,
-    "screenerCode": null,
-    "satsangPlace": null,
-    "emailId": null
-  },
-  "appliedAt": "2026-02-18T21:57:04.708283",
-  "status": "PENDING",
-  "notes": null,
-  "dropRequestedAt": null,
-  "dropApprovedAt": null,
-  "dropApprovedBy": null
+  "timestamp": "2026-02-18T22:15:22.612372",
+  "status": 400,
+  "error": "Bad Request",
+  "message": "Application deadline has passed for this program. Last date/time to apply was: 2026-02-18T21:59:59",
+  "validationErrors": null
 }
 ----------------------------------------------------------------------------------------------------
 
@@ -823,7 +796,7 @@ Status:
 
 Response Body (JSON):
 {
-  "token": "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJTRVcwMDIiLCJyb2xlIjoiU0VXQURBUiIsImlhdCI6MTc3MTQzMjAyNCwiZXhwIjoxNzcxNTE4NDI0fQ.BA4CoHSWC3rjb-WdvrZ0nE9nozeXQwcxABSC_0mhPT0RCl1ki9QNhDSfMYO_Ax4O8BEciwKPIIaWoG_2HUal4Q",
+  "token": "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJTRVcwMDIiLCJyb2xlIjoiU0VXQURBUiIsImlhdCI6MTc3MTQzMzEyMiwiZXhwIjoxNzcxNTE5NTIyfQ.CVuGZDtapkowX8LkZYo-d__c3F7rBAByCILcu_nC-XY3x3qv9of1XMFuKpFV2IBnjjqQGdMYCH6aM9UUX8Pjjg",
   "tokenType": "Bearer",
   "sewadar": {
     "zonalId": "SEW002",
@@ -854,9 +827,9 @@ Response Body (JSON):
     "gender": "FEMALE",
     "screenerCode": "SCR002",
     "satsangPlace": "Delhi Center",
-    "emailId": "pda30360@gmail.com"
+    "emailId": "raghuyadav99591@gmail.com"
   },
-  "expiresIn": 1771518424
+  "expiresIn": 1771519522
 }
 ----------------------------------------------------------------------------------------------------
 
@@ -868,7 +841,7 @@ STEP: Apply to program as SEW002
 CURL COMMAND:
 ----------------------------------------------------------------------------------------------------
 curl -X POST 'http://localhost:8080/api/program-applications' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJTRVcwMDIiLCJyb2xlIjoiU0VXQURBUiIsImlhdCI6MTc3MTQzMjAyNCwiZXhwIjoxNzcxNTE4NDI0fQ.BA4CoHSWC3rjb-WdvrZ0nE9nozeXQwcxABSC_0mhPT0RCl1ki9QNhDSfMYO_Ax4O8BEciwKPIIaWoG_2HUal4Q' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJTRVcwMDIiLCJyb2xlIjoiU0VXQURBUiIsImlhdCI6MTc3MTQzMzEyMiwiZXhwIjoxNzcxNTE5NTIyfQ.CVuGZDtapkowX8LkZYo-d__c3F7rBAByCILcu_nC-XY3x3qv9of1XMFuKpFV2IBnjjqQGdMYCH6aM9UUX8Pjjg' \
   -H 'Content-Type: application/json' \
   -d '{
   "sewadarId": "SEW002",
@@ -878,43 +851,16 @@ curl -X POST 'http://localhost:8080/api/program-applications' \
 
 RESPONSE:
 ----------------------------------------------------------------------------------------------------
-Status Code: 201
+Status Code: 400
 Status: 
 
 Response Body (JSON):
 {
-  "id": 2,
-  "programId": 1,
-  "programTitle": "Today's Program - 2026-02-18",
-  "sewadar": {
-    "zonalId": "SEW002",
-    "firstName": "Sewadar",
-    "lastName": "User002",
-    "location": null,
-    "mobile": "91999900102",
-    "address": null,
-    "remarks": null,
-    "role": null,
-    "joiningDate": null,
-    "profession": null,
-    "dateOfBirth": null,
-    "emergencyContact": null,
-    "emergencyContactRelationship": null,
-    "photoUrl": null,
-    "aadharNumber": null,
-    "languages": null,
-    "fatherHusbandName": null,
-    "gender": null,
-    "screenerCode": null,
-    "satsangPlace": null,
-    "emailId": null
-  },
-  "appliedAt": "2026-02-18T21:57:04.783265",
-  "status": "PENDING",
-  "notes": null,
-  "dropRequestedAt": null,
-  "dropApprovedAt": null,
-  "dropApprovedBy": null
+  "timestamp": "2026-02-18T22:15:22.692708",
+  "status": 400,
+  "error": "Bad Request",
+  "message": "Application deadline has passed for this program. Last date/time to apply was: 2026-02-18T21:59:59",
+  "validationErrors": null
 }
 ----------------------------------------------------------------------------------------------------
 
@@ -940,7 +886,7 @@ Status:
 
 Response Body (JSON):
 {
-  "token": "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJTRVcwMDMiLCJyb2xlIjoiU0VXQURBUiIsImlhdCI6MTc3MTQzMjAyNCwiZXhwIjoxNzcxNTE4NDI0fQ.slRAP_FPkYzjnUHflB9GaeFipJfDRzg00wWAarH3DhwGKk5itOcDYBKy2zshJ0-xnUMP3chKsqa-mUx8LYtqtg",
+  "token": "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJTRVcwMDMiLCJyb2xlIjoiU0VXQURBUiIsImlhdCI6MTc3MTQzMzEyMiwiZXhwIjoxNzcxNTE5NTIyfQ.J7YzhYT_Xwt16y800Atsipgc_CDlgQ0xZoTH36BUzfrSU6u4DHazs8u_bMoeiv_DosZ3SLwGKpXTWxQFZXwnbA",
   "tokenType": "Bearer",
   "sewadar": {
     "zonalId": "SEW003",
@@ -972,9 +918,9 @@ Response Body (JSON):
     "gender": "MALE",
     "screenerCode": "SCR003",
     "satsangPlace": "Mumbai Center",
-    "emailId": "sawanannam9@gmail.com"
+    "emailId": "pda30360@gmail.com"
   },
-  "expiresIn": 1771518424
+  "expiresIn": 1771519522
 }
 ----------------------------------------------------------------------------------------------------
 
@@ -986,7 +932,7 @@ STEP: Apply to program as SEW003
 CURL COMMAND:
 ----------------------------------------------------------------------------------------------------
 curl -X POST 'http://localhost:8080/api/program-applications' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJTRVcwMDMiLCJyb2xlIjoiU0VXQURBUiIsImlhdCI6MTc3MTQzMjAyNCwiZXhwIjoxNzcxNTE4NDI0fQ.slRAP_FPkYzjnUHflB9GaeFipJfDRzg00wWAarH3DhwGKk5itOcDYBKy2zshJ0-xnUMP3chKsqa-mUx8LYtqtg' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJTRVcwMDMiLCJyb2xlIjoiU0VXQURBUiIsImlhdCI6MTc3MTQzMzEyMiwiZXhwIjoxNzcxNTE5NTIyfQ.J7YzhYT_Xwt16y800Atsipgc_CDlgQ0xZoTH36BUzfrSU6u4DHazs8u_bMoeiv_DosZ3SLwGKpXTWxQFZXwnbA' \
   -H 'Content-Type: application/json' \
   -d '{
   "sewadarId": "SEW003",
@@ -996,43 +942,16 @@ curl -X POST 'http://localhost:8080/api/program-applications' \
 
 RESPONSE:
 ----------------------------------------------------------------------------------------------------
-Status Code: 201
+Status Code: 400
 Status: 
 
 Response Body (JSON):
 {
-  "id": 3,
-  "programId": 1,
-  "programTitle": "Today's Program - 2026-02-18",
-  "sewadar": {
-    "zonalId": "SEW003",
-    "firstName": "Sewadar",
-    "lastName": "User003",
-    "location": null,
-    "mobile": "91999900103",
-    "address": null,
-    "remarks": null,
-    "role": null,
-    "joiningDate": null,
-    "profession": null,
-    "dateOfBirth": null,
-    "emergencyContact": null,
-    "emergencyContactRelationship": null,
-    "photoUrl": null,
-    "aadharNumber": null,
-    "languages": null,
-    "fatherHusbandName": null,
-    "gender": null,
-    "screenerCode": null,
-    "satsangPlace": null,
-    "emailId": null
-  },
-  "appliedAt": "2026-02-18T21:57:04.870249",
-  "status": "PENDING",
-  "notes": null,
-  "dropRequestedAt": null,
-  "dropApprovedAt": null,
-  "dropApprovedBy": null
+  "timestamp": "2026-02-18T22:15:22.769486",
+  "status": 400,
+  "error": "Bad Request",
+  "message": "Application deadline has passed for this program. Last date/time to apply was: 2026-02-18T21:59:59",
+  "validationErrors": null
 }
 ----------------------------------------------------------------------------------------------------
 
@@ -1044,7 +963,7 @@ STEP: Get all applications for program
 CURL COMMAND:
 ----------------------------------------------------------------------------------------------------
 curl -X GET 'http://localhost:8080/api/program-applications/program/1' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJTRVcwMDEiLCJyb2xlIjoiSU5DSEFSR0UiLCJpYXQiOjE3NzE0MzIwMDEsImV4cCI6MTc3MTUxODQwMX0.nc0vAYZYeCYxSo5vdAYXKtusdhwlZQzoDOjoeUc0vIs7UYCZmuMkzfSyRAXhAGy-kn7o5RfQ8rOACs98jUHo4Q' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJTRVcwMDEiLCJyb2xlIjoiSU5DSEFSR0UiLCJpYXQiOjE3NzE0MzMwODIsImV4cCI6MTc3MTUxOTQ4Mn0.HT4I4RyTCoulwsdEzTg3l0Dq3vG0HdEeboJD7MJAcrXMmUMvdhB1kyWqQvHO0zZsS5ZYYTR2Pl2W27N0tlLbQw' \
   -H 'Content-Type: application/json'
 ----------------------------------------------------------------------------------------------------
 
@@ -1054,272 +973,7 @@ Status Code: 200
 Status: 
 
 Response Body (JSON):
-[
-  {
-    "id": 1,
-    "programId": 1,
-    "programTitle": "Today's Program - 2026-02-18",
-    "sewadar": {
-      "zonalId": "SEW001",
-      "firstName": "Sewadar",
-      "lastName": "User001",
-      "location": null,
-      "mobile": "91999900101",
-      "address": null,
-      "remarks": null,
-      "role": null,
-      "joiningDate": null,
-      "profession": null,
-      "dateOfBirth": null,
-      "emergencyContact": null,
-      "emergencyContactRelationship": null,
-      "photoUrl": null,
-      "aadharNumber": null,
-      "languages": null,
-      "fatherHusbandName": null,
-      "gender": null,
-      "screenerCode": null,
-      "satsangPlace": null,
-      "emailId": null
-    },
-    "appliedAt": "2026-02-18T21:57:04.708283",
-    "status": "PENDING",
-    "notes": null,
-    "dropRequestedAt": null,
-    "dropApprovedAt": null,
-    "dropApprovedBy": null
-  },
-  {
-    "id": 2,
-    "programId": 1,
-    "programTitle": "Today's Program - 2026-02-18",
-    "sewadar": {
-      "zonalId": "SEW002",
-      "firstName": "Sewadar",
-      "lastName": "User002",
-      "location": null,
-      "mobile": "91999900102",
-      "address": null,
-      "remarks": null,
-      "role": null,
-      "joiningDate": null,
-      "profession": null,
-      "dateOfBirth": null,
-      "emergencyContact": null,
-      "emergencyContactRelationship": null,
-      "photoUrl": null,
-      "aadharNumber": null,
-      "languages": null,
-      "fatherHusbandName": null,
-      "gender": null,
-      "screenerCode": null,
-      "satsangPlace": null,
-      "emailId": null
-    },
-    "appliedAt": "2026-02-18T21:57:04.783265",
-    "status": "PENDING",
-    "notes": null,
-    "dropRequestedAt": null,
-    "dropApprovedAt": null,
-    "dropApprovedBy": null
-  },
-  {
-    "id": 3,
-    "programId": 1,
-    "programTitle": "Today's Program - 2026-02-18",
-    "sewadar": {
-      "zonalId": "SEW003",
-      "firstName": "Sewadar",
-      "lastName": "User003",
-      "location": null,
-      "mobile": "91999900103",
-      "address": null,
-      "remarks": null,
-      "role": null,
-      "joiningDate": null,
-      "profession": null,
-      "dateOfBirth": null,
-      "emergencyContact": null,
-      "emergencyContactRelationship": null,
-      "photoUrl": null,
-      "aadharNumber": null,
-      "languages": null,
-      "fatherHusbandName": null,
-      "gender": null,
-      "screenerCode": null,
-      "satsangPlace": null,
-      "emailId": null
-    },
-    "appliedAt": "2026-02-18T21:57:04.870249",
-    "status": "PENDING",
-    "notes": null,
-    "dropRequestedAt": null,
-    "dropApprovedAt": null,
-    "dropApprovedBy": null
-  }
-]
-----------------------------------------------------------------------------------------------------
-
-
-====================================================================================================
-STEP: Approve application 1 for SEW001
-====================================================================================================
-
-CURL COMMAND:
-----------------------------------------------------------------------------------------------------
-curl -X PUT 'http://localhost:8080/api/program-applications/1/status?status=APPROVED' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJTRVcwMDEiLCJyb2xlIjoiSU5DSEFSR0UiLCJpYXQiOjE3NzE0MzIwMDEsImV4cCI6MTc3MTUxODQwMX0.nc0vAYZYeCYxSo5vdAYXKtusdhwlZQzoDOjoeUc0vIs7UYCZmuMkzfSyRAXhAGy-kn7o5RfQ8rOACs98jUHo4Q' \
-  -H 'Content-Type: application/json'
-----------------------------------------------------------------------------------------------------
-
-RESPONSE:
-----------------------------------------------------------------------------------------------------
-Status Code: 200
-Status: 
-
-Response Body (JSON):
-{
-  "id": 1,
-  "programId": 1,
-  "programTitle": "Today's Program - 2026-02-18",
-  "sewadar": {
-    "zonalId": "SEW001",
-    "firstName": "Sewadar",
-    "lastName": "User001",
-    "location": null,
-    "mobile": "91999900101",
-    "address": null,
-    "remarks": null,
-    "role": null,
-    "joiningDate": null,
-    "profession": null,
-    "dateOfBirth": null,
-    "emergencyContact": null,
-    "emergencyContactRelationship": null,
-    "photoUrl": null,
-    "aadharNumber": null,
-    "languages": null,
-    "fatherHusbandName": null,
-    "gender": null,
-    "screenerCode": null,
-    "satsangPlace": null,
-    "emailId": null
-  },
-  "appliedAt": "2026-02-18T21:57:04.708283",
-  "status": "APPROVED",
-  "notes": null,
-  "dropRequestedAt": null,
-  "dropApprovedAt": null,
-  "dropApprovedBy": null
-}
-----------------------------------------------------------------------------------------------------
-
-
-====================================================================================================
-STEP: Approve application 2 for SEW002
-====================================================================================================
-
-CURL COMMAND:
-----------------------------------------------------------------------------------------------------
-curl -X PUT 'http://localhost:8080/api/program-applications/2/status?status=APPROVED' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJTRVcwMDEiLCJyb2xlIjoiSU5DSEFSR0UiLCJpYXQiOjE3NzE0MzIwMDEsImV4cCI6MTc3MTUxODQwMX0.nc0vAYZYeCYxSo5vdAYXKtusdhwlZQzoDOjoeUc0vIs7UYCZmuMkzfSyRAXhAGy-kn7o5RfQ8rOACs98jUHo4Q' \
-  -H 'Content-Type: application/json'
-----------------------------------------------------------------------------------------------------
-
-RESPONSE:
-----------------------------------------------------------------------------------------------------
-Status Code: 200
-Status: 
-
-Response Body (JSON):
-{
-  "id": 2,
-  "programId": 1,
-  "programTitle": "Today's Program - 2026-02-18",
-  "sewadar": {
-    "zonalId": "SEW002",
-    "firstName": "Sewadar",
-    "lastName": "User002",
-    "location": null,
-    "mobile": "91999900102",
-    "address": null,
-    "remarks": null,
-    "role": null,
-    "joiningDate": null,
-    "profession": null,
-    "dateOfBirth": null,
-    "emergencyContact": null,
-    "emergencyContactRelationship": null,
-    "photoUrl": null,
-    "aadharNumber": null,
-    "languages": null,
-    "fatherHusbandName": null,
-    "gender": null,
-    "screenerCode": null,
-    "satsangPlace": null,
-    "emailId": null
-  },
-  "appliedAt": "2026-02-18T21:57:04.783265",
-  "status": "APPROVED",
-  "notes": null,
-  "dropRequestedAt": null,
-  "dropApprovedAt": null,
-  "dropApprovedBy": null
-}
-----------------------------------------------------------------------------------------------------
-
-
-====================================================================================================
-STEP: Approve application 3 for SEW003
-====================================================================================================
-
-CURL COMMAND:
-----------------------------------------------------------------------------------------------------
-curl -X PUT 'http://localhost:8080/api/program-applications/3/status?status=APPROVED' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJTRVcwMDEiLCJyb2xlIjoiSU5DSEFSR0UiLCJpYXQiOjE3NzE0MzIwMDEsImV4cCI6MTc3MTUxODQwMX0.nc0vAYZYeCYxSo5vdAYXKtusdhwlZQzoDOjoeUc0vIs7UYCZmuMkzfSyRAXhAGy-kn7o5RfQ8rOACs98jUHo4Q' \
-  -H 'Content-Type: application/json'
-----------------------------------------------------------------------------------------------------
-
-RESPONSE:
-----------------------------------------------------------------------------------------------------
-Status Code: 200
-Status: 
-
-Response Body (JSON):
-{
-  "id": 3,
-  "programId": 1,
-  "programTitle": "Today's Program - 2026-02-18",
-  "sewadar": {
-    "zonalId": "SEW003",
-    "firstName": "Sewadar",
-    "lastName": "User003",
-    "location": null,
-    "mobile": "91999900103",
-    "address": null,
-    "remarks": null,
-    "role": null,
-    "joiningDate": null,
-    "profession": null,
-    "dateOfBirth": null,
-    "emergencyContact": null,
-    "emergencyContactRelationship": null,
-    "photoUrl": null,
-    "aadharNumber": null,
-    "languages": null,
-    "fatherHusbandName": null,
-    "gender": null,
-    "screenerCode": null,
-    "satsangPlace": null,
-    "emailId": null
-  },
-  "appliedAt": "2026-02-18T21:57:04.870249",
-  "status": "APPROVED",
-  "notes": null,
-  "dropRequestedAt": null,
-  "dropApprovedAt": null,
-  "dropApprovedBy": null
-}
+[]
 ----------------------------------------------------------------------------------------------------
 
 
@@ -1330,7 +984,7 @@ STEP: Get approved attendees
 CURL COMMAND:
 ----------------------------------------------------------------------------------------------------
 curl -X GET 'http://localhost:8080/api/attendances/program/1/attendees' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJTRVcwMDEiLCJyb2xlIjoiSU5DSEFSR0UiLCJpYXQiOjE3NzE0MzIwMDEsImV4cCI6MTc3MTUxODQwMX0.nc0vAYZYeCYxSo5vdAYXKtusdhwlZQzoDOjoeUc0vIs7UYCZmuMkzfSyRAXhAGy-kn7o5RfQ8rOACs98jUHo4Q' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJTRVcwMDEiLCJyb2xlIjoiSU5DSEFSR0UiLCJpYXQiOjE3NzE0MzMwODIsImV4cCI6MTc3MTUxOTQ4Mn0.HT4I4RyTCoulwsdEzTg3l0Dq3vG0HdEeboJD7MJAcrXMmUMvdhB1kyWqQvHO0zZsS5ZYYTR2Pl2W27N0tlLbQw' \
   -H 'Content-Type: application/json'
 ----------------------------------------------------------------------------------------------------
 
@@ -1340,55 +994,23 @@ Status Code: 200
 Status: 
 
 Response Body (JSON):
-[
-  {
-    "zonalId": "SEW001",
-    "firstName": "Sewadar",
-    "lastName": "User001",
-    "mobile": "91999900101",
-    "photoUrl": null,
-    "applicationId": 1,
-    "applicationStatus": "APPROVED"
-  },
-  {
-    "zonalId": "SEW002",
-    "firstName": "Sewadar",
-    "lastName": "User002",
-    "mobile": "91999900102",
-    "photoUrl": null,
-    "applicationId": 2,
-    "applicationStatus": "APPROVED"
-  },
-  {
-    "zonalId": "SEW003",
-    "firstName": "Sewadar",
-    "lastName": "User003",
-    "mobile": "91999900103",
-    "photoUrl": null,
-    "applicationId": 3,
-    "applicationStatus": "APPROVED"
-  }
-]
+[]
 ----------------------------------------------------------------------------------------------------
 
 
 ====================================================================================================
-STEP: Mark attendance for 3 sewadars
+STEP: Mark attendance for 0 sewadars
 ====================================================================================================
 
 CURL COMMAND:
 ----------------------------------------------------------------------------------------------------
 curl -X POST 'http://localhost:8080/api/attendances' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJTRVcwMDEiLCJyb2xlIjoiSU5DSEFSR0UiLCJpYXQiOjE3NzE0MzIwMDEsImV4cCI6MTc3MTUxODQwMX0.nc0vAYZYeCYxSo5vdAYXKtusdhwlZQzoDOjoeUc0vIs7UYCZmuMkzfSyRAXhAGy-kn7o5RfQ8rOACs98jUHo4Q' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJTRVcwMDEiLCJyb2xlIjoiSU5DSEFSR0UiLCJpYXQiOjE3NzE0MzMwODIsImV4cCI6MTc3MTUxOTQ4Mn0.HT4I4RyTCoulwsdEzTg3l0Dq3vG0HdEeboJD7MJAcrXMmUMvdhB1kyWqQvHO0zZsS5ZYYTR2Pl2W27N0tlLbQw' \
   -H 'Content-Type: application/json' \
   -d '{
   "programId": 1,
   "programDate": "2026-02-18",
-  "sewadarIds": [
-    "SEW001",
-    "SEW002",
-    "SEW003"
-  ],
+  "sewadarIds": [],
   "notes": "Test attendance marking for 2026-02-18"
 }'
 ----------------------------------------------------------------------------------------------------
@@ -1399,103 +1021,6 @@ Status Code: 201
 Status: 
 
 Response Body (JSON):
-[
-  {
-    "id": 1,
-    "programId": 1,
-    "programTitle": "Today's Program - 2026-02-18",
-    "sewadar": {
-      "zonalId": "SEW001",
-      "firstName": "Sewadar",
-      "lastName": "User001",
-      "location": null,
-      "mobile": "91999900101",
-      "address": null,
-      "remarks": null,
-      "role": null,
-      "joiningDate": null,
-      "profession": null,
-      "dateOfBirth": null,
-      "emergencyContact": null,
-      "emergencyContactRelationship": null,
-      "photoUrl": null,
-      "aadharNumber": null,
-      "languages": null,
-      "fatherHusbandName": null,
-      "gender": null,
-      "screenerCode": null,
-      "satsangPlace": null,
-      "emailId": null
-    },
-    "attendanceDate": "2026-02-18",
-    "programDateId": 1,
-    "markedAt": "2026-02-18T21:57:04.932621",
-    "notes": "Test attendance marking for 2026-02-18"
-  },
-  {
-    "id": 2,
-    "programId": 1,
-    "programTitle": "Today's Program - 2026-02-18",
-    "sewadar": {
-      "zonalId": "SEW002",
-      "firstName": "Sewadar",
-      "lastName": "User002",
-      "location": null,
-      "mobile": "91999900102",
-      "address": null,
-      "remarks": null,
-      "role": null,
-      "joiningDate": null,
-      "profession": null,
-      "dateOfBirth": null,
-      "emergencyContact": null,
-      "emergencyContactRelationship": null,
-      "photoUrl": null,
-      "aadharNumber": null,
-      "languages": null,
-      "fatherHusbandName": null,
-      "gender": null,
-      "screenerCode": null,
-      "satsangPlace": null,
-      "emailId": null
-    },
-    "attendanceDate": "2026-02-18",
-    "programDateId": 1,
-    "markedAt": "2026-02-18T21:57:04.936279",
-    "notes": "Test attendance marking for 2026-02-18"
-  },
-  {
-    "id": 3,
-    "programId": 1,
-    "programTitle": "Today's Program - 2026-02-18",
-    "sewadar": {
-      "zonalId": "SEW003",
-      "firstName": "Sewadar",
-      "lastName": "User003",
-      "location": null,
-      "mobile": "91999900103",
-      "address": null,
-      "remarks": null,
-      "role": null,
-      "joiningDate": null,
-      "profession": null,
-      "dateOfBirth": null,
-      "emergencyContact": null,
-      "emergencyContactRelationship": null,
-      "photoUrl": null,
-      "aadharNumber": null,
-      "languages": null,
-      "fatherHusbandName": null,
-      "gender": null,
-      "screenerCode": null,
-      "satsangPlace": null,
-      "emailId": null
-    },
-    "attendanceDate": "2026-02-18",
-    "programDateId": 1,
-    "markedAt": "2026-02-18T21:57:04.938813",
-    "notes": "Test attendance marking for 2026-02-18"
-  }
-]
+[]
 ----------------------------------------------------------------------------------------------------
 

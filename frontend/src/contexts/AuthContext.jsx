@@ -70,8 +70,26 @@ export const AuthProvider = ({ children }) => {
     setUser(null)
   }
 
+  const refreshUser = async () => {
+    if (!user?.zonalId) {
+      return
+    }
+
+    try {
+      const response = await api.get(`/sewadars/${user.zonalId}`)
+      const updatedUser = response.data
+      
+      // Update both state and localStorage
+      localStorage.setItem('currentUser', JSON.stringify(updatedUser))
+      setUser(updatedUser)
+    } catch (error) {
+      console.error('Error refreshing user data:', error)
+      // Don't throw error - just log it, user can continue working
+    }
+  }
+
   return (
-    <AuthContext.Provider value={{ user, login, logout, loading }}>
+    <AuthContext.Provider value={{ user, login, logout, loading, refreshUser }}>
       {children}
     </AuthContext.Provider>
   )

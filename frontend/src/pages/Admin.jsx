@@ -53,7 +53,7 @@ import SewadarForm from '../components/SewadarForm'
 import { isAdminOrIncharge } from '../utils/roleUtils'
 
 const Admin = () => {
-  const { user, loading: authLoading } = useAuth()
+  const { user, loading: authLoading, refreshUser } = useAuth()
   const [activeTab, setActiveTab] = useState(0)
   const [programs, setPrograms] = useState([])
   const [sewadars, setSewadars] = useState([])
@@ -310,6 +310,11 @@ const Admin = () => {
 
       // Update with new password
       await api.put(`/sewadars/${selectedSewadarForPassword.zonalId}`, updatePayload)
+
+      // If changing password for the current logged-in user, refresh their data
+      if (selectedSewadarForPassword.zonalId === user?.zonalId && refreshUser) {
+        await refreshUser()
+      }
 
       alert('Password changed successfully!')
       setOpenPasswordDialog(false)
@@ -958,6 +963,10 @@ const Admin = () => {
             }}
             onSuccess={() => {
               setOpenSewadarForm(false)
+              // If editing the current logged-in user, refresh their data in AuthContext
+              if (selectedSewadar?.zonalId === user?.zonalId && refreshUser) {
+                refreshUser()
+              }
               setSelectedSewadar(null)
               loadSewadars()
             }}
