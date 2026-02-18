@@ -706,20 +706,6 @@ const Dashboard = () => {
                   >
                     Export CSV
                   </Button>
-                  <Button
-                    variant="outlined"
-                    startIcon={<DownloadIcon />}
-                    onClick={() => handleExport('sewadars', 'XLSX')}
-                  >
-                    Export XLSX
-                  </Button>
-                  <Button
-                    variant="outlined"
-                    startIcon={<DownloadIcon />}
-                    onClick={() => handleExport('sewadars', 'PDF')}
-                  >
-                    Export PDF
-                  </Button>
                 </Box>
               </Grid>
             </Grid>

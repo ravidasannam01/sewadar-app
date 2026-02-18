@@ -84,6 +84,8 @@ const Workflow = () => {
       setPrograms(programsRes.data || [])
 
       // Load workflows for incharge with archived filter
+      // When showArchived is true, we want archived workflows (archived=true)
+      // When showArchived is false, we want active workflows (archived=false)
       const workflowsRes = await api.get(`/workflow/incharge/${user.zonalId}?archived=${showArchived}`).catch((err) => {
         console.error('Error loading workflows:', err)
         return { data: [] }
@@ -409,7 +411,7 @@ const Workflow = () => {
                 color="primary"
               />
             }
-            label={showArchived ? 'Show Archived' : 'Show Active'}
+            label="Show Archived"
           />
           <Button
             variant="contained"

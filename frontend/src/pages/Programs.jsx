@@ -351,9 +351,21 @@ const Programs = () => {
                             </Typography>
                           )}
                           {application && (
-                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
-                              <strong>Applied:</strong> {format(new Date(application.appliedAt), 'MMM dd, yyyy')}
-                            </Typography>
+                            <>
+                              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+                                <strong>Applied:</strong> {format(new Date(application.appliedAt), 'MMM dd, yyyy, HH:mm')}
+                              </Typography>
+                              {application.dropRequestedAt && (
+                                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+                                  <strong>Drop Requested:</strong> {format(new Date(application.dropRequestedAt), 'MMM dd, yyyy, HH:mm')}
+                                </Typography>
+                              )}
+                              {application.dropApprovedAt && (
+                                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+                                  <strong>Drop Approved:</strong> {format(new Date(application.dropApprovedAt), 'MMM dd, yyyy, HH:mm')}
+                                </Typography>
+                              )}
+                            </>
                           )}
                           {appStatus === 'DROPPED' ? (
                             <Button
