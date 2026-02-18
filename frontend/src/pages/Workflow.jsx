@@ -27,6 +27,7 @@ import {
   ArrowForward as ArrowForwardIcon,
   Send as SendIcon,
   Edit as EditIcon,
+  Close as CloseIcon,
 } from '@mui/icons-material'
 import api from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
@@ -497,8 +498,13 @@ const Workflow = () => {
         maxWidth="sm"
         fullWidth
       >
-        <DialogTitle>
-          Missing Form Submissions{selectedProgram ? ` - ${selectedProgram.title}` : ''}
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Box component="span">
+            Missing Form Submissions{selectedProgram ? ` - ${selectedProgram.title}` : ''}
+          </Box>
+          <IconButton size="small" onClick={() => setOpenMissingDialog(false)}>
+            <CloseIcon fontSize="small" />
+          </IconButton>
         </DialogTitle>
         <DialogContent sx={{ maxHeight: '70vh', overflowY: 'auto' }}>
           {missingForms.length === 0 ? (
@@ -559,8 +565,13 @@ const Workflow = () => {
         maxWidth="md"
         fullWidth
       >
-        <DialogTitle>
-          Edit Notification Message - {editingNode && STEP_NAMES[editingNode - 1]}
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Box component="span">
+            Edit Notification Message - {editingNode && STEP_NAMES[editingNode - 1]}
+          </Box>
+          <IconButton size="small" onClick={handleCloseMessageDialog}>
+            <CloseIcon fontSize="small" />
+          </IconButton>
         </DialogTitle>
         <DialogContent sx={{ maxHeight: '70vh', overflowY: 'auto' }}>
           <Alert severity="info" sx={{ mb: 2 }}>

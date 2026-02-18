@@ -312,6 +312,9 @@ public class ProgramApplicationServiceImpl implements ProgramApplicationService 
                             .profession(sewadar.getProfession())
                             .joiningDate(sewadar.getJoiningDate())
                             .role(sewadar.getRole() != null ? sewadar.getRole().name() : "SEWADAR")
+                            .photoUrl(sewadar.getPhotoUrl())
+                            .screenerCode(sewadar.getScreenerCode())
+                            .emailId(sewadar.getEmailId())
                             .build();
                     
                     return PrioritizedApplicationResponse.builder()
@@ -404,6 +407,7 @@ public class ProgramApplicationServiceImpl implements ProgramApplicationService 
                 .firstName(application.getSewadar().getFirstName())
                 .lastName(application.getSewadar().getLastName())
                 .mobile(application.getSewadar().getMobile())
+                .photoUrl(application.getSewadar().getPhotoUrl())
                 .build();
 
         return ProgramApplicationResponse.builder()

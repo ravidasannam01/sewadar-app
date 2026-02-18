@@ -314,6 +314,7 @@ public class AttendanceServiceImpl implements AttendanceService {
                             .firstName(sewadar.getFirstName())
                             .lastName(sewadar.getLastName())
                             .mobile(sewadar.getMobile())
+                            .photoUrl(sewadar.getPhotoUrl())
                             .applicationId(app.getId())
                             .applicationStatus(app.getStatus())
                             .build();

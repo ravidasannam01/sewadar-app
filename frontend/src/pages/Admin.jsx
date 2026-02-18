@@ -28,6 +28,9 @@ import {
   Select,
   FormControl,
   InputLabel,
+  Avatar,
+  Backdrop,
+  Tooltip,
 } from '@mui/material'
 import {
   Add as AddIcon,
@@ -40,6 +43,7 @@ import {
   Person as PersonIcon,
   Event as EventIcon,
   CalendarToday as CalendarIcon,
+  Close as CloseIcon,
 } from '@mui/icons-material'
 import { format } from 'date-fns'
 import api from '../services/api'
@@ -76,6 +80,8 @@ const Admin = () => {
   const [attendanceSummary, setAttendanceSummary] = useState(null)
   const [selectedProgramForAttendance, setSelectedProgramForAttendance] = useState({})
   const [programAttendanceDetails, setProgramAttendanceDetails] = useState({})
+  const [photoModalOpen, setPhotoModalOpen] = useState(false)
+  const [selectedSewadarForPhoto, setSelectedSewadarForPhoto] = useState(null)
 
   useEffect(() => {
     if (isAdminOrIncharge(user)) {
@@ -539,7 +545,41 @@ const Admin = () => {
                     <TableRow key={sewadar.zonalId}>
                       <TableCell>{sewadar.zonalId}</TableCell>
                       <TableCell>
-                        {sewadar.firstName} {sewadar.lastName}
+                        <Box display="flex" alignItems="center" gap={1.5}>
+                          <Tooltip title="Click to view photo">
+                            <Avatar
+                              src={sewadar.photoUrl || undefined}
+                              alt={`${sewadar.firstName || ''} ${sewadar.lastName || ''}`.trim() || 'Sewadar'}
+                              onClick={() => {
+                                setSelectedSewadarForPhoto(sewadar)
+                                setPhotoModalOpen(true)
+                              }}
+                              sx={{
+                                width: 30,
+                                height: 30,
+                                bgcolor: '#b71c1c',
+                                fontSize: '0.8rem',
+                                cursor: 'pointer',
+                                transition: 'transform 0.2s, box-shadow 0.2s',
+                                '&:hover': {
+                                  transform: 'scale(1.15)',
+                                  boxShadow: '0 4px 8px rgba(0,0,0,0.3)',
+                                },
+                              }}
+                            >
+                              {(sewadar.firstName?.[0] ||
+                                sewadar.lastName?.[0] ||
+                                sewadar.zonalId?.[0] ||
+                                '?'
+                              )
+                                .toString()
+                                .toUpperCase()}
+                            </Avatar>
+                          </Tooltip>
+                          <Typography variant="body2">
+                            {sewadar.firstName} {sewadar.lastName}
+                          </Typography>
+                        </Box>
                       </TableCell>
                       <TableCell>{sewadar.mobile || ''}</TableCell>
                       <TableCell>{sewadar.location || ''}</TableCell>
@@ -602,8 +642,19 @@ const Admin = () => {
         maxWidth="lg"
         fullWidth
       >
-        <DialogTitle>
-          Applications for: {selectedProgram?.title}
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Box component="span">
+            Applications for: {selectedProgram?.title}
+          </Box>
+          <IconButton
+            size="small"
+            onClick={() => {
+              setOpenApplicationsDialog(false)
+              setSelectedProgram(null)
+            }}
+          >
+            <CloseIcon fontSize="small" />
+          </IconButton>
         </DialogTitle>
         <DialogContent sx={{ maxHeight: '70vh', overflowY: 'auto' }}>
           <Box display="flex" gap={2} mb={2} alignItems="flex-end">
@@ -672,7 +723,41 @@ const Admin = () => {
                   {prioritizedApplications.map((app) => (
                     <TableRow key={app.id}>
                       <TableCell>
-                        {app.sewadar.firstName} {app.sewadar.lastName}
+                        <Box display="flex" alignItems="center" gap={1.5}>
+                          <Tooltip title="Click to view photo">
+                            <Avatar
+                              src={app.sewadar.photoUrl || undefined}
+                              alt={`${app.sewadar.firstName || ''} ${app.sewadar.lastName || ''}`.trim() || 'Sewadar'}
+                              onClick={() => {
+                                setSelectedSewadarForPhoto(app.sewadar)
+                                setPhotoModalOpen(true)
+                              }}
+                              sx={{
+                                width: 26,
+                                height: 26,
+                                bgcolor: '#b71c1c',
+                                fontSize: '0.75rem',
+                                cursor: 'pointer',
+                                transition: 'transform 0.2s, box-shadow 0.2s',
+                                '&:hover': {
+                                  transform: 'scale(1.2)',
+                                  boxShadow: '0 4px 8px rgba(0,0,0,0.3)',
+                                },
+                              }}
+                            >
+                              {(app.sewadar.firstName?.[0] ||
+                                app.sewadar.lastName?.[0] ||
+                                app.sewadar.zonalId?.[0] ||
+                                '?'
+                              )
+                                .toString()
+                                .toUpperCase()}
+                            </Avatar>
+                          </Tooltip>
+                          <Typography variant="body2">
+                            {app.sewadar.firstName} {app.sewadar.lastName}
+                          </Typography>
+                        </Box>
                       </TableCell>
                       <TableCell>{app.sewadar.mobile}</TableCell>
                       <TableCell>
@@ -757,8 +842,19 @@ const Admin = () => {
         maxWidth="md"
         fullWidth
       >
-        <DialogTitle>
-          Drop Requests for: {selectedProgram?.title}
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Box component="span">
+            Drop Requests for: {selectedProgram?.title}
+          </Box>
+          <IconButton
+            size="small"
+            onClick={() => {
+              setOpenDropRequestsDialog(false)
+              setSelectedProgram(null)
+            }}
+          >
+            <CloseIcon fontSize="small" />
+          </IconButton>
         </DialogTitle>
         <DialogContent sx={{ maxHeight: '70vh', overflowY: 'auto' }}>
           {loading ? (
@@ -1258,6 +1354,131 @@ const Admin = () => {
             </DialogActions>
           </>
         )}
+      </Dialog>
+
+      {/* Photo Modal */}
+      <Dialog
+        open={photoModalOpen}
+        onClose={() => {
+          setPhotoModalOpen(false)
+          setSelectedSewadarForPhoto(null)
+        }}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+            overflow: 'hidden',
+            background: 'linear-gradient(135deg, #f5f5f5 0%, #ffffff 100%)',
+          },
+        }}
+        BackdropComponent={Backdrop}
+        BackdropProps={{
+          sx: {
+            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+            backdropFilter: 'blur(4px)',
+          },
+        }}
+      >
+        <DialogContent sx={{ p: 0, position: 'relative' }}>
+          <IconButton
+            onClick={() => {
+              setPhotoModalOpen(false)
+              setSelectedSewadarForPhoto(null)
+            }}
+            sx={{
+              position: 'absolute',
+              top: 8,
+              right: 8,
+              zIndex: 1,
+              bgcolor: 'rgba(255, 255, 255, 0.9)',
+              '&:hover': {
+                bgcolor: 'rgba(255, 255, 255, 1)',
+              },
+            }}
+          >
+            <CloseIcon />
+          </IconButton>
+          
+          {selectedSewadarForPhoto && (
+            <Box sx={{ 
+              display: 'flex', 
+              flexDirection: 'column', 
+              alignItems: 'center', 
+              p: 4,
+              pt: 5,
+            }}>
+              <Avatar
+                src={selectedSewadarForPhoto.photoUrl || undefined}
+                alt={`${selectedSewadarForPhoto.firstName || ''} ${selectedSewadarForPhoto.lastName || ''}`.trim() || 'Sewadar'}
+                sx={{
+                  width: 200,
+                  height: 200,
+                  bgcolor: '#b71c1c',
+                  fontSize: '4rem',
+                  mb: 3,
+                  border: '4px solid white',
+                  boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
+                }}
+              >
+                {(selectedSewadarForPhoto.firstName?.[0] ||
+                  selectedSewadarForPhoto.lastName?.[0] ||
+                  selectedSewadarForPhoto.zonalId?.[0] ||
+                  '?'
+                )
+                  .toString()
+                  .toUpperCase()}
+              </Avatar>
+              
+              <Typography variant="h5" sx={{ fontWeight: 600, mb: 1, color: '#800000' }}>
+                {selectedSewadarForPhoto.firstName} {selectedSewadarForPhoto.lastName}
+              </Typography>
+              
+              <Box sx={{ display: 'flex', gap: 2, mt: 1, flexWrap: 'wrap', justifyContent: 'center' }}>
+                <Chip
+                  label={selectedSewadarForPhoto.zonalId || 'N/A'}
+                  size="small"
+                  sx={{
+                    bgcolor: '#800000',
+                    color: 'white',
+                    fontWeight: 600,
+                  }}
+                />
+                {selectedSewadarForPhoto.screenerCode && (
+                  <Chip
+                    label={selectedSewadarForPhoto.screenerCode}
+                    size="small"
+                    sx={{
+                      bgcolor: (selectedSewadarForPhoto.role === 'ADMIN' || selectedSewadarForPhoto.role === 'INCHARGE') ? '#d4af37' : '#4a90a4',
+                      color: 'white',
+                      fontWeight: 600,
+                    }}
+                  />
+                )}
+                <Chip
+                  label={selectedSewadarForPhoto.role || 'SEWADAR'}
+                  size="small"
+                  sx={{
+                    bgcolor: selectedSewadarForPhoto.role === 'ADMIN' ? '#d32f2f' : selectedSewadarForPhoto.role === 'INCHARGE' ? '#1976d2' : '#757575',
+                    color: 'white',
+                    fontWeight: 600,
+                  }}
+                />
+              </Box>
+              
+              {selectedSewadarForPhoto.location && (
+                <Typography variant="body2" sx={{ mt: 2, color: 'text.secondary' }}>
+                  Location: {selectedSewadarForPhoto.location}
+                </Typography>
+              )}
+              {selectedSewadarForPhoto.mobile && (
+                <Typography variant="body2" sx={{ mt: 1, color: 'text.secondary' }}>
+                  Mobile: {selectedSewadarForPhoto.mobile}
+                </Typography>
+              )}
+            </Box>
+          )}
+        </DialogContent>
       </Dialog>
     </Box>
   )

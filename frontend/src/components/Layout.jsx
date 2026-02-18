@@ -14,6 +14,10 @@ import {
   useTheme,
   Divider,
   Tooltip,
+  Avatar,
+  Dialog,
+  DialogContent,
+  Backdrop,
 } from '@mui/material'
 import { useAuth } from '../contexts/AuthContext'
 import LogoutIcon from '@mui/icons-material/Logout'
@@ -25,6 +29,7 @@ import PendingActionsIcon from '@mui/icons-material/PendingActions'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 import MenuIcon from '@mui/icons-material/Menu'
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft'
+import CloseIcon from '@mui/icons-material/Close'
 
 const Layout = () => {
   const { user, logout } = useAuth()
@@ -35,6 +40,7 @@ const Layout = () => {
   const isTablet = useMediaQuery(theme.breakpoints.between('sm', 'md'))
   const [mobileOpen, setMobileOpen] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [photoModalOpen, setPhotoModalOpen] = useState(false)
 
   const handleLogout = () => {
     logout()
@@ -203,22 +209,52 @@ const Layout = () => {
             </Typography>
           </Box>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, sm: 2 }, flexWrap: 'wrap' }}>
-            <Typography 
-              variant="body2"
-              sx={{ display: { xs: 'none', sm: 'block' } }}
-            >
-              {user?.firstName} {user?.lastName}
-            </Typography>
-            <Chip
-              label={user?.screenerCode || 'NA'}
-              size="small"
-              sx={{
-                bgcolor: (user?.role === 'ADMIN' || user?.role === 'INCHARGE') ? '#d4af37' : '#4a90a4',
-                color: 'white',
-                fontWeight: 600,
-                fontSize: { xs: '0.7rem', sm: '0.75rem' },
-              }}
-            />
+            <Tooltip title="Click to view profile photo">
+              <Avatar
+                src={user?.photoUrl || undefined}
+                alt={`${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'User'}
+                onClick={() => setPhotoModalOpen(true)}
+                sx={{
+                  width: 32,
+                  height: 32,
+                  bgcolor: '#b71c1c',
+                  fontSize: '0.8rem',
+                  cursor: 'pointer',
+                  transition: 'transform 0.2s, box-shadow 0.2s',
+                  '&:hover': {
+                    transform: 'scale(1.1)',
+                    boxShadow: '0 4px 8px rgba(0,0,0,0.3)',
+                  },
+                }}
+              >
+                {(user?.firstName?.[0] ||
+                  user?.lastName?.[0] ||
+                  user?.zonalId?.[0] ||
+                  '?'
+                )
+                  .toString()
+                  .toUpperCase()}
+              </Avatar>
+            </Tooltip>
+            <Box sx={{ textAlign: 'right' }}>
+              <Typography 
+                variant="body2"
+                sx={{ display: { xs: 'none', sm: 'block' } }}
+              >
+                {user?.firstName} {user?.lastName}
+              </Typography>
+              <Chip
+                label={user?.screenerCode || 'NA'}
+                size="small"
+                sx={{
+                  bgcolor: (user?.role === 'ADMIN' || user?.role === 'INCHARGE') ? '#d4af37' : '#4a90a4',
+                  color: 'white',
+                  fontWeight: 600,
+                  fontSize: { xs: '0.7rem', sm: '0.75rem' },
+                  mt: 0.2,
+                }}
+              />
+            </Box>
             <Button
               color="inherit"
               startIcon={<LogoutIcon />}
@@ -288,6 +324,116 @@ const Layout = () => {
           </Container>
         </Box>
       </Box>
+
+      {/* Photo Modal */}
+      <Dialog
+        open={photoModalOpen}
+        onClose={() => setPhotoModalOpen(false)}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+            overflow: 'hidden',
+            background: 'linear-gradient(135deg, #f5f5f5 0%, #ffffff 100%)',
+          },
+        }}
+        BackdropComponent={Backdrop}
+        BackdropProps={{
+          sx: {
+            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+            backdropFilter: 'blur(4px)',
+          },
+        }}
+      >
+        <DialogContent sx={{ p: 0, position: 'relative' }}>
+          <IconButton
+            onClick={() => setPhotoModalOpen(false)}
+            sx={{
+              position: 'absolute',
+              top: 8,
+              right: 8,
+              zIndex: 1,
+              bgcolor: 'rgba(255, 255, 255, 0.9)',
+              '&:hover': {
+                bgcolor: 'rgba(255, 255, 255, 1)',
+              },
+            }}
+          >
+            <CloseIcon />
+          </IconButton>
+          
+          <Box sx={{ 
+            display: 'flex', 
+            flexDirection: 'column', 
+            alignItems: 'center', 
+            p: 4,
+            pt: 5,
+          }}>
+            <Avatar
+              src={user?.photoUrl || undefined}
+              alt={`${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'User'}
+              sx={{
+                width: 200,
+                height: 200,
+                bgcolor: '#b71c1c',
+                fontSize: '4rem',
+                mb: 3,
+                border: '4px solid white',
+                boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
+              }}
+            >
+              {(user?.firstName?.[0] ||
+                user?.lastName?.[0] ||
+                user?.zonalId?.[0] ||
+                '?'
+              )
+                .toString()
+                .toUpperCase()}
+            </Avatar>
+            
+            <Typography variant="h5" sx={{ fontWeight: 600, mb: 1, color: '#800000' }}>
+              {user?.firstName} {user?.lastName}
+            </Typography>
+            
+            <Box sx={{ display: 'flex', gap: 2, mt: 1, flexWrap: 'wrap', justifyContent: 'center' }}>
+              <Chip
+                label={user?.zonalId || 'N/A'}
+                size="small"
+                sx={{
+                  bgcolor: '#800000',
+                  color: 'white',
+                  fontWeight: 600,
+                }}
+              />
+              <Chip
+                label={user?.screenerCode || 'NA'}
+                size="small"
+                sx={{
+                  bgcolor: (user?.role === 'ADMIN' || user?.role === 'INCHARGE') ? '#d4af37' : '#4a90a4',
+                  color: 'white',
+                  fontWeight: 600,
+                }}
+              />
+              <Chip
+                label={user?.role || 'SEWADAR'}
+                size="small"
+                sx={{
+                  bgcolor: user?.role === 'ADMIN' ? '#d32f2f' : user?.role === 'INCHARGE' ? '#1976d2' : '#757575',
+                  color: 'white',
+                  fontWeight: 600,
+                }}
+              />
+            </Box>
+            
+            {user?.location && (
+              <Typography variant="body2" sx={{ mt: 2, color: 'text.secondary' }}>
+                Location: {user.location}
+              </Typography>
+            )}
+          </Box>
+        </DialogContent>
+      </Dialog>
     </Box>
   )
 }

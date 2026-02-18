@@ -22,12 +22,16 @@ import {
   Alert,
   Pagination,
   Stack,
+  Avatar,
+  Tooltip,
 } from '@mui/material'
 import {
   Search as SearchIcon,
   Add as AddIcon,
   Edit as EditIcon,
   Event as EventIcon,
+  Visibility as VisibilityIcon,
+  Close as CloseIcon,
 } from '@mui/icons-material'
 import { format } from 'date-fns'
 import api from '../services/api'
@@ -305,23 +309,31 @@ const Programs = () => {
                                 .join(', ')
                             : 'N/A'}
                         </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          <strong>Applications:</strong>{' '}
-                          <Box
-                            component="span"
+                        <Typography variant="body2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <strong>Applications:</strong>
+                          <Button
+                            variant="outlined"
+                            size="small"
                             onClick={() => handleShowApplicants(program)}
+                            startIcon={<VisibilityIcon />}
                             sx={{
-                              cursor: 'pointer',
+                              minWidth: 'auto',
+                              px: 1.5,
+                              py: 0.5,
+                              fontSize: '0.875rem',
+                              textTransform: 'none',
+                              borderColor: 'primary.main',
                               color: 'primary.main',
-                              textDecoration: 'underline',
                               '&:hover': {
+                                borderColor: 'primary.dark',
+                                bgcolor: 'primary.light',
                                 color: 'primary.dark',
                               },
                             }}
                           >
                             {program.applicationCount || 0}
                             {program.maxSewadars && ` / ${program.maxSewadars}`}
-                          </Box>
+                          </Button>
                         </Typography>
                       </Box>
 
@@ -444,8 +456,22 @@ const Programs = () => {
         maxWidth="sm" 
         fullWidth
       >
-        <DialogTitle>
+        <DialogTitle sx={{ position: 'relative', pr: 6 }}>
           Applicants - {selectedProgramForApplicants?.title}
+          <IconButton
+            onClick={handleCloseApplicantsDialog}
+            sx={{
+              position: 'absolute',
+              top: 8,
+              right: 8,
+              color: 'text.secondary',
+              '&:hover': {
+                bgcolor: 'action.hover',
+              },
+            }}
+          >
+            <CloseIcon />
+          </IconButton>
         </DialogTitle>
         <DialogContent sx={{ maxHeight: '70vh', overflowY: 'auto' }}>
           {loadingApplicants ? (
@@ -471,15 +497,36 @@ const Programs = () => {
                       display: 'flex',
                       justifyContent: 'space-between',
                       alignItems: 'center',
+                      gap: 2,
                     }}
                   >
-                    <Box>
-                      <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                        {app.sewadar?.firstName} {app.sewadar?.lastName}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {app.sewadar?.zonalId} {app.sewadar?.mobile && `• ${app.sewadar.mobile}`}
-                      </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flex: 1 }}>
+                      <Avatar
+                        src={app.sewadar?.photoUrl || undefined}
+                        alt={`${app.sewadar?.firstName || ''} ${app.sewadar?.lastName || ''}`.trim() || 'Applicant'}
+                        sx={{
+                          width: 40,
+                          height: 40,
+                          bgcolor: '#b71c1c',
+                          fontSize: '0.9rem',
+                        }}
+                      >
+                        {(app.sewadar?.firstName?.[0] ||
+                          app.sewadar?.lastName?.[0] ||
+                          app.sewadar?.zonalId?.[0] ||
+                          '?'
+                        )
+                          .toString()
+                          .toUpperCase()}
+                      </Avatar>
+                      <Box>
+                        <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                          {app.sewadar?.firstName} {app.sewadar?.lastName}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {app.sewadar?.zonalId} {app.sewadar?.mobile && `• ${app.sewadar.mobile}`}
+                        </Typography>
+                      </Box>
                     </Box>
                     <Chip
                       label={app.status}

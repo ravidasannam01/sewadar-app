@@ -17,6 +17,7 @@ public class ProgramAttendeeResponse {
     private String firstName;
     private String lastName;
     private String mobile;
+    private String photoUrl;
     private Long applicationId; // ProgramApplication ID
     private String applicationStatus; // Usually "APPROVED"
 }

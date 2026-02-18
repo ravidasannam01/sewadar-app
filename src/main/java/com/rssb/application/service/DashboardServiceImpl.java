@@ -415,6 +415,7 @@ public class DashboardServiceImpl implements DashboardService {
                         .firstName(app.getSewadar().getFirstName())
                         .lastName(app.getSewadar().getLastName())
                         .mobile(app.getSewadar().getMobile())
+                        .photoUrl(app.getSewadar().getPhotoUrl())
                         .applicationId(app.getId())
                         .applicationStatus(app.getStatus())
                         .build())

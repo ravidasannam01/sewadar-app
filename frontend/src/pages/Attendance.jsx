@@ -27,12 +27,15 @@ import {
   Alert,
   Checkbox,
   FormControlLabel,
+  Avatar,
+  IconButton,
 } from '@mui/material'
 import {
   Download as DownloadIcon,
   CheckCircle as CheckCircleIcon,
   Cancel as CancelIcon,
   Visibility as VisibilityIcon,
+  Close as CloseIcon,
 } from '@mui/icons-material'
 import { format } from 'date-fns'
 import api from '../services/api'
@@ -355,8 +358,20 @@ const Attendance = () => {
         maxWidth="md"
         fullWidth
       >
-        <DialogTitle>
-          Mark Attendance - {selectedProgram?.title}
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Box component="span">
+            Mark Attendance - {selectedProgram?.title}
+          </Box>
+          <IconButton
+            size="small"
+            onClick={() => {
+              setOpenMarkAttendanceDialog(false)
+              setSelectedProgram(null)
+              setAttendanceData({})
+            }}
+          >
+            <CloseIcon fontSize="small" />
+          </IconButton>
         </DialogTitle>
         <DialogContent sx={{ maxHeight: '70vh', overflowY: 'auto' }}>
           {loading ? (
@@ -419,7 +434,29 @@ const Attendance = () => {
                           />
                         </TableCell>
                         <TableCell>
-                          {attendee.firstName || ''} {attendee.lastName || ''}
+                          <Box display="flex" alignItems="center" gap={1.5}>
+                            <Avatar
+                              src={attendee.photoUrl || undefined}
+                              alt={`${attendee.firstName || ''} ${attendee.lastName || ''}`.trim() || 'Sewadar'}
+                              sx={{
+                                width: 28,
+                                height: 28,
+                                bgcolor: '#b71c1c',
+                                fontSize: '0.75rem',
+                              }}
+                            >
+                              {(attendee.firstName?.[0] ||
+                                attendee.lastName?.[0] ||
+                                attendee.zonalId?.[0] ||
+                                '?'
+                              )
+                                .toString()
+                                .toUpperCase()}
+                            </Avatar>
+                            <Typography variant="body2">
+                              {attendee.firstName || ''} {attendee.lastName || ''}
+                            </Typography>
+                          </Box>
                         </TableCell>
                         <TableCell>{attendee.zonalId || ''}</TableCell>
                         <TableCell>{attendee.mobile || '-'}</TableCell>
@@ -504,7 +541,20 @@ const Attendance = () => {
         maxWidth="md"
         fullWidth
       >
-        <DialogTitle>Attendance - {selectedProgram?.title}</DialogTitle>
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Box component="span">
+            Attendance - {selectedProgram?.title}
+          </Box>
+          <IconButton
+            size="small"
+            onClick={() => {
+              setOpenViewAttendanceDialog(false)
+              setAttendanceRecords([])
+            }}
+          >
+            <CloseIcon fontSize="small" />
+          </IconButton>
+        </DialogTitle>
         <DialogContent sx={{ maxHeight: '70vh', overflowY: 'auto' }}>
           {loading ? (
             <Box display="flex" justifyContent="center" p={4}>
