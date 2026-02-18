@@ -37,7 +37,8 @@ public class NotificationPreferenceService {
                 "Please post a message in the central WhatsApp group asking sewadars to apply for '{programTitle}' before a specific date.",
                 "Applications are full. Please post a message in WhatsApp group with form details for '{programTitle}'.",
                 "Please post a mail to the area secretary regarding '{programTitle}' at their area.",
-                "Please post general instructions regarding '{programTitle}' in the WhatsApp group."
+                "Please post general instructions regarding '{programTitle}' in the WhatsApp group.",
+                "Please post final instructions and reminders regarding '{programTitle}' in the WhatsApp group." // Node 6 message
             };
 
             for (int i = 0; i < nodeNames.length; i++) {

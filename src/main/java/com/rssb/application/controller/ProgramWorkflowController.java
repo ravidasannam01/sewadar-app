@@ -127,9 +127,63 @@ public class ProgramWorkflowController {
      * Notify all approved sewadars who have not submitted forms yet via WhatsApp.
      */
     @PostMapping("/program/{programId}/notify-missing-forms")
-    public ResponseEntity<Void> notifyMissingFormSubmissions(
+    public ResponseEntity<Map<String, Object>> notifyMissingFormSubmissions(
             @PathVariable Long programId) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String inchargeId = (String) auth.getPrincipal();
+        String userRole = UserContextUtil.getCurrentUserRole();
+        
+        long startTime = System.currentTimeMillis();
         workflowService.notifyMissingFormSubmitters(programId);
-        return ResponseEntity.ok().build();
+        long duration = System.currentTimeMillis() - startTime;
+        
+        Map<String, Object> details = new HashMap<>();
+        details.put("programId", programId);
+        details.put("durationMs", duration);
+        actionLogger.logAction("NOTIFY_MISSING_FORMS", inchargeId, userRole, details);
+        actionLogger.logPerformance("NOTIFY_MISSING_FORMS", duration);
+        
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", true);
+        response.put("message", "Notifications sent to missing form submitters");
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Manually trigger workflow notifications for all programs.
+     * This is the same as the daily scheduler (runs at 9:00 AM) but can be triggered on-demand.
+     * Only accessible to INCHARGE and ADMIN.
+     */
+    @PostMapping("/trigger-notifications")
+    public ResponseEntity<Map<String, Object>> triggerNotifications() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String userId = (String) auth.getPrincipal();
+        String userRole = UserContextUtil.getCurrentUserRole();
+        
+        log.info("Manual notification trigger requested by user: {} ({})", userId, userRole);
+        
+        long startTime = System.currentTimeMillis();
+        try {
+            workflowService.sendDailyNotifications();
+            long duration = System.currentTimeMillis() - startTime;
+            
+            Map<String, Object> details = new HashMap<>();
+            details.put("triggeredBy", userId);
+            details.put("durationMs", duration);
+            actionLogger.logAction("MANUAL_TRIGGER_NOTIFICATIONS", userId, userRole, details);
+            actionLogger.logPerformance("MANUAL_TRIGGER_NOTIFICATIONS", duration);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("message", "Workflow notifications triggered successfully for all programs");
+            response.put("durationMs", duration);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Error triggering workflow notifications manually", e);
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", false);
+            response.put("message", "Failed to trigger notifications: " + e.getMessage());
+            return ResponseEntity.status(500).body(response);
+        }
     }
 }

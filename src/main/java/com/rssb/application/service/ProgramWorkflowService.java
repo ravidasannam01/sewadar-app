@@ -35,24 +35,60 @@ public class ProgramWorkflowService {
     private final WhatsAppService whatsAppService;
     private final EmailService emailService;
     
-    // Notification configuration
+    // Notification configuration for all workflow steps
+    @Value("${notification.step1.recipients:INCHARGES}")
+    private String step1Recipients;
+    
+    @Value("${notification.step1.whatsapp.enabled:false}")
+    private boolean step1WhatsAppEnabled;
+    
+    @Value("${notification.step1.email.enabled:true}")
+    private boolean step1EmailEnabled;
+    
     @Value("${notification.step2.recipients:INCHARGES}")
     private String step2Recipients;
     
-    @Value("${notification.step2.whatsapp.enabled:true}")
+    @Value("${notification.step2.whatsapp.enabled:false}")
     private boolean step2WhatsAppEnabled;
     
-    @Value("${notification.step2.email.enabled:false}")
+    @Value("${notification.step2.email.enabled:true}")
     private boolean step2EmailEnabled;
     
-    @Value("${notification.step3.recipients:APPROVED}")
+    @Value("${notification.step3.recipients:INCHARGES}")
     private String step3Recipients;
     
-    @Value("${notification.step3.whatsapp.enabled:true}")
+    @Value("${notification.step3.whatsapp.enabled:false}")
     private boolean step3WhatsAppEnabled;
     
-    @Value("${notification.step3.email.enabled:false}")
+    @Value("${notification.step3.email.enabled:true}")
     private boolean step3EmailEnabled;
+    
+    @Value("${notification.step4.recipients:INCHARGES}")
+    private String step4Recipients;
+    
+    @Value("${notification.step4.whatsapp.enabled:false}")
+    private boolean step4WhatsAppEnabled;
+    
+    @Value("${notification.step4.email.enabled:true}")
+    private boolean step4EmailEnabled;
+    
+    @Value("${notification.step5.recipients:INCHARGES}")
+    private String step5Recipients;
+    
+    @Value("${notification.step5.whatsapp.enabled:false}")
+    private boolean step5WhatsAppEnabled;
+    
+    @Value("${notification.step5.email.enabled:true}")
+    private boolean step5EmailEnabled;
+    
+    @Value("${notification.step6.recipients:INCHARGES}")
+    private String step6Recipients;
+    
+    @Value("${notification.step6.whatsapp.enabled:false}")
+    private boolean step6WhatsAppEnabled;
+    
+    @Value("${notification.step6.email.enabled:true}")
+    private boolean step6EmailEnabled;
     
     // Self-injection for transaction proxy
     private ProgramWorkflowService self;
@@ -77,6 +113,7 @@ public class ProgramWorkflowService {
 
     /**
      * Initialize workflow for a new program.
+     * Creates workflow starting at node 1 and initializes all notification preferences as enabled by default.
      */
     @Transactional
     public ProgramWorkflow initializeWorkflow(Program program) {
@@ -88,7 +125,31 @@ public class ProgramWorkflowService {
                     .formReleased(false)
                     .detailsCollected(false)
                     .build();
-                return workflowRepository.save(workflow);
+                workflow = workflowRepository.save(workflow);
+                
+                // Initialize all 6 notification preferences as enabled by default
+                for (int nodeNumber = 1; nodeNumber <= 6; nodeNumber++) {
+                    // Check if preference already exists (shouldn't, but safety check)
+                    com.rssb.application.entity.ProgramNotificationPreference existing = 
+                        programNotificationPreferenceRepository
+                            .findByProgramAndNodeNumber(program, nodeNumber)
+                            .orElse(null);
+                    
+                    if (existing == null) {
+                        com.rssb.application.entity.ProgramNotificationPreference preference = 
+                            com.rssb.application.entity.ProgramNotificationPreference.builder()
+                                .program(program)
+                                .nodeNumber(nodeNumber)
+                                .enabled(true) // All nodes enabled by default
+                                .build();
+                        programNotificationPreferenceRepository.save(preference);
+                        log.debug("Initialized notification preference for program {} node {} as enabled", 
+                                program.getId(), nodeNumber);
+                    }
+                }
+                
+                log.info("Initialized workflow for program {} with all notification preferences enabled", program.getId());
+                return workflow;
             });
     }
 
@@ -298,30 +359,48 @@ public class ProgramWorkflowService {
 
     /**
      * Send daily notifications for programs at current workflow node.
-     * Called by scheduler.
+     * Called by scheduler or manual trigger.
      */
     public void sendDailyNotifications() {
+        log.info("[NOTIFICATION TRIGGER] Starting notification process for all programs");
         List<ProgramWorkflow> workflows = workflowRepository.findAll();
+        log.info("[NOTIFICATION TRIGGER] Found {} workflows to process", workflows.size());
+        
+        int processedCount = 0;
+        int skippedCount = 0;
+        int errorCount = 0;
         
         for (ProgramWorkflow workflow : workflows) {
             try {
                 // Use program ID from workflow's program reference, but fetch fresh to avoid lazy loading
                 Long programId = workflow.getProgram() != null ? workflow.getProgram().getId() : null;
                 if (programId == null) {
+                    log.warn("[NOTIFICATION TRIGGER] Skipping workflow {}: No program ID", workflow.getId());
+                    skippedCount++;
                     continue;
                 }
                 Program program = programRepository.findById(programId)
                     .orElse(null);
                 
                 if (program == null) {
+                    log.warn("[NOTIFICATION TRIGGER] Skipping workflow {}: Program {} not found", workflow.getId(), programId);
+                    skippedCount++;
                     continue;
                 }
                 
+                log.info("[NOTIFICATION TRIGGER] Processing workflow {} for program {} (ID: {})", 
+                        workflow.getId(), program.getTitle(), programId);
                 sendNotificationsForNode(program, workflow);
+                processedCount++;
             } catch (Exception e) {
-                log.error("Error sending notification for workflow {}", workflow.getId(), e);
+                log.error("[NOTIFICATION TRIGGER] Error sending notification for workflow {}: {}", 
+                        workflow.getId(), e.getMessage(), e);
+                errorCount++;
             }
         }
+        
+        log.info("[NOTIFICATION TRIGGER] Completed: Processed={}, Skipped={}, Errors={}", 
+                processedCount, skippedCount, errorCount);
     }
 
     /**
@@ -344,23 +423,72 @@ public class ProgramWorkflowService {
      */
     private void sendNotificationsForNode(Program program, ProgramWorkflow workflow) {
         if (program == null || workflow == null || workflow.getCurrentNode() == null) {
+            log.debug("Skipping notification: program={}, workflow={}, currentNode={}", 
+                    program != null ? program.getId() : "null", 
+                    workflow != null ? workflow.getId() : "null",
+                    workflow != null ? workflow.getCurrentNode() : "null");
             return;
         }
 
         Integer currentNode = workflow.getCurrentNode();
+        log.info("[NOTIFICATION CHECK] Program: {} (ID: {}) | Current Node: {}", 
+                program.getTitle(), program.getId(), currentNode);
 
         // Check program-level notification toggle
         Boolean notificationEnabled = isNotificationEnabled(program, currentNode);
         if (notificationEnabled == null || !notificationEnabled) {
+            log.info("[NOTIFICATION SKIPPED] Program: {} (ID: {}) | Node: {} | Reason: Notification toggle is OFF (enabled={})", 
+                    program.getTitle(), program.getId(), currentNode, notificationEnabled);
             return;
         }
 
+        log.info("[NOTIFICATION ENABLED] Program: {} (ID: {}) | Node: {} | Notification toggle is ON", 
+                program.getTitle(), program.getId(), currentNode);
+
+        // Ensure global notification preferences are initialized (if empty)
+        if (notificationPreferenceRepository.count() == 0) {
+            log.info("[NOTIFICATION INIT] Initializing global notification preferences");
+            try {
+                // Initialize defaults in a new transaction to avoid conflicts
+                String[] nodeNames = {
+                    "Make Program Active",
+                    "Post Application Message",
+                    "Release Form",
+                    "Collect Details",
+                    "Post Mail to Area Secretary",
+                    "Post General Instructions"
+                };
+                String[] messages = {
+                    "Please make the program '{programTitle}' active.", // Node 1: Make Program Active
+                    "Please post a message in the central WhatsApp group asking sewadars to apply for '{programTitle}' before a specific date.", // Node 2: Post Application Message
+                    "Applications are full. Please post a message in WhatsApp group with form details for '{programTitle}'.", // Node 3: Release Form
+                    "Please collect travel details from all approved sewadars for the program '{programTitle}'.", // Node 4: Collect Details
+                    "Please post a mail to the area secretary regarding '{programTitle}' at their area.", // Node 5: Post Mail to Area Secretary
+                    "Please post general instructions regarding '{programTitle}' in the WhatsApp group." // Node 6: Post General Instructions
+                };
+                for (int i = 0; i < nodeNames.length; i++) {
+                    NotificationPreference preference = NotificationPreference.builder()
+                        .nodeNumber(i + 1)
+                        .nodeName(nodeNames[i])
+                        .notificationMessage(messages[i])
+                        .enabled(true)
+                        .build();
+                    notificationPreferenceRepository.save(preference);
+                }
+                log.info("[NOTIFICATION INIT] Successfully initialized {} global notification preferences", nodeNames.length);
+            } catch (Exception e) {
+                log.error("[NOTIFICATION INIT] Error initializing global notification preferences: {}", e.getMessage(), e);
+            }
+        }
+        
         // Get global notification message template (still used for message text)
         NotificationPreference globalPreference = notificationPreferenceRepository
                 .findByNodeNumber(currentNode)
                 .orElse(null);
 
         if (globalPreference == null || globalPreference.getNotificationMessage() == null) {
+            log.warn("[NOTIFICATION SKIPPED] Program: {} (ID: {}) | Node: {} | Reason: No notification message template found for node {}", 
+                    program.getTitle(), program.getId(), currentNode, currentNode);
             return;
         }
 
@@ -369,25 +497,60 @@ public class ProgramWorkflowService {
         boolean useWhatsApp = shouldUseWhatsApp(currentNode);
         boolean useEmail = shouldUseEmail(currentNode);
 
+        log.info("[NOTIFICATION CONFIG] Program: {} (ID: {}) | Node: {} | Recipients: {} | WhatsApp: {} | Email: {}", 
+                program.getTitle(), program.getId(), currentNode, recipients.size(), useWhatsApp, useEmail);
+
+        if (recipients.isEmpty()) {
+            log.warn("[NOTIFICATION SKIPPED] Program: {} (ID: {}) | Node: {} | Reason: No recipients found", 
+                    program.getTitle(), program.getId(), currentNode);
+            return;
+        }
+
         // Prepare message based on recipient type
         String message = prepareMessageForRecipients(globalPreference.getNotificationMessage(), 
                 program, currentNode, recipients);
 
+        // Log the message being sent (truncate if too long for readability)
+        String messagePreview = message.length() > 150 ? message.substring(0, 150) + "..." : message;
+        log.info("[NOTIFICATION MESSAGE] Program: {} (ID: {}) | Node: {} | Message: {}", 
+                program.getTitle(), program.getId(), currentNode, messagePreview);
+
         // Send notifications
+        int emailSentCount = 0;
+        int whatsappSentCount = 0;
         for (Sewadar recipient : recipients) {
             if (useWhatsApp && recipient.getMobile() != null && !recipient.getMobile().isEmpty()) {
-                whatsAppService.sendMessage(recipient.getMobile(), message);
-                log.info("Sent WhatsApp notification to {} ({}) for program {} at node {}",
-                        recipient.getZonalId(), recipient.getMobile(), program.getId(), currentNode);
+                boolean whatsappSent = whatsAppService.sendMessage(recipient.getMobile(), message);
+                if (whatsappSent) {
+                    whatsappSentCount++;
+                }
+                log.info("[WHATSAPP ATTEMPT] Program: {} | Node: {} | Recipient: {} ({}) | Mobile: {} | Status: {} | Message: {}", 
+                        program.getTitle(), currentNode, recipient.getZonalId(), 
+                        recipient.getFirstName() + " " + recipient.getLastName(), 
+                        recipient.getMobile(), whatsappSent ? "SENT" : "FAILED", messagePreview);
+            } else if (useWhatsApp && (recipient.getMobile() == null || recipient.getMobile().isEmpty())) {
+                log.warn("[WHATSAPP SKIPPED] Program: {} | Node: {} | Recipient: {} | Reason: No mobile number", 
+                        program.getTitle(), currentNode, recipient.getZonalId());
             }
             
             if (useEmail && recipient.getEmailId() != null && !recipient.getEmailId().isEmpty()) {
                 String subject = "Program Notification: " + program.getTitle();
-                emailService.sendEmail(recipient.getEmailId(), subject, message);
-                log.info("Sent email notification to {} ({}) for program {} at node {}",
-                        recipient.getZonalId(), recipient.getEmailId(), program.getId(), currentNode);
+                boolean emailSent = emailService.sendEmail(recipient.getEmailId(), subject, message);
+                if (emailSent) {
+                    emailSentCount++;
+                }
+                log.info("[EMAIL ATTEMPT] Program: {} | Node: {} | Recipient: {} ({}) | Email: {} | Status: {} | Message: {}", 
+                        program.getTitle(), currentNode, recipient.getZonalId(), 
+                        recipient.getFirstName() + " " + recipient.getLastName(), 
+                        recipient.getEmailId(), emailSent ? "SENT" : "FAILED", messagePreview);
+            } else if (useEmail && (recipient.getEmailId() == null || recipient.getEmailId().isEmpty())) {
+                log.warn("[EMAIL SKIPPED] Program: {} | Node: {} | Recipient: {} | Reason: No email ID", 
+                        program.getTitle(), currentNode, recipient.getZonalId());
             }
         }
+
+        log.info("[NOTIFICATION SUMMARY] Program: {} (ID: {}) | Node: {} | Total Recipients: {} | Emails Sent: {} | WhatsApp Sent: {}", 
+                program.getTitle(), program.getId(), currentNode, recipients.size(), emailSentCount, whatsappSentCount);
     }
 
     /**
@@ -396,17 +559,29 @@ public class ProgramWorkflowService {
     private List<Sewadar> getRecipientsForNode(Program program, Integer nodeNumber) {
         String recipientType;
         
-        // Step 2: Post Application Message
-        if (nodeNumber == 2) {
-            recipientType = step2Recipients.toUpperCase();
-        }
-        // Step 3: Release Form
-        else if (nodeNumber == 3) {
-            recipientType = step3Recipients.toUpperCase();
-        }
-        // Other steps: default to INCHARGES
-        else {
-            recipientType = "INCHARGES";
+        // Get recipient type from configuration for each step
+        switch (nodeNumber) {
+            case 1:
+                recipientType = step1Recipients.toUpperCase();
+                break;
+            case 2:
+                recipientType = step2Recipients.toUpperCase();
+                break;
+            case 3:
+                recipientType = step3Recipients.toUpperCase();
+                break;
+            case 4:
+                recipientType = step4Recipients.toUpperCase();
+                break;
+            case 5:
+                recipientType = step5Recipients.toUpperCase();
+                break;
+            case 6:
+                recipientType = step6Recipients.toUpperCase();
+                break;
+            default:
+                recipientType = "INCHARGES";
+                break;
         }
 
         switch (recipientType) {
@@ -424,8 +599,13 @@ public class ProgramWorkflowService {
                 
             case "INCHARGES":
             default:
-                // Send only to incharges (alert/reminder to post in community)
-                return sewadarRepository.findByRole(Role.INCHARGE);
+                // Send to both ADMIN and INCHARGE (alert/reminder to post in community)
+                List<Sewadar> admins = sewadarRepository.findByRole(Role.ADMIN);
+                List<Sewadar> incharges = sewadarRepository.findByRole(Role.INCHARGE);
+                List<Sewadar> allRecipients = new ArrayList<>();
+                allRecipients.addAll(admins);
+                allRecipients.addAll(incharges);
+                return allRecipients;
         }
     }
 
@@ -433,24 +613,44 @@ public class ProgramWorkflowService {
      * Check if WhatsApp should be used for this node.
      */
     private boolean shouldUseWhatsApp(Integer nodeNumber) {
-        if (nodeNumber == 2) {
-            return step2WhatsAppEnabled;
-        } else if (nodeNumber == 3) {
-            return step3WhatsAppEnabled;
+        switch (nodeNumber) {
+            case 1:
+                return step1WhatsAppEnabled;
+            case 2:
+                return step2WhatsAppEnabled;
+            case 3:
+                return step3WhatsAppEnabled;
+            case 4:
+                return step4WhatsAppEnabled;
+            case 5:
+                return step5WhatsAppEnabled;
+            case 6:
+                return step6WhatsAppEnabled;
+            default:
+                return false;
         }
-        return true; // Default to WhatsApp for other nodes
     }
 
     /**
      * Check if Email should be used for this node.
      */
     private boolean shouldUseEmail(Integer nodeNumber) {
-        if (nodeNumber == 2) {
-            return step2EmailEnabled;
-        } else if (nodeNumber == 3) {
-            return step3EmailEnabled;
+        switch (nodeNumber) {
+            case 1:
+                return step1EmailEnabled;
+            case 2:
+                return step2EmailEnabled;
+            case 3:
+                return step3EmailEnabled;
+            case 4:
+                return step4EmailEnabled;
+            case 5:
+                return step5EmailEnabled;
+            case 6:
+                return step6EmailEnabled;
+            default:
+                return false;
         }
-        return false; // Default to no email for other nodes
     }
 
     /**
@@ -559,6 +759,7 @@ public class ProgramWorkflowService {
                         .firstName(sewadar.getFirstName())
                         .lastName(sewadar.getLastName())
                         .mobile(sewadar.getMobile())
+                        .emailId(sewadar.getEmailId()) // Added emailId field
                         .location(sewadar.getLocation())
                         .role(sewadar.getRole() != null ? sewadar.getRole().name() : "SEWADAR")
                         .build())
@@ -579,37 +780,77 @@ public class ProgramWorkflowService {
             return;
         }
 
-        // Use the notification template for node 4 (Collect Details) if available
-        NotificationPreference preference = notificationPreferenceRepository
-                .findByNodeNumber(4)
-                .orElse(null);
-
-        String baseMessage;
-        if (preference != null && preference.getNotificationMessage() != null) {
-            baseMessage = preference.getNotificationMessage()
-                    .replace("{programTitle}", program.getTitle());
-        } else {
-            baseMessage = "Please submit your travel details form for the program '" + program.getTitle() + "'.";
-        }
+        // Use a specific message for missing form reminders (not node 4's message)
+        String baseMessage = "Please submit your travel details form for the program '" + program.getTitle() + "'. The form submission deadline is approaching.";
 
         // Send via both WhatsApp and Email if configured
         boolean useWhatsApp = step3WhatsAppEnabled; // Use step3 config for form reminders
         boolean useEmail = step3EmailEnabled;
         
+        // Log the message being sent (truncate if too long for readability)
+        String messagePreview = baseMessage.length() > 150 ? baseMessage.substring(0, 150) + "..." : baseMessage;
+        log.info("[MISSING FORMS NOTIFICATION] Program: {} (ID: {}) | Message: {} | Recipients: {} | WhatsApp: {} | Email: {}", 
+                program.getTitle(), program.getId(), messagePreview, missing.size(), useWhatsApp, useEmail);
+        
+        if (missing.isEmpty()) {
+            log.warn("[MISSING FORMS] No missing form submitters found - skipping notification");
+            return;
+        }
+        
+        log.info("[MISSING FORMS] Starting to send notifications to {} recipients", missing.size());
+        
+        int emailSentCount = 0;
+        int emailFailedCount = 0;
+        int whatsappSentCount = 0;
+        int whatsappFailedCount = 0;
+        
         for (com.rssb.application.dto.SewadarResponse sewadar : missing) {
+            log.debug("[MISSING FORMS] Processing recipient: {} ({})", sewadar.getZonalId(), sewadar.getEmailId());
+            
             if (useWhatsApp && sewadar.getMobile() != null && !sewadar.getMobile().isEmpty()) {
-                whatsAppService.sendMessage(sewadar.getMobile(), baseMessage);
-                log.info("Sent WhatsApp missing form reminder to sewadar {} for program {}", 
-                        sewadar.getZonalId(), programId);
+                try {
+                    boolean whatsappSent = whatsAppService.sendMessage(sewadar.getMobile(), baseMessage);
+                    if (whatsappSent) {
+                        whatsappSentCount++;
+                    } else {
+                        whatsappFailedCount++;
+                    }
+                    log.info("[MISSING FORMS WHATSAPP] Program: {} | Recipient: {} ({}) | Mobile: {} | Status: {} | Message: {}", 
+                            program.getTitle(), sewadar.getZonalId(), 
+                            sewadar.getFirstName() + " " + sewadar.getLastName(), 
+                            sewadar.getMobile(), whatsappSent ? "SENT" : "FAILED", messagePreview);
+                } catch (Exception e) {
+                    whatsappFailedCount++;
+                    log.error("[MISSING FORMS WHATSAPP] Failed to send to {}: {}", sewadar.getZonalId(), e.getMessage(), e);
+                }
+            } else if (useWhatsApp) {
+                log.warn("[MISSING FORMS WHATSAPP] Skipped {} - No mobile number", sewadar.getZonalId());
             }
             
             if (useEmail && sewadar.getEmailId() != null && !sewadar.getEmailId().isEmpty()) {
-                String subject = "Reminder: Submit Form for " + program.getTitle();
-                emailService.sendEmail(sewadar.getEmailId(), subject, baseMessage);
-                log.info("Sent email missing form reminder to sewadar {} for program {}", 
-                        sewadar.getZonalId(), programId);
+                try {
+                    String subject = "Reminder: Submit Form for " + program.getTitle();
+                    boolean emailSent = emailService.sendEmail(sewadar.getEmailId(), subject, baseMessage);
+                    if (emailSent) {
+                        emailSentCount++;
+                    } else {
+                        emailFailedCount++;
+                    }
+                    log.info("[MISSING FORMS EMAIL] Program: {} | Recipient: {} ({}) | Email: {} | Status: {} | Message: {}", 
+                            program.getTitle(), sewadar.getZonalId(), 
+                            sewadar.getFirstName() + " " + sewadar.getLastName(), 
+                            sewadar.getEmailId(), emailSent ? "SENT" : "FAILED", messagePreview);
+                } catch (Exception e) {
+                    emailFailedCount++;
+                    log.error("[MISSING FORMS EMAIL] Failed to send to {}: {}", sewadar.getEmailId(), e.getMessage(), e);
+                }
+            } else if (useEmail) {
+                log.warn("[MISSING FORMS EMAIL] Skipped {} - No email ID", sewadar.getZonalId());
             }
         }
+        
+        log.info("[MISSING FORMS SUMMARY] Program: {} (ID: {}) | Emails: {} sent, {} failed | WhatsApp: {} sent, {} failed", 
+                program.getTitle(), program.getId(), emailSentCount, emailFailedCount, whatsappSentCount, whatsappFailedCount);
     }
 
     private ProgramWorkflowResponse mapToResponse(ProgramWorkflow workflow, Program program) {

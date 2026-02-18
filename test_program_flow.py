@@ -3,7 +3,7 @@
 Comprehensive Program Flow Test Script
 Tests a single program with all features:
 - Bootstrap admin and incharge check/creation
-- Create 40 sewadars
+- Create 3 sewadars with complete data and email
 - Promote 1 sewadar to incharge
 - Create program with today's date and deadlines
 - All sewadars apply
@@ -17,6 +17,7 @@ import json
 from datetime import datetime, timedelta
 from typing import Optional, Dict, List
 import sys
+import random
 
 BASE_URL = "http://localhost:8080"
 OUTPUT_FILE = "test_program_flow_output.txt"
@@ -24,11 +25,20 @@ OUTPUT_FILE = "test_program_flow_output.txt"
 # Configuration
 ADMIN_ZONAL_ID = "ADMIN001"
 ADMIN_PASSWORD = "admin123"
+ADMIN_EMAIL = "sawisam08@gmail.com"
 INCHARGE_ZONAL_ID = "INCH001"
 INCHARGE_PASSWORD = "incharge123"
 SEWADAR_PASSWORD = "sew123"
-NUM_SEWADARS = 40
+NUM_SEWADARS = 3
 MAX_SEWADARS_IN_PROGRAM = 30  # Max sewadars for the program
+
+# Email pool for random assignment
+EMAIL_POOL = [
+    "sawanannam9@gmail.com",
+    "pda30360@gmail.com",
+    "raghuyadav99591@gmail.com",
+    "ramaa8500601@gmail.com"
+]
 
 class CurlLogger:
     """Helper class to log curl commands and responses"""
@@ -172,7 +182,8 @@ class TestFlow:
             "zonalId": ADMIN_ZONAL_ID,
             "location": "BEAS",
             "mobile": "919999000001",
-            "password": ADMIN_PASSWORD
+            "password": ADMIN_PASSWORD,
+            "emailId": ADMIN_EMAIL
         }
         
         response = self.make_request('POST', '/api/bootstrap/create-admin', data=data,
@@ -180,7 +191,7 @@ class TestFlow:
         
         if response.status_code == 201:
             admin = response.json()
-            print(f"  ✅ Admin created: {admin.get('zonalId')}")
+            print(f"  ✅ Admin created: {admin.get('zonalId')} (Email: {ADMIN_EMAIL})")
             return admin
         else:
             error_msg = response.json().get('message', response.text) if response.status_code != 201 else ""
@@ -193,13 +204,32 @@ class TestFlow:
         """Create bootstrap incharge"""
         self.print_step("Step 3: Create Bootstrap Incharge")
         
+        # Assign random email from pool
+        incharge_email = random.choice(EMAIL_POOL)
+        
         data = {
             "firstName": "Incharge",
             "lastName": "User",
             "zonalId": INCHARGE_ZONAL_ID,
             "location": "BEAS",
             "mobile": "919999000002",
-            "password": INCHARGE_PASSWORD
+            "password": INCHARGE_PASSWORD,
+            "emailId": incharge_email,
+            "address1": "123 Main Street",
+            "address2": "Sector 5",
+            "email": "incharge.address@example.com",  # Address email
+            "profession": "Manager",
+            "joiningDate": "2020-01-15",
+            "dateOfBirth": "1985-05-20",
+            "emergencyContact": "919999000099",
+            "emergencyContactRelationship": "Spouse",
+            "aadharNumber": "123456789012",
+            "languages": ["Hindi", "English"],
+            "fatherHusbandName": "Incharge Father",
+            "gender": "MALE",
+            "screenerCode": "INCH001",
+            "satsangPlace": "BEAS Main Hall",
+            "remarks": "Bootstrap incharge user"
         }
         
         response = self.make_request('POST', '/api/bootstrap/create-incharge', data=data,
@@ -207,7 +237,7 @@ class TestFlow:
         
         if response.status_code == 201:
             incharge = response.json()
-            print(f"  ✅ Incharge created: {incharge.get('zonalId')}")
+            print(f"  ✅ Incharge created: {incharge.get('zonalId')} (Email: {incharge_email})")
             return incharge
         else:
             error_msg = response.json().get('message', response.text) if response.status_code != 201 else ""
@@ -237,32 +267,57 @@ class TestFlow:
             raise Exception(f"Login failed: {response.status_code} - {response.text}")
     
     def create_sewadars(self, count: int):
-        """Create sewadars"""
-        self.print_step(f"Step 5: Create {count} Sewadars")
+        """Create sewadars with complete data and email"""
+        self.print_step(f"Step 5: Create {count} Sewadars with Complete Data")
+        
+        # Shuffle email pool to assign randomly
+        available_emails = EMAIL_POOL.copy()
+        random.shuffle(available_emails)
         
         created = []
         for i in range(1, count + 1):
             zonal_id = f"SEW{i:03d}"
             # Start mobile numbers from 91999900100 to avoid conflict with ADMIN (919999000001) and INCHARGE (919999000002)
             mobile_number = f"91999900{100 + i:03d}"
+            
+            # Assign email from pool (cycle if needed)
+            email = available_emails[(i - 1) % len(available_emails)]
+            
+            # Generate complete data for sewadar
             data = {
                 "firstName": f"Sewadar",
                 "lastName": f"User{i:03d}",
                 "zonalId": zonal_id,
                 "location": "Delhi" if i % 2 == 0 else "Mumbai",
                 "mobile": mobile_number,
-                "password": SEWADAR_PASSWORD
+                "password": SEWADAR_PASSWORD,
+                "emailId": email,  # Sewadar email
+                "address1": f"{100 + i} Street",
+                "address2": f"Area {i}",
+                "email": f"sewadar{i}.address@example.com",  # Address email
+                "profession": ["Engineer", "Teacher", "Doctor"][(i - 1) % 3],
+                "joiningDate": (datetime.now() - timedelta(days=365 * (i % 3 + 1))).strftime("%Y-%m-%d"),
+                "dateOfBirth": (datetime.now() - timedelta(days=365 * (25 + i % 10))).strftime("%Y-%m-%d"),
+                "emergencyContact": f"91999900{200 + i:03d}",
+                "emergencyContactRelationship": ["Father", "Mother", "Spouse"][(i - 1) % 3],
+                "aadharNumber": f"{123456789000 + i:012d}",
+                "languages": [["Hindi", "English"], ["Hindi", "Punjabi"], ["Hindi", "English", "Punjabi"]][(i - 1) % 3],
+                "fatherHusbandName": f"Father{i:03d}",
+                "gender": ["MALE", "FEMALE"][(i - 1) % 2],
+                "screenerCode": f"SCR{i:03d}",
+                "satsangPlace": ["BEAS Main Hall", "Delhi Center", "Mumbai Center"][(i - 1) % 3],
+                "remarks": f"Test sewadar {i} with complete data"
             }
             
             try:
                 response = self.make_request('POST', '/api/sewadars', data=data,
-                                          description=f"Create sewadar {zonal_id}",
+                                          description=f"Create sewadar {zonal_id} with complete data",
                                           token=self.admin_token)
                 
                 if response.status_code == 201:
                     sewadar = response.json()
                     created.append(sewadar)
-                    print(f"  ✅ Created sewadar {zonal_id}")
+                    print(f"  ✅ Created sewadar {zonal_id} (Email: {email})")
                 else:
                     error_msg = response.json().get('message', response.text) if response.status_code != 201 else ""
                     print(f"  ⚠️  Failed to create sewadar {zonal_id}: {error_msg}")
@@ -270,7 +325,7 @@ class TestFlow:
                 print(f"  ⚠️  Error creating sewadar {zonal_id}: {e}")
         
         self.sewadars = created
-        print(f"\n  ✅ Created {len(created)}/{count} sewadars")
+        print(f"\n  ✅ Created {len(created)}/{count} sewadars with complete data and emails")
         return created
     
     def promote_sewadar_to_incharge(self, sewadar_zonal_id: str):

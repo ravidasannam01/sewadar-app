@@ -23,6 +23,7 @@ import {
   CheckCircle as CheckCircleIcon,
   RadioButtonUnchecked as RadioButtonUncheckedIcon,
   ArrowForward as ArrowForwardIcon,
+  Send as SendIcon,
 } from '@mui/icons-material'
 import api from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
@@ -48,6 +49,7 @@ const Workflow = () => {
   const [error, setError] = useState(null)
   const [missingForms, setMissingForms] = useState([])
   const [openMissingDialog, setOpenMissingDialog] = useState(false)
+  const [triggeringNotifications, setTriggeringNotifications] = useState(false)
 
   useEffect(() => {
     if (isAdminOrIncharge(user)) {
@@ -230,6 +232,27 @@ const Workflow = () => {
     return <Chip label="Workflow Complete" color="success" />
   }
 
+  const handleTriggerNotifications = async () => {
+    if (!window.confirm('Trigger workflow notifications for all programs now? This will send notifications to all programs at their current workflow step (same as the 9:00 AM scheduler).')) {
+      return
+    }
+
+    try {
+      setTriggeringNotifications(true)
+      const response = await api.post('/workflow/trigger-notifications')
+      if (response.data.success) {
+        alert('✅ Notifications triggered successfully! ' + (response.data.message || ''))
+      } else {
+        alert('❌ Failed to trigger notifications: ' + (response.data.message || 'Unknown error'))
+      }
+    } catch (error) {
+      console.error('Error triggering notifications:', error)
+      alert('❌ Error triggering notifications: ' + (error.response?.data?.message || error.message))
+    } finally {
+      setTriggeringNotifications(false)
+    }
+  }
+
   if (loading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
@@ -240,9 +263,21 @@ const Workflow = () => {
 
   return (
     <Box>
-      <Typography variant="h4" component="h1" sx={{ fontWeight: 600, mb: 3 }}>
-        Program Workflow Management
-      </Typography>
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+        <Typography variant="h4" component="h1" sx={{ fontWeight: 600 }}>
+          Program Workflow Management
+        </Typography>
+        <Button
+          variant="contained"
+          color="primary"
+          startIcon={<SendIcon />}
+          onClick={handleTriggerNotifications}
+          disabled={triggeringNotifications || loading}
+          sx={{ minWidth: 200 }}
+        >
+          {triggeringNotifications ? 'Triggering...' : 'Trigger Notifications'}
+        </Button>
+      </Box>
 
       {error && (
         <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>

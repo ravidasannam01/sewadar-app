@@ -66,6 +66,11 @@ public class ProgramServiceImpl implements ProgramService {
 
         // Initialize workflow for new program
         workflowService.initializeWorkflow(saved);
+        
+        // Check and advance workflow if program is created as "active"
+        // This will auto-advance from node 1 to node 2 for active programs
+        // Scheduled programs will remain at node 1
+        workflowService.checkAndAdvanceWorkflow(saved);
 
         log.info("Program created with id: {}", saved.getId());
         return mapToResponse(saved);

@@ -110,10 +110,10 @@ public class EmailService {
             email.setText(message);
 
             mailSender.send(email);
-            log.info("Email sent successfully to {}", toEmail);
+            log.info("[EMAIL SENT] Recipient: {} | Subject: {} | From: {}", toEmail, subject, fromEmail);
             return true;
         } catch (Exception e) {
-            log.error("Error sending email to {}: {}", toEmail, e.getMessage(), e);
+            log.error("[EMAIL FAILED] Recipient: {} | Subject: {} | Error: {}", toEmail, subject, e.getMessage(), e);
             return false;
         }
     }
