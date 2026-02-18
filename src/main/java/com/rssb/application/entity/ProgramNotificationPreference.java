@@ -36,6 +36,9 @@ public class ProgramNotificationPreference {
     @Column(name = "enabled")
     private Boolean enabled; // null = use global, true/false = override
 
+    @Column(name = "message", columnDefinition = "TEXT")
+    private String message; // null = use global message, non-null = override with custom message
+
     @Column(name = "created_at", nullable = false)
     @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();

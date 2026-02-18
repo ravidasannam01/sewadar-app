@@ -18,12 +18,15 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  TextField,
+  IconButton,
 } from '@mui/material'
 import {
   CheckCircle as CheckCircleIcon,
   RadioButtonUnchecked as RadioButtonUncheckedIcon,
   ArrowForward as ArrowForwardIcon,
   Send as SendIcon,
+  Edit as EditIcon,
 } from '@mui/icons-material'
 import api from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
@@ -50,6 +53,11 @@ const Workflow = () => {
   const [missingForms, setMissingForms] = useState([])
   const [openMissingDialog, setOpenMissingDialog] = useState(false)
   const [triggeringNotifications, setTriggeringNotifications] = useState(false)
+  const [openMessageDialog, setOpenMessageDialog] = useState(false)
+  const [editingNode, setEditingNode] = useState(null)
+  const [editingProgramId, setEditingProgramId] = useState(null)
+  const [messageText, setMessageText] = useState('')
+  const [defaultMessage, setDefaultMessage] = useState('')
 
   useEffect(() => {
     if (isAdminOrIncharge(user)) {
@@ -138,6 +146,76 @@ const Workflow = () => {
     } catch (error) {
       console.error('Error updating program preference:', error)
       alert('Failed to update program preference')
+    }
+  }
+
+  const handleOpenMessageDialog = (programId, nodeNumber) => {
+    const pref = getProgramPreference(programId, nodeNumber)
+    setEditingProgramId(programId)
+    setEditingNode(nodeNumber)
+    // Show custom message if available, otherwise show default (for editing)
+    setMessageText(pref?.isCustomMessage ? pref.message : '')
+    setDefaultMessage(pref?.defaultMessage || '')
+    setOpenMessageDialog(true)
+  }
+
+  const handleCloseMessageDialog = () => {
+    setOpenMessageDialog(false)
+    setEditingProgramId(null)
+    setEditingNode(null)
+    setMessageText('')
+    setDefaultMessage('')
+  }
+
+  const handleSaveMessage = async () => {
+    if (!editingProgramId || !editingNode) return
+
+    try {
+      await api.put(
+        `/program-notification-preferences/program/${editingProgramId}/node/${editingNode}`,
+        null,
+        {
+          params: { message: messageText.trim() || null },
+        },
+      )
+
+      // Reload program preferences
+      const res = await api.get(`/program-notification-preferences/program/${editingProgramId}`)
+      setProgramPreferences((prev) => ({
+        ...prev,
+        [editingProgramId]: res.data,
+      }))
+
+      handleCloseMessageDialog()
+      alert('Message updated successfully!')
+    } catch (error) {
+      console.error('Error updating message:', error)
+      alert('Failed to update message: ' + (error.response?.data?.message || error.message))
+    }
+  }
+
+  const handleResetMessage = async () => {
+    if (!editingProgramId || !editingNode) return
+
+    try {
+      await api.post(
+        `/program-notification-preferences/program/${editingProgramId}/node/${editingNode}/reset-message`,
+      )
+
+      // Reload program preferences
+      const res = await api.get(`/program-notification-preferences/program/${editingProgramId}`)
+      setProgramPreferences((prev) => ({
+        ...prev,
+        [editingProgramId]: res.data,
+      }))
+
+      // Update dialog to show default message
+      const pref = res.data.find((p) => p.nodeNumber === editingNode)
+      setMessageText(pref?.defaultMessage || '')
+      alert('Message reset to default!')
+    } catch (error) {
+      console.error('Error resetting message:', error)
+      alert('Failed to reset message: ' + (error.response?.data?.message || error.message))
     }
   }
 
@@ -361,27 +439,37 @@ const Workflow = () => {
                                         />
                                       )}
                                     </Box>
-                                    <FormControlLabel
-                                      control={
-                                        <Switch
-                                          size="small"
-                                          checked={!!enabled}
-                                          onChange={() =>
-                                            handleToggleProgramPreference(
-                                              program.id,
-                                              nodeNum,
-                                              !!enabled,
-                                            )
-                                          }
-                                        />
-                                      }
-                                      label={
-                                        <Typography variant="caption">
-                                          {enabled ? 'On' : 'Off'}
-                                        </Typography>
-                                      }
-                                      sx={{ ml: 2 }}
-                                    />
+                                    <Box display="flex" alignItems="center" gap={1}>
+                                      <IconButton
+                                        size="small"
+                                        onClick={() => handleOpenMessageDialog(program.id, nodeNum)}
+                                        title="Edit message"
+                                        sx={{ color: 'primary.main' }}
+                                      >
+                                        <EditIcon fontSize="small" />
+                                      </IconButton>
+                                      <FormControlLabel
+                                        control={
+                                          <Switch
+                                            size="small"
+                                            checked={!!enabled}
+                                            onChange={() =>
+                                              handleToggleProgramPreference(
+                                                program.id,
+                                                nodeNum,
+                                                !!enabled,
+                                              )
+                                            }
+                                          />
+                                        }
+                                        label={
+                                          <Typography variant="caption">
+                                            {enabled ? 'On' : 'Off'}
+                                          </Typography>
+                                        }
+                                        sx={{ ml: 0 }}
+                                      />
+                                    </Box>
                                   </Box>
                                 </StepLabel>
                               </Step>
@@ -461,6 +549,61 @@ const Workflow = () => {
             </Button>
           )}
           <Button onClick={() => setOpenMissingDialog(false)}>Close</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Message Editing Dialog */}
+      <Dialog
+        open={openMessageDialog}
+        onClose={handleCloseMessageDialog}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>
+          Edit Notification Message - {editingNode && STEP_NAMES[editingNode - 1]}
+        </DialogTitle>
+        <DialogContent sx={{ maxHeight: '70vh', overflowY: 'auto' }}>
+          <Alert severity="info" sx={{ mb: 2 }}>
+            Customize the notification message for this workflow step. Use {'{programTitle}'} as a
+            placeholder for the program title.
+          </Alert>
+
+          <TextField
+            fullWidth
+            multiline
+            rows={6}
+            label="Default Message"
+            value={defaultMessage}
+            disabled
+            variant="outlined"
+            sx={{ mb: 2 }}
+            helperText="This is the default message. You can customize it below."
+          />
+
+          <TextField
+            fullWidth
+            multiline
+            rows={6}
+            label="Custom Message (leave empty to use default)"
+            value={messageText}
+            onChange={(e) => setMessageText(e.target.value)}
+            variant="outlined"
+            placeholder={defaultMessage}
+            helperText={
+              messageText.trim() === defaultMessage || messageText.trim() === ''
+                ? 'Currently using default message'
+                : 'Custom message will be used for notifications'
+            }
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleResetMessage} color="secondary">
+            Reset to Default
+          </Button>
+          <Button onClick={handleCloseMessageDialog}>Cancel</Button>
+          <Button onClick={handleSaveMessage} variant="contained" color="primary">
+            Save
+          </Button>
         </DialogActions>
       </Dialog>
     </Box>

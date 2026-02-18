@@ -481,12 +481,33 @@ public class ProgramWorkflowService {
             }
         }
         
-        // Get global notification message template (still used for message text)
-        NotificationPreference globalPreference = notificationPreferenceRepository
-                .findByNodeNumber(currentNode)
+        // Get message template: check program-level first, then fallback to global
+        String messageTemplate = null;
+        
+        // Check for program-level custom message
+        ProgramNotificationPreference programPreference = programNotificationPreferenceRepository
+                .findByProgramAndNodeNumber(program, currentNode)
                 .orElse(null);
+        
+        if (programPreference != null && programPreference.getMessage() != null 
+                && !programPreference.getMessage().trim().isEmpty()) {
+            messageTemplate = programPreference.getMessage();
+            log.debug("[NOTIFICATION MESSAGE] Program: {} (ID: {}) | Node: {} | Using program-level custom message", 
+                    program.getTitle(), program.getId(), currentNode);
+        } else {
+            // Fallback to global message
+            NotificationPreference globalPreference = notificationPreferenceRepository
+                    .findByNodeNumber(currentNode)
+                    .orElse(null);
+            
+            if (globalPreference != null && globalPreference.getNotificationMessage() != null) {
+                messageTemplate = globalPreference.getNotificationMessage();
+                log.debug("[NOTIFICATION MESSAGE] Program: {} (ID: {}) | Node: {} | Using global default message", 
+                        program.getTitle(), program.getId(), currentNode);
+            }
+        }
 
-        if (globalPreference == null || globalPreference.getNotificationMessage() == null) {
+        if (messageTemplate == null || messageTemplate.trim().isEmpty()) {
             log.warn("[NOTIFICATION SKIPPED] Program: {} (ID: {}) | Node: {} | Reason: No notification message template found for node {}", 
                     program.getTitle(), program.getId(), currentNode, currentNode);
             return;
@@ -507,7 +528,7 @@ public class ProgramWorkflowService {
         }
 
         // Prepare message based on recipient type
-        String message = prepareMessageForRecipients(globalPreference.getNotificationMessage(), 
+        String message = prepareMessageForRecipients(messageTemplate, 
                 program, currentNode, recipients);
 
         // Log the message being sent (truncate if too long for readability)

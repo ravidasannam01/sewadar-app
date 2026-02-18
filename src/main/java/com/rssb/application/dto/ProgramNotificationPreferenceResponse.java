@@ -16,5 +16,8 @@ public class ProgramNotificationPreferenceResponse {
     private String nodeName;
     private Boolean enabled; // null = use global, true/false = override
     private Boolean effectiveEnabled; // Final effective value (program-level or global)
+    private String message; // null = use global message, non-null = custom program-level message
+    private String defaultMessage; // Global/default message for this node (for reset functionality)
+    private Boolean isCustomMessage; // true if message is program-specific (not null), false if using default
 }
 

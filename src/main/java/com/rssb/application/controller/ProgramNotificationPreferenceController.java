@@ -28,8 +28,16 @@ public class ProgramNotificationPreferenceController {
     public ResponseEntity<ProgramNotificationPreferenceResponse> updatePreference(
             @PathVariable Long programId,
             @PathVariable Integer nodeNumber,
-            @RequestParam(required = false) Boolean enabled) {
-        return ResponseEntity.ok(preferenceService.updatePreference(programId, nodeNumber, enabled));
+            @RequestParam(required = false) Boolean enabled,
+            @RequestParam(required = false) String message) {
+        return ResponseEntity.ok(preferenceService.updatePreference(programId, nodeNumber, enabled, message));
+    }
+    
+    @PostMapping("/program/{programId}/node/{nodeNumber}/reset-message")
+    public ResponseEntity<ProgramNotificationPreferenceResponse> resetMessageToDefault(
+            @PathVariable Long programId,
+            @PathVariable Integer nodeNumber) {
+        return ResponseEntity.ok(preferenceService.resetMessageToDefault(programId, nodeNumber));
     }
 }
 
