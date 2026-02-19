@@ -35,6 +35,9 @@ public class ProgramWorkflowService {
     private final WhatsAppService whatsAppService;
     private final EmailService emailService;
     
+    @Value("${whatsapp.mode:api}")
+    private String whatsappMode;
+    
     // Notification configuration for all workflow steps
     @Value("${notification.step1.recipients:INCHARGES}")
     private String step1Recipients;
@@ -542,21 +545,51 @@ public class ProgramWorkflowService {
         // Send notifications
         int emailSentCount = 0;
         int whatsappSentCount = 0;
-        for (Sewadar recipient : recipients) {
-            if (useWhatsApp && recipient.getMobile() != null && !recipient.getMobile().isEmpty()) {
-                boolean whatsappSent = whatsAppService.sendMessage(recipient.getMobile(), message);
-                if (whatsappSent) {
-                    whatsappSentCount++;
+        
+        // For WhatsApp: Collect all recipients with mobile numbers, then send batch email (if email-bridge mode)
+        if (useWhatsApp) {
+            java.util.List<String> whatsappRecipients = new java.util.ArrayList<>();
+            for (Sewadar recipient : recipients) {
+                if (recipient.getMobile() != null && !recipient.getMobile().isEmpty()) {
+                    whatsappRecipients.add(recipient.getMobile());
+                } else {
+                    log.warn("[WHATSAPP SKIPPED] Program: {} | Node: {} | Recipient: {} | Reason: No mobile number", 
+                            program.getTitle(), currentNode, recipient.getZonalId());
                 }
-                log.info("[WHATSAPP ATTEMPT] Program: {} | Node: {} | Recipient: {} ({}) | Mobile: {} | Status: {} | Message: {}", 
-                        program.getTitle(), currentNode, recipient.getZonalId(), 
-                        recipient.getFirstName() + " " + recipient.getLastName(), 
-                        recipient.getMobile(), whatsappSent ? "SENT" : "FAILED", messagePreview);
-            } else if (useWhatsApp && (recipient.getMobile() == null || recipient.getMobile().isEmpty())) {
-                log.warn("[WHATSAPP SKIPPED] Program: {} | Node: {} | Recipient: {} | Reason: No mobile number", 
-                        program.getTitle(), currentNode, recipient.getZonalId());
             }
             
+            if (!whatsappRecipients.isEmpty()) {
+                // Check if using email-bridge mode (sends one email with all recipients)
+                // Otherwise, send individually via API
+                if ("email-bridge".equals(whatsappMode)) {
+                    // Send ONE email with all recipients
+                    boolean batchSent = whatsAppService.sendBatchMessages(
+                        whatsappRecipients, 
+                        message, 
+                        program.getTitle(), 
+                        currentNode
+                    );
+                    if (batchSent) {
+                        whatsappSentCount = whatsappRecipients.size();
+                        log.info("[WHATSAPP BATCH] Program: {} | Node: {} | Sent batch email for {} recipients", 
+                                program.getTitle(), currentNode, whatsappRecipients.size());
+                    }
+                } else {
+                    // Send individually via API
+                    for (String mobile : whatsappRecipients) {
+                        boolean whatsappSent = whatsAppService.sendMessage(mobile, message);
+                        if (whatsappSent) {
+                            whatsappSentCount++;
+                        }
+                        log.info("[WHATSAPP ATTEMPT] Program: {} | Node: {} | Mobile: {} | Status: {} | Message: {}", 
+                                program.getTitle(), currentNode, mobile, whatsappSent ? "SENT" : "FAILED", messagePreview);
+                    }
+                }
+            }
+        }
+        
+        // For Email: Send individually (normal email notifications)
+        for (Sewadar recipient : recipients) {
             if (useEmail && recipient.getEmailId() != null && !recipient.getEmailId().isEmpty()) {
                 String subject = "Program Notification: " + program.getTitle();
                 boolean emailSent = emailService.sendEmail(recipient.getEmailId(), subject, message);
@@ -828,28 +861,58 @@ public class ProgramWorkflowService {
         int whatsappSentCount = 0;
         int whatsappFailedCount = 0;
         
+        // For WhatsApp: Collect all recipients with mobile numbers, then send batch email (if email-bridge mode)
+        if (useWhatsApp) {
+            java.util.List<String> whatsappRecipients = new java.util.ArrayList<>();
+            for (com.rssb.application.dto.SewadarResponse sewadar : missing) {
+                if (sewadar.getMobile() != null && !sewadar.getMobile().isEmpty()) {
+                    whatsappRecipients.add(sewadar.getMobile());
+                } else {
+                    log.warn("[MISSING FORMS WHATSAPP] Skipped {} - No mobile number", sewadar.getZonalId());
+                }
+            }
+            
+            if (!whatsappRecipients.isEmpty()) {
+                // Check if using email-bridge mode (sends one email with all recipients)
+                if ("email-bridge".equals(whatsappMode)) {
+                    // Send ONE email with all recipients
+                    boolean batchSent = whatsAppService.sendBatchMessages(
+                        whatsappRecipients, 
+                        baseMessage, 
+                        program.getTitle(), 
+                        4 // Node 4 for missing forms reminder
+                    );
+                    if (batchSent) {
+                        whatsappSentCount = whatsappRecipients.size();
+                        log.info("[MISSING FORMS WHATSAPP BATCH] Program: {} | Sent batch email for {} recipients", 
+                                program.getTitle(), whatsappRecipients.size());
+                    } else {
+                        whatsappFailedCount = whatsappRecipients.size();
+                    }
+                } else {
+                    // Send individually via API
+                    for (String mobile : whatsappRecipients) {
+                        try {
+                            boolean whatsappSent = whatsAppService.sendMessage(mobile, baseMessage);
+                            if (whatsappSent) {
+                                whatsappSentCount++;
+                            } else {
+                                whatsappFailedCount++;
+                            }
+                            log.info("[MISSING FORMS WHATSAPP] Program: {} | Mobile: {} | Status: {} | Message: {}", 
+                                    program.getTitle(), mobile, whatsappSent ? "SENT" : "FAILED", messagePreview);
+                        } catch (Exception e) {
+                            whatsappFailedCount++;
+                            log.error("[MISSING FORMS WHATSAPP] Failed to send to {}: {}", mobile, e.getMessage(), e);
+                        }
+                    }
+                }
+            }
+        }
+        
+        // For Email: Send individually (normal email notifications)
         for (com.rssb.application.dto.SewadarResponse sewadar : missing) {
             log.debug("[MISSING FORMS] Processing recipient: {} ({})", sewadar.getZonalId(), sewadar.getEmailId());
-            
-            if (useWhatsApp && sewadar.getMobile() != null && !sewadar.getMobile().isEmpty()) {
-                try {
-                    boolean whatsappSent = whatsAppService.sendMessage(sewadar.getMobile(), baseMessage);
-                    if (whatsappSent) {
-                        whatsappSentCount++;
-                    } else {
-                        whatsappFailedCount++;
-                    }
-                    log.info("[MISSING FORMS WHATSAPP] Program: {} | Recipient: {} ({}) | Mobile: {} | Status: {} | Message: {}", 
-                            program.getTitle(), sewadar.getZonalId(), 
-                            sewadar.getFirstName() + " " + sewadar.getLastName(), 
-                            sewadar.getMobile(), whatsappSent ? "SENT" : "FAILED", messagePreview);
-                } catch (Exception e) {
-                    whatsappFailedCount++;
-                    log.error("[MISSING FORMS WHATSAPP] Failed to send to {}: {}", sewadar.getZonalId(), e.getMessage(), e);
-                }
-            } else if (useWhatsApp) {
-                log.warn("[MISSING FORMS WHATSAPP] Skipped {} - No mobile number", sewadar.getZonalId());
-            }
             
             if (useEmail && sewadar.getEmailId() != null && !sewadar.getEmailId().isEmpty()) {
                 try {
