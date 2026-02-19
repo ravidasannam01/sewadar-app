@@ -1,0 +1,576 @@
+====================================================================================================
+PROGRAM AND USER CREATION SCRIPT - CURL COMMANDS AND RESPONSES
+Generated at: 2026-02-18 23:18:02
+====================================================================================================
+
+
+====================================================================================================
+STEP: Check bootstrap status
+====================================================================================================
+
+CURL COMMAND:
+----------------------------------------------------------------------------------------------------
+curl -X GET 'http://localhost:8080/api/bootstrap/status' \
+  -H 'Content-Type: application/json'
+----------------------------------------------------------------------------------------------------
+
+RESPONSE:
+----------------------------------------------------------------------------------------------------
+Status Code: 200
+Status: 
+
+Response Body (JSON):
+{
+  "needsBootstrap": true,
+  "hasAdmin": false,
+  "hasIncharge": false,
+  "message": "No admin or incharge found. Please create the first admin or incharge."
+}
+----------------------------------------------------------------------------------------------------
+
+
+====================================================================================================
+STEP: Create bootstrap admin
+====================================================================================================
+
+CURL COMMAND:
+----------------------------------------------------------------------------------------------------
+curl -X POST 'http://localhost:8080/api/bootstrap/create-admin' \
+  -H 'Content-Type: application/json' \
+  -d '{
+  "firstName": "Admin",
+  "lastName": "User",
+  "zonalId": "ADMIN001",
+  "location": "BEAS",
+  "mobile": "919999000001",
+  "password": "admin123",
+  "emailId": "sawisam08@gmail.com"
+}'
+----------------------------------------------------------------------------------------------------
+
+RESPONSE:
+----------------------------------------------------------------------------------------------------
+Status Code: 201
+Status: 
+
+Response Body (JSON):
+{
+  "zonalId": "ADMIN001",
+  "firstName": "Admin",
+  "lastName": "User",
+  "location": "BEAS",
+  "mobile": "919999000001",
+  "address": null,
+  "remarks": null,
+  "role": "ADMIN",
+  "joiningDate": null,
+  "profession": null,
+  "dateOfBirth": null,
+  "emergencyContact": null,
+  "emergencyContactRelationship": null,
+  "photoUrl": null,
+  "aadharNumber": null,
+  "languages": null,
+  "fatherHusbandName": null,
+  "gender": null,
+  "screenerCode": null,
+  "satsangPlace": null,
+  "emailId": "sawisam08@gmail.com"
+}
+----------------------------------------------------------------------------------------------------
+
+
+====================================================================================================
+STEP: Create bootstrap incharge
+====================================================================================================
+
+CURL COMMAND:
+----------------------------------------------------------------------------------------------------
+curl -X POST 'http://localhost:8080/api/bootstrap/create-incharge' \
+  -H 'Content-Type: application/json' \
+  -d '{
+  "firstName": "Incharge",
+  "lastName": "User",
+  "zonalId": "INCH001",
+  "location": "BEAS",
+  "mobile": "919999000002",
+  "password": "incharge123",
+  "emailId": "ramaa8500601@gmail.com",
+  "address1": "123 Main Street",
+  "address2": "Sector 5",
+  "email": "incharge.address@example.com",
+  "profession": "Manager",
+  "joiningDate": "2020-01-15",
+  "dateOfBirth": "1985-05-20",
+  "emergencyContact": "919999000099",
+  "emergencyContactRelationship": "Spouse",
+  "aadharNumber": "123456789012",
+  "languages": [
+    "Hindi",
+    "English"
+  ],
+  "fatherHusbandName": "Incharge Father",
+  "gender": "MALE",
+  "screenerCode": "INCH001",
+  "satsangPlace": "BEAS Main Hall",
+  "remarks": "Bootstrap incharge user"
+}'
+----------------------------------------------------------------------------------------------------
+
+RESPONSE:
+----------------------------------------------------------------------------------------------------
+Status Code: 201
+Status: 
+
+Response Body (JSON):
+{
+  "zonalId": "INCH001",
+  "firstName": "Incharge",
+  "lastName": "User",
+  "location": "BEAS",
+  "mobile": "919999000002",
+  "address": {
+    "id": 1,
+    "address1": "123 Main Street",
+    "address2": "Sector 5",
+    "email": "incharge.address@example.com"
+  },
+  "remarks": "Bootstrap incharge user",
+  "role": "INCHARGE",
+  "joiningDate": "2020-01-15",
+  "profession": "Manager",
+  "dateOfBirth": "1985-05-20",
+  "emergencyContact": "919999000099",
+  "emergencyContactRelationship": "Spouse",
+  "photoUrl": null,
+  "aadharNumber": "123456789012",
+  "languages": [
+    "Hindi",
+    "English"
+  ],
+  "fatherHusbandName": "Incharge Father",
+  "gender": "MALE",
+  "screenerCode": "INCH001",
+  "satsangPlace": "BEAS Main Hall",
+  "emailId": "ramaa8500601@gmail.com"
+}
+----------------------------------------------------------------------------------------------------
+
+
+====================================================================================================
+STEP: Login as ADMIN001
+====================================================================================================
+
+CURL COMMAND:
+----------------------------------------------------------------------------------------------------
+curl -X POST 'http://localhost:8080/api/auth/login' \
+  -H 'Content-Type: application/json' \
+  -d '{
+  "zonalId": "ADMIN001",
+  "password": "admin123"
+}'
+----------------------------------------------------------------------------------------------------
+
+RESPONSE:
+----------------------------------------------------------------------------------------------------
+Status Code: 200
+Status: 
+
+Response Body (JSON):
+{
+  "token": "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJBRE1JTjAwMSIsInJvbGUiOiJBRE1JTiIsImlhdCI6MTc3MTQzNjg4MiwiZXhwIjoxNzcxNTIzMjgyfQ.9iSJUUwjweeY2VWOJQ5e_eGuyoZjdeq5V9AsYEiqEUvht4aH6ug0A1belIIDz1vs67hToHzgqV99FxKWO0u6FA",
+  "tokenType": "Bearer",
+  "sewadar": {
+    "zonalId": "ADMIN001",
+    "firstName": "Admin",
+    "lastName": "User",
+    "location": "BEAS",
+    "mobile": "919999000001",
+    "address": null,
+    "remarks": null,
+    "role": "ADMIN",
+    "joiningDate": null,
+    "profession": null,
+    "dateOfBirth": null,
+    "emergencyContact": null,
+    "emergencyContactRelationship": null,
+    "photoUrl": null,
+    "aadharNumber": null,
+    "languages": null,
+    "fatherHusbandName": null,
+    "gender": null,
+    "screenerCode": null,
+    "satsangPlace": null,
+    "emailId": "sawisam08@gmail.com"
+  },
+  "expiresIn": 1771523282
+}
+----------------------------------------------------------------------------------------------------
+
+
+====================================================================================================
+STEP: Login as INCH001
+====================================================================================================
+
+CURL COMMAND:
+----------------------------------------------------------------------------------------------------
+curl -X POST 'http://localhost:8080/api/auth/login' \
+  -H 'Content-Type: application/json' \
+  -d '{
+  "zonalId": "INCH001",
+  "password": "incharge123"
+}'
+----------------------------------------------------------------------------------------------------
+
+RESPONSE:
+----------------------------------------------------------------------------------------------------
+Status Code: 200
+Status: 
+
+Response Body (JSON):
+{
+  "token": "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJJTkNIMDAxIiwicm9sZSI6IklOQ0hBUkdFIiwiaWF0IjoxNzcxNDM2ODgyLCJleHAiOjE3NzE1MjMyODJ9.SYRIDpJbPKtqE3VxSPfgG0bNO0bBKf9ccUry6ULeKaf1gEQaxAHUOso9UZlcB-BwGQrFetpl14eBqXs6VTxcng",
+  "tokenType": "Bearer",
+  "sewadar": {
+    "zonalId": "INCH001",
+    "firstName": "Incharge",
+    "lastName": "User",
+    "location": "BEAS",
+    "mobile": "919999000002",
+    "address": {
+      "id": 1,
+      "address1": "123 Main Street",
+      "address2": "Sector 5",
+      "email": "incharge.address@example.com"
+    },
+    "remarks": null,
+    "role": "INCHARGE",
+    "joiningDate": "2020-01-15",
+    "profession": "Manager",
+    "dateOfBirth": "1985-05-20",
+    "emergencyContact": "919999000099",
+    "emergencyContactRelationship": "Spouse",
+    "photoUrl": null,
+    "aadharNumber": "123456789012",
+    "languages": [
+      "Hindi",
+      "English"
+    ],
+    "fatherHusbandName": "Incharge Father",
+    "gender": "MALE",
+    "screenerCode": "INCH001",
+    "satsangPlace": "BEAS Main Hall",
+    "emailId": "ramaa8500601@gmail.com"
+  },
+  "expiresIn": 1771523282
+}
+----------------------------------------------------------------------------------------------------
+
+
+====================================================================================================
+STEP: Create sewadar SEW001 with complete data
+====================================================================================================
+
+CURL COMMAND:
+----------------------------------------------------------------------------------------------------
+curl -X POST 'http://localhost:8080/api/sewadars' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJBRE1JTjAwMSIsInJvbGUiOiJBRE1JTiIsImlhdCI6MTc3MTQzNjg4MiwiZXhwIjoxNzcxNTIzMjgyfQ.9iSJUUwjweeY2VWOJQ5e_eGuyoZjdeq5V9AsYEiqEUvht4aH6ug0A1belIIDz1vs67hToHzgqV99FxKWO0u6FA' \
+  -H 'Content-Type: application/json' \
+  -d '{
+  "firstName": "Sewadar",
+  "lastName": "User001",
+  "zonalId": "SEW001",
+  "location": "Mumbai",
+  "mobile": "91999900101",
+  "password": "sew123",
+  "emailId": "ramaa8500601@gmail.com",
+  "address1": "101 Street",
+  "address2": "Area 1",
+  "email": "sewadar1.address@example.com",
+  "profession": "Engineer",
+  "joiningDate": "2024-02-19",
+  "dateOfBirth": "2000-02-25",
+  "emergencyContact": "91999900201",
+  "emergencyContactRelationship": "Father",
+  "aadharNumber": "123456789001",
+  "languages": [
+    "Hindi",
+    "English"
+  ],
+  "fatherHusbandName": "Father001",
+  "gender": "MALE",
+  "screenerCode": "SCR001",
+  "satsangPlace": "BEAS Main Hall",
+  "remarks": "Test sewadar 1 with complete data"
+}'
+----------------------------------------------------------------------------------------------------
+
+RESPONSE:
+----------------------------------------------------------------------------------------------------
+Status Code: 201
+Status: 
+
+Response Body (JSON):
+{
+  "zonalId": "SEW001",
+  "firstName": "Sewadar",
+  "lastName": "User001",
+  "location": "Mumbai",
+  "mobile": "91999900101",
+  "address": {
+    "id": 2,
+    "address1": "101 Street",
+    "address2": "Area 1",
+    "email": "sewadar1.address@example.com"
+  },
+  "remarks": "Test sewadar 1 with complete data",
+  "role": "SEWADAR",
+  "joiningDate": "2024-02-19",
+  "profession": "Engineer",
+  "dateOfBirth": "2000-02-25",
+  "emergencyContact": "91999900201",
+  "emergencyContactRelationship": "Father",
+  "photoUrl": null,
+  "aadharNumber": "123456789001",
+  "languages": [
+    "Hindi",
+    "English"
+  ],
+  "fatherHusbandName": "Father001",
+  "gender": "MALE",
+  "screenerCode": "SCR001",
+  "satsangPlace": "BEAS Main Hall",
+  "emailId": "ramaa8500601@gmail.com"
+}
+----------------------------------------------------------------------------------------------------
+
+
+====================================================================================================
+STEP: Create sewadar SEW002 with complete data
+====================================================================================================
+
+CURL COMMAND:
+----------------------------------------------------------------------------------------------------
+curl -X POST 'http://localhost:8080/api/sewadars' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJBRE1JTjAwMSIsInJvbGUiOiJBRE1JTiIsImlhdCI6MTc3MTQzNjg4MiwiZXhwIjoxNzcxNTIzMjgyfQ.9iSJUUwjweeY2VWOJQ5e_eGuyoZjdeq5V9AsYEiqEUvht4aH6ug0A1belIIDz1vs67hToHzgqV99FxKWO0u6FA' \
+  -H 'Content-Type: application/json' \
+  -d '{
+  "firstName": "Sewadar",
+  "lastName": "User002",
+  "zonalId": "SEW002",
+  "location": "Delhi",
+  "mobile": "91999900102",
+  "password": "sew123",
+  "emailId": "sawanannam9@gmail.com",
+  "address1": "102 Street",
+  "address2": "Area 2",
+  "email": "sewadar2.address@example.com",
+  "profession": "Teacher",
+  "joiningDate": "2023-02-19",
+  "dateOfBirth": "1999-02-25",
+  "emergencyContact": "91999900202",
+  "emergencyContactRelationship": "Mother",
+  "aadharNumber": "123456789002",
+  "languages": [
+    "Hindi",
+    "Punjabi"
+  ],
+  "fatherHusbandName": "Father002",
+  "gender": "FEMALE",
+  "screenerCode": "SCR002",
+  "satsangPlace": "Delhi Center",
+  "remarks": "Test sewadar 2 with complete data"
+}'
+----------------------------------------------------------------------------------------------------
+
+RESPONSE:
+----------------------------------------------------------------------------------------------------
+Status Code: 201
+Status: 
+
+Response Body (JSON):
+{
+  "zonalId": "SEW002",
+  "firstName": "Sewadar",
+  "lastName": "User002",
+  "location": "Delhi",
+  "mobile": "91999900102",
+  "address": {
+    "id": 3,
+    "address1": "102 Street",
+    "address2": "Area 2",
+    "email": "sewadar2.address@example.com"
+  },
+  "remarks": "Test sewadar 2 with complete data",
+  "role": "SEWADAR",
+  "joiningDate": "2023-02-19",
+  "profession": "Teacher",
+  "dateOfBirth": "1999-02-25",
+  "emergencyContact": "91999900202",
+  "emergencyContactRelationship": "Mother",
+  "photoUrl": null,
+  "aadharNumber": "123456789002",
+  "languages": [
+    "Hindi",
+    "Punjabi"
+  ],
+  "fatherHusbandName": "Father002",
+  "gender": "FEMALE",
+  "screenerCode": "SCR002",
+  "satsangPlace": "Delhi Center",
+  "emailId": "sawanannam9@gmail.com"
+}
+----------------------------------------------------------------------------------------------------
+
+
+====================================================================================================
+STEP: Create sewadar SEW003 with complete data
+====================================================================================================
+
+CURL COMMAND:
+----------------------------------------------------------------------------------------------------
+curl -X POST 'http://localhost:8080/api/sewadars' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJBRE1JTjAwMSIsInJvbGUiOiJBRE1JTiIsImlhdCI6MTc3MTQzNjg4MiwiZXhwIjoxNzcxNTIzMjgyfQ.9iSJUUwjweeY2VWOJQ5e_eGuyoZjdeq5V9AsYEiqEUvht4aH6ug0A1belIIDz1vs67hToHzgqV99FxKWO0u6FA' \
+  -H 'Content-Type: application/json' \
+  -d '{
+  "firstName": "Sewadar",
+  "lastName": "User003",
+  "zonalId": "SEW003",
+  "location": "Mumbai",
+  "mobile": "91999900103",
+  "password": "sew123",
+  "emailId": "raghuyadav99591@gmail.com",
+  "address1": "103 Street",
+  "address2": "Area 3",
+  "email": "sewadar3.address@example.com",
+  "profession": "Doctor",
+  "joiningDate": "2025-02-18",
+  "dateOfBirth": "1998-02-25",
+  "emergencyContact": "91999900203",
+  "emergencyContactRelationship": "Spouse",
+  "aadharNumber": "123456789003",
+  "languages": [
+    "Hindi",
+    "English",
+    "Punjabi"
+  ],
+  "fatherHusbandName": "Father003",
+  "gender": "MALE",
+  "screenerCode": "SCR003",
+  "satsangPlace": "Mumbai Center",
+  "remarks": "Test sewadar 3 with complete data"
+}'
+----------------------------------------------------------------------------------------------------
+
+RESPONSE:
+----------------------------------------------------------------------------------------------------
+Status Code: 201
+Status: 
+
+Response Body (JSON):
+{
+  "zonalId": "SEW003",
+  "firstName": "Sewadar",
+  "lastName": "User003",
+  "location": "Mumbai",
+  "mobile": "91999900103",
+  "address": {
+    "id": 4,
+    "address1": "103 Street",
+    "address2": "Area 3",
+    "email": "sewadar3.address@example.com"
+  },
+  "remarks": "Test sewadar 3 with complete data",
+  "role": "SEWADAR",
+  "joiningDate": "2025-02-18",
+  "profession": "Doctor",
+  "dateOfBirth": "1998-02-25",
+  "emergencyContact": "91999900203",
+  "emergencyContactRelationship": "Spouse",
+  "photoUrl": null,
+  "aadharNumber": "123456789003",
+  "languages": [
+    "Hindi",
+    "English",
+    "Punjabi"
+  ],
+  "fatherHusbandName": "Father003",
+  "gender": "MALE",
+  "screenerCode": "SCR003",
+  "satsangPlace": "Mumbai Center",
+  "emailId": "raghuyadav99591@gmail.com"
+}
+----------------------------------------------------------------------------------------------------
+
+
+====================================================================================================
+STEP: Create scheduled program
+====================================================================================================
+
+CURL COMMAND:
+----------------------------------------------------------------------------------------------------
+curl -X POST 'http://localhost:8080/api/programs' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJJTkNIMDAxIiwicm9sZSI6IklOQ0hBUkdFIiwiaWF0IjoxNzcxNDM2ODgyLCJleHAiOjE3NzE1MjMyODJ9.SYRIDpJbPKtqE3VxSPfgG0bNO0bBKf9ccUry6ULeKaf1gEQaxAHUOso9UZlcB-BwGQrFetpl14eBqXs6VTxcng' \
+  -H 'Content-Type: application/json' \
+  -d '{
+  "title": "Scheduled Program - 2026-02-25",
+  "description": "Test program created in scheduled state for 2026-02-25",
+  "location": "BEAS",
+  "programDates": [
+    "2026-02-25"
+  ],
+  "status": "scheduled",
+  "maxSewadars": 30,
+  "lastDateToApply": "2026-02-23T23:18:02.896547",
+  "lastDateToSubmitForm": "2026-02-24T23:18:02.896547",
+  "createdById": "INCH001"
+}'
+----------------------------------------------------------------------------------------------------
+
+RESPONSE:
+----------------------------------------------------------------------------------------------------
+Status Code: 201
+Status: 
+
+Response Body (JSON):
+{
+  "id": 1,
+  "title": "Scheduled Program - 2026-02-25",
+  "description": "Test program created in scheduled state for 2026-02-25",
+  "location": "BEAS",
+  "locationType": "BEAS",
+  "programDates": [
+    "2026-02-25"
+  ],
+  "status": "scheduled",
+  "maxSewadars": 30,
+  "lastDateToApply": "2026-02-23T23:18:02.896547",
+  "lastDateToSubmitForm": "2026-02-24T23:18:02.896547",
+  "createdBy": {
+    "zonalId": "INCH001",
+    "firstName": "Incharge",
+    "lastName": "User",
+    "location": null,
+    "mobile": null,
+    "address": null,
+    "remarks": null,
+    "role": null,
+    "joiningDate": null,
+    "profession": null,
+    "dateOfBirth": null,
+    "emergencyContact": null,
+    "emergencyContactRelationship": null,
+    "photoUrl": null,
+    "aadharNumber": null,
+    "languages": null,
+    "fatherHusbandName": null,
+    "gender": null,
+    "screenerCode": null,
+    "satsangPlace": null,
+    "emailId": null
+  },
+  "applicationCount": 0,
+  "dropRequestsCount": 0
+}
+----------------------------------------------------------------------------------------------------
+
