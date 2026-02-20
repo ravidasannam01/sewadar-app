@@ -1053,8 +1053,23 @@ const Admin = () => {
         maxWidth="md"
         fullWidth
       >
-        <DialogTitle>
-          Attendance Summary - {selectedAppForAttendance?.sewadar?.firstName} {selectedAppForAttendance?.sewadar?.lastName}
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Box component="span">
+            Attendance Summary - {selectedAppForAttendance?.sewadar?.firstName} {selectedAppForAttendance?.sewadar?.lastName}
+          </Box>
+          <IconButton
+            size="small"
+            onClick={() => {
+              setOpenAttendanceSummaryDialog(false)
+              setSelectedAppForAttendance(null)
+              setAttendanceSummary(null)
+              setSelectedProgramForAttendance({})
+              setProgramAttendanceDetails({})
+            }}
+            aria-label="Close"
+          >
+            <CloseIcon fontSize="small" />
+          </IconButton>
         </DialogTitle>
         <DialogContent sx={{ maxHeight: '70vh', overflowY: 'auto' }}>
           {loading ? (
