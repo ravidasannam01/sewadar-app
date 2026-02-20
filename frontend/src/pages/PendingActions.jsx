@@ -13,8 +13,9 @@ import {
   Grid,
   Alert,
   CircularProgress,
+  IconButton,
 } from '@mui/material'
-import { Assignment as AssignmentIcon } from '@mui/icons-material'
+import { Assignment as AssignmentIcon, Close as CloseIcon } from '@mui/icons-material'
 // Using native datetime-local input for simplicity
 // Can upgrade to MUI DatePicker later if needed
 import api from '../services/api'
@@ -37,6 +38,7 @@ const PendingActions = () => {
     returnTrainFlightNo: '',
     stayInHotel: '',
     stayInPandal: '',
+    stayDetails: '', // Single combined field (frontend only; backend receives empty strings for stayInHotel/stayInPandal)
   })
   const [submitting, setSubmitting] = useState(false)
   const [nowMs, setNowMs] = useState(Date.now())
@@ -130,6 +132,7 @@ const PendingActions = () => {
       returnTrainFlightNo: '',
       stayInHotel: '',
       stayInPandal: '',
+      stayDetails: '',
     })
   }
 
@@ -216,7 +219,16 @@ const PendingActions = () => {
 
       {/* Form Dialog */}
       <Dialog open={openForm} onClose={handleCloseForm} maxWidth="md" fullWidth>
-        <DialogTitle>Travel Details Form - {selectedProgram?.title}</DialogTitle>
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Box component="span">Travel Details Form - {selectedProgram?.title}</Box>
+          <IconButton
+            size="small"
+            onClick={handleCloseForm}
+            aria-label="Close"
+          >
+            <CloseIcon fontSize="small" />
+          </IconButton>
+        </DialogTitle>
         <DialogContent sx={{ maxHeight: '70vh', overflowY: 'auto' }}>
           <Grid container spacing={2} sx={{ mt: 1 }}>
             {/* Name field removed - available from sewadar relationship */}
@@ -326,26 +338,14 @@ const PendingActions = () => {
                 Stay Details
               </Typography>
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid item xs={12}>
               <TextField
                 fullWidth
-                label="In Hotel"
+                label="Stay Details"
                 multiline
                 rows={3}
-                value={formData.stayInHotel}
-                onChange={(e) => setFormData({ ...formData, stayInHotel: e.target.value })}
-                placeholder="Enter hotel stay details"
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="In pandal"
-                multiline
-                rows={3}
-                value={formData.stayInPandal}
-                onChange={(e) => setFormData({ ...formData, stayInPandal: e.target.value })}
-                placeholder="Enter pandal stay details"
+                value={formData.stayDetails}
+                onChange={(e) => setFormData({ ...formData, stayDetails: e.target.value })}
               />
             </Grid>
           </Grid>
