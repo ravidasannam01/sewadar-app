@@ -257,6 +257,7 @@ const PendingActions = () => {
                   })
                 }
                 InputLabelProps={{ shrink: true }}
+                inputProps={{ min: toLocalDatetimeString(new Date()) }}
               />
             </Grid>
             <Grid item xs={12} sm={6}>
@@ -272,6 +273,7 @@ const PendingActions = () => {
                   })
                 }
                 InputLabelProps={{ shrink: true }}
+                inputProps={{ min: toLocalDatetimeString(new Date()) }}
               />
             </Grid>
             <Grid item xs={12}>
@@ -317,6 +319,7 @@ const PendingActions = () => {
                   })
                 }
                 InputLabelProps={{ shrink: true }}
+                inputProps={{ min: toLocalDatetimeString(new Date()) }}
               />
             </Grid>
             <Grid item xs={12} sm={6}>
