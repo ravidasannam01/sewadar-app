@@ -391,6 +391,23 @@ const Admin = () => {
     }
   }
 
+  const getApplicationStatusColor = (status) => {
+    switch (status) {
+      case 'APPROVED':
+        return 'success'
+      case 'REJECTED':
+        return 'error'
+      case 'PENDING':
+        return 'warning'
+      case 'DROP_REQUESTED':
+        return 'info'
+      case 'DROPPED':
+        return 'default'
+      default:
+        return 'default'
+    }
+  }
+
   const handleViewApplications = (program) => {
     setSelectedProgram(program)
     setOpenApplicationsDialog(true)
@@ -776,7 +793,11 @@ const Admin = () => {
                         </IconButton>
                       </TableCell>
                       <TableCell>
-                        <Chip label={app.status} size="small" />
+                        <Chip
+                          label={app.status}
+                          size="small"
+                          color={getApplicationStatusColor(app.status)}
+                        />
                       </TableCell>
                       <TableCell>
                         <Box display="flex" gap={1}>
