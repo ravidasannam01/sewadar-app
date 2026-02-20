@@ -171,12 +171,12 @@ const SewadarForm = ({ sewadar, onClose, onSuccess }) => {
         <Grid item xs={12} sm={6}>
           <TextField
             fullWidth
-            label="Zonal ID"
+            label="Screener ID"
             required={!sewadar}
             value={formData.zonalId}
             onChange={(e) => handleChange('zonalId', e.target.value)}
-            disabled={!!sewadar} // Cannot change zonalId after creation
-            helperText={sewadar ? 'Zonal ID cannot be changed' : 'Unique organizational identity (required)'}
+            disabled={!!sewadar}
+            helperText={sewadar ? 'Screener ID cannot be changed' : 'Unique organizational identity (required)'}
           />
         </Grid>
         <Grid item xs={12} sm={6}>
@@ -344,7 +344,7 @@ const SewadarForm = ({ sewadar, onClose, onSuccess }) => {
         <Grid item xs={12} sm={6}>
           <TextField
             fullWidth
-            label="Screener Code"
+            label="Zonal ID"
             value={formData.screenerCode}
             onChange={(e) => handleChange('screenerCode', e.target.value)}
           />

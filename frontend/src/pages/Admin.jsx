@@ -554,7 +554,7 @@ const Admin = () => {
             <Table stickyHeader size="small">
               <TableHead>
                 <TableRow>
-                  <TableCell>Zonal ID</TableCell>
+                  <TableCell>Screener ID</TableCell>
                   <TableCell>Name</TableCell>
                   <TableCell>Mobile</TableCell>
                   <TableCell>Location</TableCell>

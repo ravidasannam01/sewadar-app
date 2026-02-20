@@ -78,7 +78,7 @@ const Login = () => {
             <Box component="form" onSubmit={handleSubmit}>
               <TextField
                 fullWidth
-                label="Zonal ID"
+                label="Screener ID"
                 type="text"
                 value={zonalId}
                 onChange={(e) => setZonalId(e.target.value)}

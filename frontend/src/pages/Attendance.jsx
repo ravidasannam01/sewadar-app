@@ -418,7 +418,7 @@ const Attendance = () => {
                     <TableRow>
                       <TableCell>Select</TableCell>
                       <TableCell>Name</TableCell>
-                      <TableCell>Zonal ID</TableCell>
+                      <TableCell>Screener ID</TableCell>
                       <TableCell>Mobile</TableCell>
                     </TableRow>
                   </TableHead>
@@ -475,7 +475,7 @@ const Attendance = () => {
                       <TableHead>
                         <TableRow>
                           <TableCell>Name</TableCell>
-                          <TableCell>Zonal ID</TableCell>
+                          <TableCell>Screener ID</TableCell>
                           <TableCell>Mobile</TableCell>
                           <TableCell>Actions</TableCell>
                         </TableRow>
@@ -568,7 +568,7 @@ const Attendance = () => {
                 <TableHead>
                   <TableRow>
                     <TableCell>Name</TableCell>
-                    <TableCell>Zonal ID</TableCell>
+                    <TableCell>Screener ID</TableCell>
                     <TableCell>Mobile</TableCell>
                     <TableCell>Date</TableCell>
                     <TableCell>Notes</TableCell>

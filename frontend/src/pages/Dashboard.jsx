@@ -282,7 +282,7 @@ const Dashboard = () => {
   }
 
   const generateAttendanceCSV = (attendanceRecords) => {
-    const headers = ['Program', 'Program ID', 'Sewadar Zonal ID', 'Sewadar Name', 'Date', 'Status']
+    const headers = ['Program', 'Program ID', 'Sewadar Screener ID', 'Sewadar Name', 'Date', 'Status']
     const rows = attendanceRecords.map(record => {
       const programTitle = record.programTitle || `Program ${record.programId || ''}`
       const sewadarName = record.sewadar 
@@ -720,7 +720,7 @@ const Dashboard = () => {
               <Table stickyHeader size="small">
                 <TableHead>
                   <TableRow>
-                    <TableCell>Zonal ID</TableCell>
+                    <TableCell>Screener ID</TableCell>
                     <TableCell>Name</TableCell>
                     <TableCell>Mobile</TableCell>
                     <TableCell>Location</TableCell>
@@ -1082,7 +1082,7 @@ const Dashboard = () => {
               <Table stickyHeader size="small">
                 <TableHead>
                   <TableRow>
-                    <TableCell>Sewadar Zonal ID</TableCell>
+                    <TableCell>Sewadar Screener ID</TableCell>
                     <TableCell>Sewadar Name</TableCell>
                     <TableCell>Starting From Home</TableCell>
                     <TableCell>Reaching To Home</TableCell>
@@ -1234,7 +1234,7 @@ const Dashboard = () => {
                       <TableRow>
                     <TableCell>Program</TableCell>
                     <TableCell>Program ID</TableCell>
-                    <TableCell>Zonal ID</TableCell>
+                    <TableCell>Screener ID</TableCell>
                     <TableCell>Name</TableCell>
                     <TableCell>Date</TableCell>
                   </TableRow>
