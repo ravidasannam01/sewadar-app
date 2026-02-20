@@ -19,6 +19,18 @@ import { Assignment as AssignmentIcon, Close as CloseIcon } from '@mui/icons-mat
 // Using native datetime-local input for simplicity
 // Can upgrade to MUI DatePicker later if needed
 import api from '../services/api'
+
+/** Format date for datetime-local input in local time (IST). toISOString() uses UTC which is wrong for India. */
+function toLocalDatetimeString(date) {
+  if (!date) return ''
+  const d = new Date(date)
+  const year = d.getFullYear()
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  const hours = String(d.getHours()).padStart(2, '0')
+  const minutes = String(d.getMinutes()).padStart(2, '0')
+  return `${year}-${month}-${day}T${hours}:${minutes}`
+}
 import { useAuth } from '../contexts/AuthContext'
 import { formatCountdownHm, isPastDeadline, parseBackendLocalDateTime } from '../utils/countdown'
 
@@ -237,11 +249,7 @@ const PendingActions = () => {
                 fullWidth
                 type="datetime-local"
                 label="Starting Date and time from Home"
-                value={
-                  formData.startingDateTimeFromHome
-                    ? new Date(formData.startingDateTimeFromHome).toISOString().slice(0, 16)
-                    : ''
-                }
+                value={toLocalDatetimeString(formData.startingDateTimeFromHome)}
                 onChange={(e) =>
                   setFormData({
                     ...formData,
@@ -256,11 +264,7 @@ const PendingActions = () => {
                 fullWidth
                 type="datetime-local"
                 label="Reaching Date and time to Home"
-                value={
-                  formData.reachingDateTimeToHome
-                    ? new Date(formData.reachingDateTimeToHome).toISOString().slice(0, 16)
-                    : ''
-                }
+                value={toLocalDatetimeString(formData.reachingDateTimeToHome)}
                 onChange={(e) =>
                   setFormData({
                     ...formData,
@@ -280,11 +284,7 @@ const PendingActions = () => {
                 fullWidth
                 type="datetime-local"
                 label="Onward Train/Flight date and time"
-                value={
-                  formData.onwardTrainFlightDateTime
-                    ? new Date(formData.onwardTrainFlightDateTime).toISOString().slice(0, 16)
-                    : ''
-                }
+                value={toLocalDatetimeString(formData.onwardTrainFlightDateTime)}
                 onChange={(e) =>
                   setFormData({
                     ...formData,
@@ -309,11 +309,7 @@ const PendingActions = () => {
                 fullWidth
                 type="datetime-local"
                 label="Return Train/Flight date and time"
-                value={
-                  formData.returnTrainFlightDateTime
-                    ? new Date(formData.returnTrainFlightDateTime).toISOString().slice(0, 16)
-                    : ''
-                }
+                value={toLocalDatetimeString(formData.returnTrainFlightDateTime)}
                 onChange={(e) =>
                   setFormData({
                     ...formData,
