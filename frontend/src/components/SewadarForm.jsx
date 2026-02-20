@@ -121,7 +121,7 @@ const SewadarForm = ({ sewadar, onClose, onSuccess }) => {
         remarks: formData.remarks,
         address1: formData.address1,
         address2: formData.address2,
-        email: formData.email,
+        email: '',
         fatherHusbandName: formData.fatherHusbandName || null,
         gender: formData.gender || null,
         screenerCode: formData.screenerCode || null,
@@ -364,16 +364,6 @@ const SewadarForm = ({ sewadar, onClose, onSuccess }) => {
             type="email"
             value={formData.emailId}
             onChange={(e) => handleChange('emailId', e.target.value)}
-          />
-        </Grid>
-        <Grid item xs={12} sm={6}>
-          <TextField
-            fullWidth
-            label="Email (Address)"
-            type="email"
-            value={formData.email}
-            onChange={(e) => handleChange('email', e.target.value)}
-            helperText="Email in address (legacy field)"
           />
         </Grid>
         <Grid item xs={12}>
