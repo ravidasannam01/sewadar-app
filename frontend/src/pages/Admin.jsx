@@ -982,8 +982,18 @@ const Admin = () => {
         setOpenSewadarForm(false)
         setSelectedSewadar(null)
       }} maxWidth="md" fullWidth>
-        <DialogTitle>
-          {selectedSewadar ? 'Edit Sewadar' : 'Add Sewadar'}
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Box component="span">{selectedSewadar ? 'Edit Sewadar' : 'Add Sewadar'}</Box>
+          <IconButton
+            size="small"
+            onClick={() => {
+              setOpenSewadarForm(false)
+              setSelectedSewadar(null)
+            }}
+            aria-label="Close"
+          >
+            <CloseIcon fontSize="small" />
+          </IconButton>
         </DialogTitle>
         <DialogContent sx={{ maxHeight: '70vh', overflowY: 'auto' }}>
           <SewadarForm
