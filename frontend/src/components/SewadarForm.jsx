@@ -13,6 +13,7 @@ import {
 } from '@mui/material'
 import { Add as AddIcon, Delete as DeleteIcon } from '@mui/icons-material'
 import api from '../services/api'
+import { getAgeFromDateOfBirth } from '../utils/dateUtils'
 
 const SewadarForm = ({ sewadar, onClose, onSuccess }) => {
   const [formData, setFormData] = useState({
@@ -223,6 +224,15 @@ const SewadarForm = ({ sewadar, onClose, onSuccess }) => {
             value={formData.dateOfBirth}
             onChange={(e) => handleChange('dateOfBirth', e.target.value)}
             InputLabelProps={{ shrink: true }}
+          />
+        </Grid>
+        <Grid item xs={12} sm={6}>
+          <TextField
+            fullWidth
+            label="Age"
+            value={formData.dateOfBirth ? getAgeFromDateOfBirth(formData.dateOfBirth) : ''}
+            disabled
+            helperText="Derived from Date of Birth"
           />
         </Grid>
         <Grid item xs={12} sm={6}>

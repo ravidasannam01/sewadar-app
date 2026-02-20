@@ -43,6 +43,10 @@ const ProgramForm = ({ program, onClose, onSuccess }) => {
   }, [program])
 
   const handleChange = (field, value) => {
+    if (field === 'maxSewadars' && value !== '') {
+      const num = parseInt(value, 10)
+      if (isNaN(num) || num < 1) return
+    }
     setFormData((prev) => ({ ...prev, [field]: value }))
   }
 
@@ -74,6 +78,13 @@ const ProgramForm = ({ program, onClose, onSuccess }) => {
 
     if (dates.length === 0) {
       alert('Please add at least one program date')
+      setLoading(false)
+      return
+    }
+
+    const maxSew = formData.maxSewadars ? parseInt(formData.maxSewadars, 10) : null
+    if (maxSew !== null && (isNaN(maxSew) || maxSew < 1)) {
+      alert('Max Sewadars must be a positive number (min: 1)')
       setLoading(false)
       return
     }
@@ -160,6 +171,8 @@ const ProgramForm = ({ program, onClose, onSuccess }) => {
         value={formData.maxSewadars}
         onChange={(e) => handleChange('maxSewadars', e.target.value)}
         margin="normal"
+        inputProps={{ min: 1, step: 1 }}
+        helperText="Positive numbers only (min: 1)"
       />
 
       <TextField

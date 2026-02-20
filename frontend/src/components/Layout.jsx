@@ -43,6 +43,7 @@ import ContactEmergencyIcon from '@mui/icons-material/ContactEmergency'
 import BadgeIcon from '@mui/icons-material/Badge'
 import HomeIcon from '@mui/icons-material/Home'
 import NotesIcon from '@mui/icons-material/Notes'
+import { getAgeFromDateOfBirth } from '../utils/dateUtils'
 
 const Layout = () => {
   const { user, logout } = useAuth()
@@ -598,6 +599,16 @@ const Layout = () => {
                             month: 'long',
                             day: 'numeric',
                           })}
+                        </Typography>
+                      </Box>
+                    )}
+                    {user?.dateOfBirth && getAgeFromDateOfBirth(user.dateOfBirth) !== '' && (
+                      <Box>
+                        <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>
+                          Age
+                        </Typography>
+                        <Typography variant="body2">
+                          {getAgeFromDateOfBirth(user.dateOfBirth)} years
                         </Typography>
                       </Box>
                     )}
