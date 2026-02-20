@@ -948,8 +948,18 @@ const Admin = () => {
         setOpenProgramForm(false)
         setSelectedProgram(null)
       }} maxWidth="md" fullWidth>
-        <DialogTitle>
-          {selectedProgram ? 'Edit Program' : 'Create Program'}
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Box component="span">{selectedProgram ? 'Edit Program' : 'Create Program'}</Box>
+          <IconButton
+            size="small"
+            onClick={() => {
+              setOpenProgramForm(false)
+              setSelectedProgram(null)
+            }}
+            aria-label="Close"
+          >
+            <CloseIcon fontSize="small" />
+          </IconButton>
         </DialogTitle>
         <DialogContent sx={{ maxHeight: '70vh', overflowY: 'auto' }}>
           <ProgramForm
